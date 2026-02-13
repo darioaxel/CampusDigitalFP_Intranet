@@ -1,75 +1,34 @@
-# Nuxt Minimal Starter
+# Campus Digital FP - Intranet
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## ¿Qué necesito en un MVP?
+* Interfaz con sidebar y una landingpage
+* Prisma para Conexión con base de datos
+* Login con Google
+* Solicitudes
+* Tipos de usuarios:
+  * Profesor - Tiene clases, horario
+  * Jefe de Departamento - 
+  * Root
+  * Administracion - No tiene clases, el horario viene fijado
+  * Jefatura
+* Modelos
+  * DEPARTAMENTO - tiene un - JEFE DEPARTAMENTO
+  * JEFE DEPARTAMENTO - es un - PROFESOR
+  * DEPARTAMENTO - tiene 1 o N - PROFESOR
+  * Un PROFESOR - pertenece 1 o N - DEPARTAMENTO
+* Calendario del docente
+  * JdD: quiero poder generar la plantilla de horarios.
+  * JdD: quiero poder asignar módulos a cada profesor.
+  * P: quiero poder crear mi horario en base a la plantilla.  
+* Tareas
+  * JdD: quiero poder asignar tareas a los profesores.
+  * JdD: quiero poder crear tareas de tipo (template).
+* Solicitudes
+  * P: quiero poder hacer solicitudes varias que conllevan múltiples pasos.
 
-## Setup
-
-Make sure to install dependencies:
-
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+### VISTAS
+* Vista Landing (Blog de noticias)
+* Vista Dashboard - USUARIO
+  * Horario si PROFESOR
+  * Tareas
+  * Noticias
