@@ -16,5 +16,10 @@ export default defineNuxtConfig({
      * @default "@/components/ui"
      */
     componentDir: '~/components/ui'
+  },
+  nitro: {
+    externals: {
+      inline: ['@prisma/client', '@prisma/config']
+    }
   }
 })
