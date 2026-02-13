@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import './assets/css/tailwind.css'
+import { Toaster } from '~/components/ui/sonner'
 </script>
 
 <template>
   <div>
-    <Button>Click me</Button>
+    <Toaster />
+    <NuxtPage />
   </div>
 </template>

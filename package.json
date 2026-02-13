@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@dnd-kit/vue": "^0.2.3",
     "@nuxt/eslint": "1.15.1",
     "@nuxt/fonts": "0.13.0",
     "@nuxt/hints": "1.0.0-alpha.6",
@@ -17,6 +18,10 @@
     "@nuxt/image": "2.0.0",
     "@nuxtjs/color-mode": "4.0.0",
     "@nuxtjs/mdc": "0.20.1",
+    "@tabler/icons-vue": "^3.36.1",
+    "@tanstack/vue-table": "^8.21.3",
+    "@unovis/vue": "^1.6.4",
+    "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.563.0",
@@ -26,7 +31,9 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "vue": "^3.5.28",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "vue-sonner": "^2.0.9",
+    "zod": "^4.3.6"
   },
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac",
   "devDependencies": {
