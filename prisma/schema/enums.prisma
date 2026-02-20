@@ -7,3 +7,21 @@ enum Role {
   ADMIN
   ROOT
 }
+
+// HORARIOS --------------------
+// enums.prisma (o al inicio de schema.prisma)
+enum ScheduleType {
+  NORMAL
+  EXAMENES
+  EXTRAORDINARIO  
+}
+
+enum DayOfWeek {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}

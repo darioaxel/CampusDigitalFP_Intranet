@@ -1,0 +1,52 @@
+// schedules.prisma
+model Schedule {
+  id          String        @id @default(uuid())
+  name        String        // "Horario Curso 2024", "Exámenes Septiembre"
+  description String?
+  isActive    Boolean       @default(true)
+  type        ScheduleType  @default(NORMAL)
+  validFrom   DateTime?     // Vigencia opcional del horario completo
+  validUntil  DateTime?
+  color       String?       // Para UI (ej: "#FF5733")
+  
+  // Relación con User
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Bloques de tiempo
+  blocks      ScheduleBlock[]
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId, isActive])
+  @@index([type])
+  @@index([validFrom, validUntil])
+}
+
+model ScheduleBlock {
+  id          String     @id @default(uuid())
+  
+  // Relación
+  scheduleId  String
+  schedule    Schedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  // Tiempo: uso String "HH:MM" (24h) para evitar problemas de zona horaria y fechas dummy
+  // Alternativa: Int (minutos desde 00:00) si necesitas cálculos matemáticos frecuentes
+  startTime   String     // "08:30"
+  endTime     String     // "14:00"
+  
+  // Estructura semanal
+  dayOfWeek   DayOfWeek
+  room        String?    // Aula, despacho, ubicación
+  subject     String?    // Asignatura/actividad
+  
+  // Validación: endTime > startTime (la harás en lógica de negocio)
+  isBreak     Boolean    @default(false) // Es recreo/pausa
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([scheduleId, dayOfWeek])
+  @@unique([scheduleId, dayOfWeek, startTime, endTime]) // Evita duplicados exactos
+}

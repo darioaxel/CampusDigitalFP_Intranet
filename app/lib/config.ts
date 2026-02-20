@@ -90,7 +90,8 @@ export const siteConfig = {
           url: "#",
           icon: "lucide:user-check",
           items: [
-            { title: "Lista profesorado", url: "/" },            
+            { title: "Lista profesorado", url: "/" },
+            { title: "Horarios Profesores", url: "/profesores/horario" },            
           ],
         }        
       ]
