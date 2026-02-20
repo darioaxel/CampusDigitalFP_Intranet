@@ -1,0 +1,12 @@
+// Actualizar File para soportar múltiples usos
+model File {
+  id        String   @id @default(uuid())
+  name      String
+  mime      String
+  size      Int
+  path      String   @unique
+  checksum  String
+  createdAt DateTime @default(now())
+  
+  @@map("files")
+}

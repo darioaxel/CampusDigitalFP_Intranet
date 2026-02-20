@@ -1,0 +1,9 @@
+// ENUMS ------------------------------------------------
+enum Role {
+  USER
+  PROFESOR
+  EXPERTO
+  JEFE_DEPT
+  ADMIN
+  ROOT
+}

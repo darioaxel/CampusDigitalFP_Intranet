@@ -1,0 +1,43 @@
+// MODELS -----------------------------------------------
+model Address {
+  id          String   @id @default(uuid())
+  addressLine String
+  floorDoor   String?
+  postalCode  String
+  locality    String
+  province    String
+  userId      String?  @unique
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([postalCode, province])
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  emailPersonal       String?   @unique
+  firstName           String?
+  lastName            String?
+  phone               String?
+  dni                 String?   @unique
+  birthDate           DateTime?
+  picture             String?
+  passwordHash        String?
+  isActive            Boolean   @default(true)
+  deactivatedAt       DateTime?
+  failedLoginAttempts Int       @default(0)
+  lastLoginAt         DateTime?
+  provider            String    @default("local")
+  providerId          String?
+  role                Role      @default(USER)
+
+  address     Address?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, role])
+  @@index([provider, providerId])
+}

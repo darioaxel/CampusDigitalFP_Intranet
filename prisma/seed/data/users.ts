@@ -1,0 +1,105 @@
+import { Role } from '@prisma/client'
+import { UserData } from '../types'
+
+const yearsAgo = (years: number) => new Date(new Date().getFullYear() - years, 0, 1)
+
+export const rawUsers: UserData[] = [
+  // ADMINISTRADORES (sin memberType = sin recibos)
+  {
+    email: 'root@example.com',
+    password: 'root1234',
+    role: Role.ROOT,
+    firstName: 'Root',
+    lastName: 'System',
+    dni: '00000000A',
+    phone: '+34000000000',
+    birthDate: new Date('1980-01-01'),
+    emailPersonal: 'root.personal@example.com',
+    address: {
+      addressLine: 'Calle de la Seguridad 42',
+      floorDoor: 'Bajo',
+      postalCode: '28001',
+      locality: 'Madrid',
+      province: 'Madrid',
+    },
+  },
+  {
+    email: 'admin1@example.com',
+    password: 'admin1234',
+    role: Role.ADMIN,
+    firstName: 'Carlos',
+    lastName: 'Gómez',
+    dni: '11111111B',
+    phone: '+34111111111',
+    birthDate: new Date('1985-05-10'),
+    emailPersonal: 'carlos.gomez@email.com',
+    address: {
+      addressLine: 'Avenida de la Asociación 123',
+      floorDoor: '3º B',
+      postalCode: '46001',
+      locality: 'Valencia',
+      province: 'Valencia',
+    },
+  },
+  {
+    email: 'admin2@example.com',
+    password: 'admin1234',
+    role: Role.JEFE_DEPT,
+    firstName: 'Laura',
+    lastName: 'Fernández',
+    dni: '22222222C',
+    phone: '+34222222222',
+    birthDate: new Date('1990-08-15'),
+    emailPersonal: 'laura.fernandez@email.com',
+    address: {
+      addressLine: 'Plaza del Voluntariado 8',
+      floorDoor: '1º Izq',
+      postalCode: '41001',
+      locality: 'Sevilla',
+      province: 'Sevilla',
+    },
+  },
+
+  // SOCIOS NORMALES
+  {
+    email: 'profesor@example.com',
+    password: 'profesor1234',
+    role: Role.PROFESOR,
+    firstName: 'Ana',
+    lastName: 'Martínez',
+    dni: '33333333D',
+    phone: '+34333333333',
+    birthDate: yearsAgo(32),
+    emailPersonal: 'ana.martinez@email.com',  
+    receiptScenario: 'perfect',
+  },
+  {
+    email: 'user@example.com',
+    password: 'user1234',
+    role: Role.USER,
+    firstName: 'Luis',
+    lastName: 'Sánchez',
+    dni: '44444444E',
+    phone: '+34444444444',
+    birthDate: yearsAgo(29),
+    emailPersonal: 'luis.sanchez@email.com',
+    address: {
+      addressLine: 'Calle del Usuario 99',
+      floorDoor: 'Bajo Dcha',
+      postalCode: '08001',
+      locality: 'Barcelona',
+      province: 'Barcelona',
+    },
+  },  
+  {
+    email: 'experto@example.com',
+    password: 'experto1234',
+    role: Role.EXPERTO,
+    firstName: 'Marta',
+    lastName: 'López',
+    dni: '55555555F',
+    phone: '+34555555555',
+    birthDate: yearsAgo(22),
+    emailPersonal: 'marta.lopez@email.com',    
+  },    
+]
