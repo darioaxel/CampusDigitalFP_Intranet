@@ -8,18 +8,40 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'No autenticado' })
   }
 
+  // Verificar que el usuario sea ADMIN o ROOT
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true }
+  })
+
+  if (!currentUser || ![Role.ADMIN, Role.ROOT].includes(currentUser.role)) {
+    throw createError({ statusCode: 403, message: 'No autorizado' })
+  }
+
+  // Obtener parámetros de paginación
+  const query = getQuery(event)
+  const page = parseInt(query.page as string) || 1
+  const limit = parseInt(query.limit as string) || 15
+  const skip = (page - 1) * limit
+
   try {
+    // Obtener total de usuarios para la paginación
+    const total = await prisma.user.count({
+      where: { role: { not: Role.ROOT } }
+    })
+
     const users = await prisma.user.findMany({
-      where: {
-        isActive: true,
-        role: { in: [Role.USER, Role.ADMIN, Role.ROOT, Role.JEFE_DEPT, Role.EXPERTO, Role.PROFESOR] }
-      },
+      skip,
+      take: limit,
+      where: { role: { not: Role.ROOT } },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
         role: true,
+        isActive: true,
+        createdAt: true,
       },
       orderBy: [
         { lastName: 'asc' },
@@ -27,7 +49,15 @@ export default defineEventHandler(async (event) => {
       ]
     })
 
-    return users
+    return {
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      }
+    }
   } catch (error) {
     console.error('Error fetching users:', error)
     throw createError({ 

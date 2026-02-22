@@ -36,6 +36,27 @@ model User {
   address     Address?
   schedules   Schedule[]  // Relación opuesta con Schedule
   
+  // Solicitudes creadas por el usuario
+  requestsCreated   Request[] @relation("RequestsCreated")
+  // Solicitudes gestionadas por administración
+  requestsManaged   Request[] @relation("RequestsManaged")
+  
+  // Documentos subidos
+  documentsUploaded RequestDocument[]
+  // Documentos validados (como administrador)
+  documentsValidated RequestDocument[] @relation("DocumentValidator")
+  
+  // Tareas creadas por el usuario (jefe de departamento)
+  tasksCreated      Task[] @relation("TasksCreated")
+  // Asignaciones de tareas
+  taskAssignments   TaskAssignment[]
+  
+  // Votos emitidos
+  votes             Vote[]
+  
+  // Logs de actividad
+  activityLogs      ActivityLog[] @relation("ActivityActor")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

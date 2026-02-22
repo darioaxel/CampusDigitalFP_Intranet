@@ -69,7 +69,16 @@ export const siteConfig = {
             { title: "Mi Horario", url: "/usuario" },
             { title: "Calendario", url: "/usuario/calendario" },            
           ],
-        },                
+        },  
+        {
+          title: "Permisos/Libre Disposición",
+          url: "/usuario",
+          icon: "lucide:book-open",
+          items: [
+            { title: "Días Libre Disposición", url: "/usuario/libre-disposicion" },
+            { title: "Permisos y bajas", url: "/usuario/permisos-bajas" },
+          ],
+        },              
         {
           title: "Documentación",
           url: "#",
@@ -86,11 +95,11 @@ export const siteConfig = {
       roles: ['ADMIN', 'ROOT'],
       items: [
         {
-          title: "Listado de Profesorado",
-          url: "#",
+          title: "Usuarios",
+          url: "/usuario",
           icon: "lucide:user-check",
           items: [
-            { title: "Lista profesorado", url: "/" },
+            { title: "Lista de usuarios", url: "/usuarios/listado" },
             { title: "Horarios Profesores", url: "/profesores/horario" },            
           ],
         }        

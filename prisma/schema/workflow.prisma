@@ -1,0 +1,246 @@
+// WORKFLOW - Solicitudes, Tareas, Votaciones y Logs
+
+// ENUMS ------------------------------------------------
+enum WorkflowStatus {
+  // Estados para Solicitudes
+  PENDING    // Pendiente de revisión
+  APPROVED   // Aprobada
+  REJECTED   // Rechazada
+  COMMUNICATED // Comunicada (para avisos médicos)
+  CLOSED     // Cerrada
+  
+  // Estados para Tareas
+  TODO       // Por hacer
+  IN_PROGRESS // En progreso
+  DONE       // Completada
+  CANCELLED  // Cancelada
+}
+
+enum RequestType {
+  FREE_DAY          // Día de libre disposición
+  MEDICAL_APPOINTMENT // Aviso de asistencia a visita médica
+  LEAVE             // Permiso
+  TRAINING          // Formación
+  OTHER             // Otro tipo de solicitud
+}
+
+enum TaskType {
+  SYLLABUS_CREATION // Creación de programaciones didácticas
+  MEETING           // Reunión
+  VOTE              // Votación de propuestas
+  REVIEW            // Revisión de documentos
+  OTHER             // Otro tipo de tarea
+}
+
+enum DocumentStatus {
+  PENDING    // Pendiente de entrega
+  SUBMITTED  // Entregado
+  VALID      // Validado por administración
+  INVALID    // No válido, requiere reemplazo
+  REPLACED   // Reemplazado por otro documento
+}
+
+// MODELS -----------------------------------------------
+model Request {
+  id          String   @id @default(uuid())
+  
+  // Solicitante
+  requesterId String
+  requester   User     @relation("RequestsCreated", fields: [requesterId], references: [id], onDelete: Cascade)
+  
+  // Tipo y estado
+  type        RequestType
+  status      WorkflowStatus @default(PENDING)
+  
+  // Contenido de la solicitud
+  title       String
+  description String?  @db.Text
+  
+  // Fechas relevantes
+  requestedDate DateTime?  // Fecha solicitada (ej: día de libre disposición)
+  startDate   DateTime?    // Para rangos de fechas
+  endDate     DateTime?
+  
+  // Quién gestiona la solicitud (administración)
+  adminId     String?
+  admin       User?    @relation("RequestsManaged", fields: [adminId], references: [id], onDelete: SetNull)
+  
+  // Comentarios de administración
+  adminNotes  String?  @db.Text
+  
+  // Documentos adjuntos
+  documents   RequestDocument[]
+  
+  // Log de actividad relacionado
+  activityLogs ActivityLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([requesterId, status])
+  @@index([adminId, status])
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+model RequestDocument {
+  id          String   @id @default(uuid())
+  
+  // Relación con la solicitud
+  requestId   String
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  // Quién subió el documento
+  uploadedById String
+  uploadedBy  User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  
+  // Estado del documento
+  status      DocumentStatus @default(PENDING)
+  
+  // Archivo
+  fileId      String   @unique
+  file        File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  
+  // Notas sobre el documento
+  notes       String?  @db.Text
+  
+  // Si fue reemplazado, referencia al documento que lo reemplazó
+  replacedById String? @unique
+  replacedBy  RequestDocument? @relation("DocumentReplacement", fields: [replacedById], references: [id])
+  replaces    RequestDocument? @relation("DocumentReplacement")
+  
+  // Quién validó el documento
+  validatedById String?
+  validatedBy User?    @relation("DocumentValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  validatedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([requestId, status])
+  @@index([uploadedById])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  
+  // Creador de la tarea (jefe de departamento)
+  creatorId   String
+  creator     User     @relation("TasksCreated", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Tipo y estado
+  type        TaskType
+  status      WorkflowStatus @default(TODO)
+  
+  // Contenido
+  title       String
+  description String?  @db.Text
+  
+  // Fechas
+  dueDate     DateTime?
+  completedAt DateTime?
+  
+  // Para tareas de tipo VOTE
+  votingEndsAt DateTime?
+  votingOptions String? @db.Text // JSON con opciones de votación
+  
+  // Asignaciones
+  assignments TaskAssignment[]
+  
+  // Votos (si es tarea de votación)
+  votes       Vote[]
+  
+  // Log de actividad
+  activityLogs ActivityLog[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([creatorId, status])
+  @@index([type, status])
+  @@index([dueDate])
+}
+
+model TaskAssignment {
+  id          String   @id @default(uuid())
+  
+  // Tarea
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Asignado a
+  assigneeId  String
+  assignee    User     @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
+  
+  // Estado individual
+  status      WorkflowStatus @default(TODO)
+  
+  // Notas del asignado
+  notes       String?  @db.Text
+  
+  // Completada en
+  completedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([taskId, assigneeId])
+  @@index([assigneeId, status])
+}
+
+model Vote {
+  id          String   @id @default(uuid())
+  
+  // Tarea de votación
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Votante
+  voterId     String
+  voter       User     @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  
+  // Voto
+  option      String   // Opción seleccionada
+  comment     String?  @db.Text
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([taskId, voterId])
+  @@index([taskId, option])
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  
+  // Quién realizó la acción
+  actorId     String
+  actor       User     @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  
+  // Tipo de acción
+  action      String   // ej: REQUEST_CREATED, TASK_ASSIGNED, DOCUMENT_VALIDATED
+  
+  // Descripción
+  description String
+  
+  // Entidad afectada (polimórfica)
+  entityType  String   // REQUEST, TASK, DOCUMENT
+  entityId    String   // ID de la entidad
+  
+  // Relaciones opcionales
+  requestId   String?
+  request     Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  // Datos adicionales en JSON
+  metadata    String?  @db.Text
+  
+  createdAt   DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([requestId])
+  @@index([taskId])
+}

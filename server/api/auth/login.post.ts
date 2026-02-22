@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   if (!dbUser.isActive) {
     console.log('❌ ERROR: Usuario inactivo')
-    throw createError({ statusCode: 401, message: 'Credenciales inválidas' })
+    throw createError({ statusCode: 403, message: 'Tu cuenta ha sido desactivada. Contacta con el administrador.' })
   }
 
   if (!dbUser.passwordHash) {

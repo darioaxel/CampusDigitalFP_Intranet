@@ -8,5 +8,8 @@ model File {
   checksum  String
   createdAt DateTime @default(now())
   
+  // Relación con documentos de solicitud
+  requestDocument RequestDocument?
+  
   @@map("files")
 }
