@@ -46,6 +46,9 @@
       </NavigationMenuList>
     </NavigationMenu>
 
+    <!-- Theme Toggle -->
+    <ThemeToggle />
+
     <!-- Desktop Login/Profile (botones fijos) -->
     <NuxtLink v-if="!loggedIn" to="/login">
       <Button variant="outline" class="border-tyto-primary text-tyto-primary hover:bg-tyto-primary hover:text-white">

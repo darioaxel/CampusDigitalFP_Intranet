@@ -34,6 +34,7 @@ model User {
   role                Role      @default(USER)
 
   address     Address?
+  schedules   Schedule[]  // Relación opuesta con Schedule
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

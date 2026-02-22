@@ -40,6 +40,13 @@ export default defineNuxtConfig({
     componentDir: '@/components/ui'
   },
 
+  colorMode: {
+    classSuffix: '',
+    preference: 'system',
+    fallback: 'light',
+    storageKey: 'campus-color-mode',
+  },
+
   css: [
     "~/assets/css/tailwind.css",
     '@fontsource/inter/400.css',

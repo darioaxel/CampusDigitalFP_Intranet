@@ -1,6 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import pkg from '@prisma/client'
 import { PrismaNeon } from '@prisma/adapter-neon'
 
+const { PrismaClient } = pkg
 
 const prismaClientSingleton = () => {
   const pool = new PrismaNeon({ connectionString: process.env.DATABASE_URL })  

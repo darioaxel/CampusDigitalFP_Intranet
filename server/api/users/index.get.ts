@@ -1,4 +1,5 @@
-import { Role } from '@prisma/client'
+import pkg from '@prisma/client'
+const { Role } = pkg
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
