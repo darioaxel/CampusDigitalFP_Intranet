@@ -8,8 +8,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'ID de calendario requerido' })
   }
   
-  const prisma = getPrisma()
-  
   // Verificar que el calendario existe
   const calendar = await prisma.calendar.findFirst({
     where: {

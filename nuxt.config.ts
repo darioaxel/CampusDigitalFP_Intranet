@@ -63,7 +63,9 @@ export default defineNuxtConfig({
   
   icon: {
     componentName: 'Icon',
-    provider: 'server',
+    provider: 'iconify',
+    fallbackToApi: true,
+    collections: ['lucide'],
   },
   // 1. Desactivar CSP en desarrollo
   security: {

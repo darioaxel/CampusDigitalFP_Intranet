@@ -24,7 +24,6 @@ export default defineEventHandler(async (event) => {
   }
   
   // Verificar que sea ADMIN o ROOT
-  const prisma = getPrisma()
   const currentUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: { role: true }

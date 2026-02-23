@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  const prisma = getPrisma()
+  
   const calendars = await prisma.calendar.findMany({
     where,
     include: {

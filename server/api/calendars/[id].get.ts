@@ -8,8 +8,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'ID requerido' })
   }
   
-  const prisma = getPrisma()
-  
   // Verificar rol
   const currentUser = await prisma.user.findUnique({
     where: { id: user.id },

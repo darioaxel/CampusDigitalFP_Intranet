@@ -58,7 +58,7 @@ export const siteConfig = {
   navSections: [
     {
       title: 'Profesor',
-      roles: ['ROOT', 'USER', 'ADMIN'],
+      roles: ['ROOT', 'USER', 'ADMIN', 'PROFESOR', 'JEFE_DEPT'],
       items: [
         {
           title: "Mis Horarios",

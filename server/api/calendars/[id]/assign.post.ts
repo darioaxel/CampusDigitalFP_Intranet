@@ -29,8 +29,6 @@ export default defineEventHandler(async (event) => {
   
   const { eventId, notes } = result.data
   
-  const prisma = getPrisma()
-  
   // Verificar que el calendario existe y permite drag-drop
   const calendar = await prisma.calendar.findUnique({
     where: { id: calendarId },

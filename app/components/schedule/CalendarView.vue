@@ -1,23 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ScheduleXCalendar } from '@schedule-x/vue'
-import { createCalendar, createViewMonthGrid } from '@schedule-x/calendar'
+import { createCalendar, createViewMonthGrid, type CalendarConfig } from '@schedule-x/calendar'
 import { createEventModalPlugin } from '@schedule-x/event-modal'
 import '@schedule-x/theme-default/dist/index.css'
 
 interface CalendarEvent {
   id: string
   title: string
-  start: string
-  end: string
+  start: string  // YYYY-MM-DD
+  end: string    // YYYY-MM-DD
   color?: string
   description?: string
 }
 
 interface Props {
   events?: CalendarEvent[]
-  onEventClick?: (eventId: string) => void
-  onDateClick?: (date: string) => void
 }
 
 const props = defineProps<Props>()
@@ -26,9 +24,14 @@ const emit = defineEmits<{
   'date-click': [date: string]
 }>()
 
-// Transform events to ScheduleX format
-const calendarEvents = computed(() => {
-  return (props.events || []).map(event => ({
+// Referencia al calendario
+const calendarApp = ref<any>(null)
+const isReady = ref(false)
+
+// Función para crear el calendario
+function createCalendarInstance(events: CalendarEvent[]) {
+  // Asegurar que las fechas están en formato correcto
+  const formattedEvents = events.map(event => ({
     id: event.id,
     title: event.title,
     start: event.start,
@@ -36,15 +39,12 @@ const calendarEvents = computed(() => {
     color: event.color || '#3b82f6',
     description: event.description,
   }))
-})
 
-// Create calendar instance
-const calendarApp = computed(() => {
-  return createCalendar({
+  const config: CalendarConfig = {
     views: [createViewMonthGrid()],
     defaultView: 'month-grid',
     locale: 'es-ES',
-    firstDayOfWeek: 1, // Monday
+    firstDayOfWeek: 1,
     dayBoundaries: {
       start: '00:00',
       end: '23:59',
@@ -55,25 +55,55 @@ const calendarApp = computed(() => {
     monthGridOptions: {
       nEventsPerDay: 3,
     },
-    events: calendarEvents.value,
+    events: formattedEvents,
     plugins: [createEventModalPlugin()],
     callbacks: {
       onEventClick: (event: any) => {
         emit('event-click', event.id)
-        props.onEventClick?.(event.id)
       },
       onClickDate: (date: string) => {
         emit('date-click', date)
-        props.onDateClick?.(date)
       },
     },
-  })
+  }
+
+  return createCalendar(config)
+}
+
+// Crear calendario inicial en cliente
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  
+  // Asegurar que Temporal está disponible
+  if (!(globalThis as any).Temporal) {
+    console.warn('Temporal API no disponible, cargando polyfill...')
+    import('temporal-polyfill').then(({ Temporal }) => {
+      ;(globalThis as any).Temporal = Temporal
+      calendarApp.value = createCalendarInstance(props.events || [])
+      isReady.value = true
+    })
+  } else {
+    calendarApp.value = createCalendarInstance(props.events || [])
+    isReady.value = true
+  }
 })
+
+// Recrear calendario cuando cambian los eventos
+watch(() => props.events, (newEvents) => {
+  if (typeof window === 'undefined') return
+  if (!newEvents) return
+  
+  // Recrear el calendario con los nuevos eventos
+  calendarApp.value = createCalendarInstance(newEvents)
+}, { deep: true })
 </script>
 
 <template>
   <div class="schedulex-calendar rounded-lg border border-border bg-card overflow-hidden">
-    <ScheduleXCalendar :calendar-app="calendarApp" />
+    <ScheduleXCalendar v-if="calendarApp" :calendar-app="calendarApp" />
+    <div v-else class="flex items-center justify-center" style="height: 600px;">
+      <div class="text-muted-foreground">Cargando calendario...</div>
+    </div>
   </div>
 </template>
 
