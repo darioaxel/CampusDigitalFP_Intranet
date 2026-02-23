@@ -38,6 +38,21 @@ importers:
       '@prisma/adapter-pg':
         specifier: ^7.3.0
         version: 7.4.0
+      '@schedule-x/calendar':
+        specifier: ^4.2.0
+        version: 4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)(temporal-polyfill@0.3.0)
+      '@schedule-x/drag-and-drop':
+        specifier: ^3.7.3
+        version: 3.7.3
+      '@schedule-x/event-modal':
+        specifier: ^4.2.0
+        version: 4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)
+      '@schedule-x/theme-default':
+        specifier: ^4.2.0
+        version: 4.2.0
+      '@schedule-x/vue':
+        specifier: ^4.0.0
+        version: 4.0.0(@schedule-x/calendar@4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)(temporal-polyfill@0.3.0))(@schedule-x/date-picker@4.0.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4))(vue@3.5.28(typescript@5.9.3))
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.19(tailwindcss@4.1.18)
@@ -1754,6 +1769,14 @@ packages:
     resolution: {integrity: sha512-da+MMyeXhBaKtxQiWPfy7+056wk3lVIhioJnXHXkJ2/OHDaZfFcyKHNl1R06sdYO8lIRXcXdoZ6LO2ARmkAREA==}
     engines: {node: '>=18.16.0'}
 
+  '@preact/signals-core@1.13.0':
+    resolution: {integrity: sha512-slT6XeTCAbdql61GVLlGU4x7XHI7kCZV5Um5uhE4zLX4ApgiiXc0UYFvVOKq06xcovzp7p+61l68oPi563ARKg==}
+
+  '@preact/signals@2.8.1':
+    resolution: {integrity: sha512-wX6U0SpcCukZTJBs5ChljvBZb3XmYzA5gd4vKHgX8wZZKaQCo2WHtmThdLx+mcVvlBa5u3XShC7ffbETJD4BiQ==}
+    peerDependencies:
+      preact: '>= 10.25.0 || >=11.0.0-0'
+
   '@prisma/adapter-neon@7.4.0':
     resolution: {integrity: sha512-fUBCCetNuBVboFT+p6ZMTZ4WZYMbs4JnSJw81fOt3dShTyM/KJhGH802/tq7PhSrZQk44hhWWppV6KYhkUZQTQ==}
 
@@ -2103,6 +2126,38 @@ packages:
     resolution: {integrity: sha512-mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA==}
     cpu: [x64]
     os: [win32]
+
+  '@schedule-x/calendar@4.2.0':
+    resolution: {integrity: sha512-RQOh4ULj8Igy6glNswPARq6EfaYlJxWngXr1oGxFbwvCzOiEw/KIQanQbzxdxo/dhx6rE/6hRpq/EdoOD2f3rw==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
+      preact: ^10.19.2
+      temporal-polyfill: 0.3.0
+
+  '@schedule-x/date-picker@4.0.0':
+    resolution: {integrity: sha512-uun+29QB4KAVgDYB8R7wIg380XvXCBo5wQT3mFnlLIv9SuP1vpZg7lvRGg621ElhAodBmBS8uRegZ6U2/jo25Q==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
+      preact: ^10.19.2
+
+  '@schedule-x/drag-and-drop@3.7.3':
+    resolution: {integrity: sha512-nHwZKzdIKWNTdT5BEXy4vLlHOmOH3C3M744QUIU0EOXPAFZQR1bBTviGs2NhmvaLiGstnVx2/TZtdhocy60hgg==}
+
+  '@schedule-x/event-modal@4.2.0':
+    resolution: {integrity: sha512-9OzFFa1HaOUv/I1i0kh0NFulHy9VFKkioPJQ/xRYsWO5dLBPKYO77POVPsmw6959b5XBkQLjyKNr+8FXFSWZ5A==}
+    peerDependencies:
+      '@preact/signals': ^2.0.2
+      preact: ^10.19.2
+
+  '@schedule-x/theme-default@4.2.0':
+    resolution: {integrity: sha512-CtcnyTwoMNsLsikLJIlRquJoWVfx1G7LFc2GYEseGEIOzX8jQ63lCd1vZ9eMrlr0Sw9TiqX5Bn/pkvAmYolbyQ==}
+
+  '@schedule-x/vue@4.0.0':
+    resolution: {integrity: sha512-EQFE+4XYziwNsvWyo3+AtF+nADGlIgo0IXtEA/Cto0Dep9UQP/M5Ii2FLYNQE3yvMbtoBK3OCAdI6eE7WbjoYg==}
+    peerDependencies:
+      '@schedule-x/calendar': ^3.4.0 || ^4.0.0
+      '@schedule-x/date-picker': 4.0.0
+      vue: ^3
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -6454,6 +6509,9 @@ packages:
     resolution: {integrity: sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==}
     engines: {node: '>=12'}
 
+  preact@10.28.4:
+    resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
+
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
@@ -7311,6 +7369,12 @@ packages:
   tar@7.5.9:
     resolution: {integrity: sha512-BTLcK0xsDh2+PUe9F6c2TlRp4zOOBMTkoQHQIWSIzI0R7KG46uEwq4OPk2W7bZcprBMsuaeFsqwYr7pjh6CuHg==}
     engines: {node: '>=18'}
+
+  temporal-polyfill@0.3.0:
+    resolution: {integrity: sha512-qNsTkX9K8hi+FHDfHmf22e/OGuXmfBm9RqNismxBrnSmZVJKegQ+HYYXT+R7Ha8F/YSm2Y34vmzD4cxMu2u95g==}
+
+  temporal-spec@0.3.0:
+    resolution: {integrity: sha512-n+noVpIqz4hYgFSMOSiINNOUOMFtV5cZQNCmmszA6GiVFVRt3G7AqVyhXjhCSmowvQn+NsGn+jMDMKJYHd3bSQ==}
 
   terser@5.46.0:
     resolution: {integrity: sha512-jTwoImyr/QbOWFFso3YoU3ik0jBBDJ6JTOQiy/J2YxVJdZCc+5u7skhNwiOR3FQIygFqVUPHl7qbbxtjW2K3Qg==}
@@ -9979,6 +10043,13 @@ snapshots:
       safe-stable-stringify: 2.5.0
       secure-json-parse: 4.1.0
 
+  '@preact/signals-core@1.13.0': {}
+
+  '@preact/signals@2.8.1(preact@10.28.4)':
+    dependencies:
+      '@preact/signals-core': 1.13.0
+      preact: 10.28.4
+
   '@prisma/adapter-neon@7.4.0':
     dependencies:
       '@neondatabase/serverless': 1.0.2
@@ -10270,6 +10341,32 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.57.1':
     optional: true
+
+  '@schedule-x/calendar@4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)(temporal-polyfill@0.3.0)':
+    dependencies:
+      '@preact/signals': 2.8.1(preact@10.28.4)
+      preact: 10.28.4
+      temporal-polyfill: 0.3.0
+
+  '@schedule-x/date-picker@4.0.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)':
+    dependencies:
+      '@preact/signals': 2.8.1(preact@10.28.4)
+      preact: 10.28.4
+
+  '@schedule-x/drag-and-drop@3.7.3': {}
+
+  '@schedule-x/event-modal@4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)':
+    dependencies:
+      '@preact/signals': 2.8.1(preact@10.28.4)
+      preact: 10.28.4
+
+  '@schedule-x/theme-default@4.2.0': {}
+
+  '@schedule-x/vue@4.0.0(@schedule-x/calendar@4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)(temporal-polyfill@0.3.0))(@schedule-x/date-picker@4.0.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4))(vue@3.5.28(typescript@5.9.3))':
+    dependencies:
+      '@schedule-x/calendar': 4.2.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)(temporal-polyfill@0.3.0)
+      '@schedule-x/date-picker': 4.0.0(@preact/signals@2.8.1(preact@10.28.4))(preact@10.28.4)
+      vue: 3.5.28(typescript@5.9.3)
 
   '@sec-ant/readable-stream@0.4.1': {}
 
@@ -15498,6 +15595,8 @@ snapshots:
 
   postgres@3.4.7: {}
 
+  preact@10.28.4: {}
+
   prebuild-install@7.1.3:
     dependencies:
       detect-libc: 2.1.2
@@ -16642,6 +16741,12 @@ snapshots:
       minipass: 7.1.2
       minizlib: 3.1.0
       yallist: 5.0.0
+
+  temporal-polyfill@0.3.0:
+    dependencies:
+      temporal-spec: 0.3.0
+
+  temporal-spec@0.3.0: {}
 
   terser@5.46.0:
     dependencies:

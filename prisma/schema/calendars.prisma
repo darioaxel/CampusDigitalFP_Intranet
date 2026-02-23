@@ -1,0 +1,131 @@
+// calendars.prisma - Calendarios escolares y eventos
+
+// ENUMS ------------------------------------------------
+enum CalendarType {
+  SCHOOL_YEAR      // Calendario escolar del curso
+  EVALUATION       // Calendario de evaluaciones
+  FREE_DISPOSITION // Calendario de días de libre disposición (especial)
+  MEETINGS         // Reuniones y eventos
+  OTHER            // Otros calendarios
+}
+
+enum CalendarEventType {
+  HOLIDAY          // Festivo / No lectivo
+  LECTIVE          // Día lectivo
+  EVALUATION       // Evaluación
+  FREE_DISPOSITION // Día de libre disposición
+  MEETING          // Reunión
+  DEADLINE         // Fecha límite
+  OTHER
+}
+
+// MODELS -----------------------------------------------
+model Calendar {
+  id          String       @id @default(uuid())
+  
+  // Información básica
+  name        String       // "Calendario Escolar 2024-25"
+  description String?
+  type        CalendarType
+  
+  // Año académico (ej: "2024-2025")
+  academicYear String
+  
+  // Vigencia
+  startDate   DateTime
+  endDate     DateTime
+  
+  // Visibilidad
+  isActive    Boolean      @default(true)
+  isPublic    Boolean      @default(true) // Visible para todos los profesores
+  
+  // Para calendarios de libre disposición
+  allowDragDrop Boolean    @default(false) // Permite drag-drop de eventos
+  maxEventsPerUser Int?    // Máximo de eventos que un usuario puede tener (ej: 4 días)
+  
+  // Creador (admin)
+  createdById String
+  createdBy   User         @relation("CalendarsCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  
+  // Eventos del calendario
+  events      CalendarEvent[]
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([type, academicYear])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model CalendarEvent {
+  id          String           @id @default(uuid())
+  
+  // Relación con calendario
+  calendarId  String
+  calendar    Calendar         @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  
+  // Información del evento
+  title       String
+  description String?
+  type        CalendarEventType
+  
+  // Fechas
+  startDate   DateTime         // Fecha inicio (obligatoria)
+  endDate     DateTime?        // Fecha fin (opcional, para eventos de varios días)
+  isAllDay    Boolean          @default(true)
+  
+  // Horario específico (para reuniones, etc.)
+  startTime   String?          // "HH:MM"
+  endTime     String?          // "HH:MM"
+  
+  // Color para la UI
+  color       String?          // Hex color
+  
+  // Para drag-drop: eventos asignados a usuarios (ej: días de libre disposición)
+  assignments UserCalendarEvent[]
+  
+  // Límite de asignaciones (ej: máximo X profesores pueden "coger" este día)
+  maxAssignments Int?          
+  
+  // Estado
+  isActive    Boolean          @default(true)
+  
+  // Creador
+  createdById String
+  createdBy   User             @relation("CalendarEventsCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([calendarId, startDate])
+  @@index([type])
+  @@index([isActive])
+}
+
+// Asignaciones de eventos a usuarios (para drag-drop)
+model UserCalendarEvent {
+  id          String        @id @default(uuid())
+  
+  // Evento
+  eventId     String
+  event       CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  // Usuario asignado
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Datos específicos de la asignación
+  order       Int           @default(1) // Orden (ej: 1º día, 2º día, etc.)
+  notes       String?       // Notas del usuario
+  
+  // Estado
+  status      String        @default("CONFIRMED") // CONFIRMED, PENDING, CANCELLED
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([userId, status])
+  @@index([eventId])
+}

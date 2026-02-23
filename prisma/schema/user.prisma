@@ -57,6 +57,13 @@ model User {
   // Logs de actividad
   activityLogs      ActivityLog[] @relation("ActivityActor")
   
+  // Calendarios creados (admin)
+  calendarsCreated  Calendar[] @relation("CalendarsCreated")
+  calendarEventsCreated CalendarEvent[] @relation("CalendarEventsCreated")
+  
+  // Eventos de calendario asignados (drag-drop)
+  calendarAssignments UserCalendarEvent[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

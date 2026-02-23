@@ -86,7 +86,7 @@ const getBlockStyle = (block: ScheduleBlock, hour: string) => {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-12rem)] flex-col gap-4">
+  <div class="flex h-[calc(100vh-7.5rem)] flex-col gap-4">
     <!-- Tabs de selección -->
     <Tabs v-model="selectedScheduleId" class="w-full">
       <TabsList class="flex w-full flex-wrap gap-1 bg-muted/50 p-1 h-auto">
@@ -148,7 +148,7 @@ const getBlockStyle = (block: ScheduleBlock, hour: string) => {
               <!-- Columna hora -->
               <div 
                 :class="[
-                  'border-r border-border flex items-start justify-end pr-1 pt-0.5',
+                  'border-r border-border flex items-start justify-end pr-1 pt-0.5 min-h-[3.5rem]',
                   idx !== hours.length - 1 ? 'border-b' : ''
                 ]"
               >
@@ -160,7 +160,7 @@ const getBlockStyle = (block: ScheduleBlock, hour: string) => {
                 v-for="day in days" 
                 :key="`${hour}-${day.key}`"
                 :class="[
-                  'border-r border-border relative p-0.5',
+                  'border-r border-border relative p-0.5 min-h-[3.5rem]',
                   idx !== hours.length - 1 ? 'border-b' : ''
                 ]"
               >

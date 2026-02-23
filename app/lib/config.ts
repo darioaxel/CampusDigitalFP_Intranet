@@ -68,7 +68,7 @@ export const siteConfig = {
           items: [
             { title: "Mi Horario", url: "/usuario/horarios" },
             { title: "Crear Horario", url: "/usuario/crear-horario" },
-            { title: "Calendario", url: "/usuario/calendario" },            
+            { title: "Calendarios", url: "/usuario/calendarios" },            
           ],
         },  
         {
@@ -102,6 +102,14 @@ export const siteConfig = {
           items: [
             { title: "Lista de usuarios", url: "/usuarios/listado" },
             { title: "Horarios Profesores", url: "/profesores/horario" },            
+          ],
+        },
+        {
+          title: "Calendarios",
+          url: "/admin/calendarios",
+          icon: "lucide:calendar-days",
+          items: [
+            { title: "Gestionar Calendarios", url: "/admin/calendarios" },
           ],
         }        
       ]

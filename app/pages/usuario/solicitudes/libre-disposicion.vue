@@ -1,6 +1,6 @@
 <!-- pages/usuario/solicitudes/libre-disposicion.vue -->
 <template>
-  <div class="max-w-5xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
     <!-- Header -->
     <div class="space-y-1">
       <h1 class="text-2xl font-bold">Días de Libre Disposición</h1>
@@ -16,199 +16,202 @@
     </div>
 
     <template v-else>
-      <!-- Resumen visual -->
-      <div class="grid grid-cols-4 gap-4">
-        <Card
-          v-for="n in 4"
-          :key="n"
-          :class="[
-            'relative overflow-hidden',
-            getDayStatus(n).consumed ? 'border-green-500 bg-green-50' : 
-            getDayStatus(n).available ? 'border-blue-500' : 'border-gray-200 opacity-60'
-          ]"
-        >
-          <div class="p-4 text-center">
-            <div class="text-3xl font-bold" :class="getDayStatus(n).consumed ? 'text-green-700' : 'text-blue-600'">
-              {{ n }}
+      <!-- Layout con Calendario y Panel lateral -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Columna izquierda: Calendario -->
+        <div class="lg:col-span-2 space-y-4">
+          <Card>
+            <CardHeader class="pb-3">
+              <CardTitle class="flex items-center gap-2 text-lg">
+                <Calendar class="h-5 w-5" />
+                Calendario
+              </CardTitle>
+              <CardDescription>
+                Selecciona una fecha para solicitar libre disposición
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CalendarView 
+                :events="calendarEvents"
+                @date-click="onDateSelect"
+                @event-click="viewDetails"
+              />
+            </CardContent>
+          </Card>
+
+          <!-- Leyenda -->
+          <div class="flex flex-wrap gap-4 text-sm">
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+              <span>Días consumidos</span>
             </div>
-            <div class="text-xs mt-1" :class="getDayStatus(n).consumed ? 'text-green-600' : 'text-muted-foreground'">
-              {{ getDayStatus(n).label }}
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span>Período disponible</span>
             </div>
-            <div v-if="getDayStatus(n).consumed && getDayStatus(n).date" class="text-xs text-green-700 mt-1 font-medium">
-              {{ formatDate(getDayStatus(n).date) }}
-            </div>
-            <div v-else-if="getDayStatus(n).deadline" class="text-xs text-muted-foreground mt-1">
-              Antes: {{ getDayStatus(n).deadline }}
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span>Fuera de plazo</span>
             </div>
           </div>
-        </Card>
-      </div>
+        </div>
 
-      <!-- Tabla de días consumidos -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="flex items-center gap-2 text-lg">
-            <CalendarCheck class="h-5 w-5" />
-            Días Consumidos
-          </CardTitle>
-          <CardDescription>
-            Curso académico {{ freeDaysData?.academicYear }}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div v-if="!freeDaysData?.consumedDays?.length" class="text-center py-8 text-muted-foreground">
-            <CalendarX class="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No has consumido ningún día de libre disposición este curso.</p>
-          </div>
+        <!-- Columna derecha: Resumen y Solicitud -->
+        <div class="space-y-6">
+          <!-- Resumen visual -->
+          <Card>
+            <CardHeader class="pb-3">
+              <CardTitle class="text-lg">Tus Días</CardTitle>
+              <CardDescription>
+                Curso académico {{ freeDaysData?.academicYear }}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="grid grid-cols-2 gap-3">
+                <div
+                  v-for="n in 4"
+                  :key="n"
+                  :class="[
+                    'relative overflow-hidden rounded-lg border p-3 text-center',
+                    getDayStatus(n).consumed ? 'border-green-500 bg-green-50' : 
+                    getDayStatus(n).available ? 'border-blue-500' : 'border-gray-200 opacity-60'
+                  ]"
+                >
+                  <div class="text-2xl font-bold" :class="getDayStatus(n).consumed ? 'text-green-700' : 'text-blue-600'">
+                    {{ n }}
+                  </div>
+                  <div class="text-xs mt-1" :class="getDayStatus(n).consumed ? 'text-green-600' : 'text-muted-foreground'">
+                    {{ getDayStatus(n).label }}
+                  </div>
+                  <div v-if="getDayStatus(n).consumed && getDayStatus(n).date" class="text-xs text-green-700 mt-1 font-medium">
+                    {{ formatShortDate(getDayStatus(n).date) }}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <Table v-else>
-            <TableHeader>
-              <TableRow>
-                <TableHead class="w-24">Día Nº</TableHead>
-                <TableHead>Fecha solicitada</TableHead>
-                <TableHead>Fecha de solicitud</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead class="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="day in freeDaysData.consumedDays" :key="day.id">
-                <TableCell>
-                  <Badge variant="default">{{ day.number }}º día</Badge>
-                </TableCell>
-                <TableCell class="font-medium">
-                  {{ formatDate(day.date) }}
-                </TableCell>
-                <TableCell class="text-sm text-muted-foreground">
-                  {{ formatDate(day.requestedAt) }}
-                </TableCell>
-                <TableCell>
-                  <Badge :variant="day.status === 'APPROVED' ? 'default' : 'secondary'">
-                    {{ day.status === 'APPROVED' ? 'Aprobado' : 'Cerrado' }}
-                  </Badge>
-                </TableCell>
-                <TableCell class="text-right">
-                  <Button variant="ghost" size="sm" @click="viewDetails(day.id)">
+          <!-- Formulario de nueva solicitud -->
+          <Card v-if="canRequest">
+            <CardHeader class="pb-3">
+              <CardTitle class="flex items-center gap-2 text-lg">
+                <CalendarPlus class="h-5 w-5" />
+                Nueva Solicitud
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <!-- Fecha seleccionada del calendario -->
+              <div v-if="selectedDate" class="bg-muted p-3 rounded-md">
+                <span class="text-sm text-muted-foreground">Fecha seleccionada:</span>
+                <p class="font-medium">{{ formatDate(selectedDate) }}</p>
+              </div>
+              <div v-else class="bg-muted/50 p-3 rounded-md text-sm text-muted-foreground">
+                Haz clic en una fecha del calendario para seleccionarla
+              </div>
+
+              <!-- Información de restricciones -->
+              <Alert>
+                <Info class="h-4 w-4" />
+                <AlertTitle class="text-sm">Restricciones</AlertTitle>
+                <AlertDescription class="text-xs space-y-1">
+                  <ul class="list-disc list-inside">
+                    <li>Mínimo 15 días de antelación</li>
+                    <li>Máximo 3 meses de antelación</li>
+                    <li v-if="nextSlot">{{ nextSlotLabel }}</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+
+              <!-- Fechas permitidas -->
+              <div class="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
+                <CalendarRange class="h-3 w-3 flex-shrink-0" />
+                <span>
+                  {{ formatDate(freeDaysData?.validation?.minRequestDate) }} - {{ formatDate(freeDaysData?.validation?.maxRequestDate) }}
+                </span>
+              </div>
+
+              <!-- Motivo -->
+              <div class="space-y-2">
+                <Label for="reason" class="text-sm">Motivo (opcional)</Label>
+                <Textarea
+                  id="reason"
+                  v-model="reason"
+                  placeholder="Indica el motivo de tu solicitud..."
+                  rows="3"
+                  class="text-sm"
+                />
+              </div>
+
+              <!-- Validación automática -->
+              <Alert v-if="validationResult" :variant="validationResult.valid ? 'default' : 'destructive'" class="text-xs">
+                <CheckCircle v-if="validationResult.valid" class="h-3 w-3" />
+                <AlertCircle v-else class="h-3 w-3" />
+                <AlertDescription>
+                  {{ validationResult.message || validationResult.error }}
+                </AlertDescription>
+              </Alert>
+
+              <!-- Botón enviar -->
+              <Button 
+                @click="submitRequest" 
+                class="w-full"
+                :disabled="!canSubmit"
+                size="sm"
+              >
+                <Send class="h-4 w-4 mr-2" />
+                Enviar Solicitud
+              </Button>
+            </CardContent>
+          </Card>
+
+          <!-- Sin días disponibles -->
+          <Alert v-else variant="destructive">
+            <AlertCircle class="h-4 w-4" />
+            <AlertTitle class="text-sm">Sin días disponibles</AlertTitle>
+            <AlertDescription class="text-xs">
+              {{ freeDaysData?.consumed >= 4 
+                ? 'Has consumido todos los días de libre disposición.' 
+                : 'No puedes solicitar días en este momento.' }}
+            </AlertDescription>
+          </Alert>
+
+          <!-- Lista compacta de días consumidos -->
+          <Card v-if="freeDaysData?.consumedDays?.length">
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm flex items-center gap-2">
+                <CalendarCheck class="h-4 w-4" />
+                Días Consumidos
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <div class="space-y-2">
+                <div 
+                  v-for="day in freeDaysData.consumedDays" 
+                  :key="day.id"
+                  class="flex items-center justify-between py-2 border-b last:border-0 text-sm"
+                >
+                  <div class="flex items-center gap-2">
+                    <Badge variant="default" class="text-xs">{{ day.number }}º</Badge>
+                    <span>{{ formatShortDate(day.date) }}</span>
+                  </div>
+                  <Button variant="ghost" size="sm" class="h-7 px-2" @click="viewDetails(day.id)">
                     Ver
                   </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <!-- Formulario de nueva solicitud -->
-      <Card v-if="canRequest">
-        <CardHeader class="pb-3">
-          <CardTitle class="flex items-center gap-2 text-lg">
-            <CalendarPlus class="h-5 w-5" />
-            Nueva Solicitud
-          </CardTitle>
-          <CardDescription>
-            Solicita un nuevo día de libre disposición
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <!-- Información de restricciones -->
-          <Alert>
-            <Info class="h-4 w-4" />
-            <AlertTitle>Restricciones aplicables</AlertTitle>
-            <AlertDescription class="space-y-1">
-              <ul class="text-sm space-y-1 list-disc list-inside">
-                <li>Solicitud con <strong>mínimo 15 días</strong> y <strong>máximo 3 meses</strong> de antelación</li>
-                <li v-if="nextSlot">Próximo día disponible: <strong>{{ nextSlotLabel }}</strong></li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-
-          <!-- Fechas permitidas -->
-          <div class="flex items-center gap-4 text-sm text-muted-foreground bg-muted p-3 rounded-md">
-            <CalendarRange class="h-4 w-4" />
-            <span>
-              Fechas permitidas: 
-              <strong>{{ formatDate(freeDaysData?.validation?.minRequestDate) }}</strong>
-              a
-              <strong>{{ formatDate(freeDaysData?.validation?.maxRequestDate) }}</strong>
-            </span>
-          </div>
-
-          <!-- Selector de fecha -->
-          <div class="space-y-2">
-            <Label for="requestDate">Fecha solicitada</Label>
-            <div class="flex gap-3">
-              <Input
-                id="requestDate"
-                v-model="selectedDate"
-                type="date"
-                class="w-auto"
-                :min="freeDaysData?.validation?.minRequestDate"
-                :max="freeDaysData?.validation?.maxRequestDate"
-              />
-              <Button 
-                @click="validateDate" 
-                variant="outline"
-                :disabled="!selectedDate || validating"
-              >
-                <CheckCircle v-if="!validating" class="h-4 w-4 mr-2" />
-                <Loader2 v-else class="h-4 w-4 mr-2 animate-spin" />
-                Validar
-              </Button>
-            </div>
-          </div>
-
-          <!-- Resultado de validación -->
-          <Alert v-if="validationResult" :variant="validationResult.valid ? 'default' : 'destructive'">
-            <CheckCircle v-if="validationResult.valid" class="h-4 w-4" />
-            <AlertCircle v-else class="h-4 w-4" />
-            <AlertTitle>{{ validationResult.valid ? 'Fecha válida' : 'Fecha no válida' }}</AlertTitle>
-            <AlertDescription>
-              {{ validationResult.message || validationResult.error }}
-            </AlertDescription>
-          </Alert>
-
-          <!-- Motivo -->
-          <div class="space-y-2">
-            <Label for="reason">Motivo (opcional)</Label>
-            <Textarea
-              id="reason"
-              v-model="reason"
-              placeholder="Indica el motivo de tu solicitud..."
-              rows="3"
-            />
-          </div>
-
-          <!-- Botón enviar -->
-          <Button 
-            @click="submitRequest" 
-            class="w-full"
-            :disabled="!canSubmit"
-          >
-            <Send class="h-4 w-4 mr-2" />
-            Enviar Solicitud
-          </Button>
-        </CardContent>
-      </Card>
-
-      <!-- Sin días disponibles -->
-      <Alert v-else variant="destructive">
-        <AlertCircle class="h-4 w-4" />
-        <AlertTitle>Sin días disponibles</AlertTitle>
-        <AlertDescription>
-          {{ freeDaysData?.consumed >= 4 
-            ? 'Has consumido todos los días de libre disposición para este curso.' 
-            : 'No puedes solicitar días en este momento.' }}
-        </AlertDescription>
-      </Alert>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
+  Calendar,
   CalendarCheck,
-  CalendarX,
   CalendarPlus,
   CalendarRange,
   Info,
@@ -251,44 +254,57 @@ const canSubmit = computed(() => {
   return selectedDate.value && validationResult.value?.valid && !validating.value
 })
 
-// Helpers
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
+// Eventos del calendario
+const calendarEvents = computed(() => {
+  const events: any[] = []
+  
+  // Días consumidos
+  freeDaysData.value?.consumedDays?.forEach((day: any) => {
+    events.push({
+      id: day.id,
+      title: `Libre Disp. - ${day.number}º día`,
+      start: day.date,
+      end: day.date,
+      color: '#22c55e', // green
+      description: `Solicitado el ${formatDate(day.requestedAt)}`,
+    })
   })
-}
+  
+  // Slots disponibles (como eventos de referencia)
+  freeDaysData.value?.availableSlots?.forEach((slot: any) => {
+    events.push({
+      id: `slot-${slot.dayNumber}`,
+      title: `Disponible (Día ${slot.dayNumber})`,
+      start: slot.earliestDate,
+      end: slot.deadline,
+      color: '#3b82f6', // blue
+      description: `Solicitar antes del ${formatDate(slot.deadline)}`,
+    })
+  })
+  
+  return events
+})
 
-function getDayStatus(n: number) {
-  const consumed = freeDaysData.value?.consumedDays?.find((d: any) => d.number === n)
-  const slot = freeDaysData.value?.availableSlots?.find((s: any) => s.dayNumber === n)
-
-  if (consumed) {
-    return {
-      consumed: true,
-      available: false,
-      label: 'Consumido',
-      date: consumed.date,
-    }
+// Watch para validar fecha automáticamente
+watch(selectedDate, async (newDate) => {
+  if (newDate) {
+    await validateDate()
+  } else {
+    validationResult.value = null
   }
+})
 
-  if (slot) {
-    return {
-      consumed: false,
-      available: true,
-      label: `Disponible`,
-      deadline: slot.deadline,
+// Handlers
+function onDateSelect(date: string) {
+  const minDate = freeDaysData.value?.validation?.minRequestDate
+  const maxDate = freeDaysData.value?.validation?.maxRequestDate
+  
+  if (minDate && maxDate) {
+    if (date >= minDate && date <= maxDate) {
+      selectedDate.value = date
+    } else {
+      alert(`La fecha debe estar entre ${formatDate(minDate)} y ${formatDate(maxDate)}`)
     }
-  }
-
-  // Día no disponible por fecha límite pasada
-  return {
-    consumed: false,
-    available: false,
-    label: 'No disponible',
-    deadline: null,
   }
 }
 
@@ -328,14 +344,11 @@ async function submitRequest() {
       },
     })
 
-    // Mostrar éxito y recargar
     await refresh()
     selectedDate.value = ''
     reason.value = ''
     validationResult.value = null
     
-    // Toast de éxito (si tienes sonner/toast configurado)
-    // toast.success('Solicitud enviada correctamente')
     alert('Solicitud enviada correctamente')
   } catch (error: any) {
     alert(error.data?.message || 'Error al enviar la solicitud')
@@ -344,5 +357,53 @@ async function submitRequest() {
 
 function viewDetails(id: string) {
   navigateTo(`/usuario/solicitudes/${id}`)
+}
+
+// Helpers
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function formatShortDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+  })
+}
+
+function getDayStatus(n: number) {
+  const consumed = freeDaysData.value?.consumedDays?.find((d: any) => d.number === n)
+  const slot = freeDaysData.value?.availableSlots?.find((s: any) => s.dayNumber === n)
+
+  if (consumed) {
+    return {
+      consumed: true,
+      available: false,
+      label: 'Consumido',
+      date: consumed.date,
+    }
+  }
+
+  if (slot) {
+    return {
+      consumed: false,
+      available: true,
+      label: `Disponible`,
+      deadline: slot.deadline,
+    }
+  }
+
+  return {
+    consumed: false,
+    available: false,
+    label: 'No disponible',
+    deadline: null,
+  }
 }
 </script>
