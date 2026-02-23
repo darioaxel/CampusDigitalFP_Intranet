@@ -16,12 +16,8 @@ const createCalendarSchema = z.object({
 export default defineEventHandler(async (event) => {
   // Verificar autenticación y rol
   const session = await requireUserSession(event)
-  const user = session.user as any
-  
-  if (!user?.id) {
-    throw createError({ statusCode: 401, message: 'No autenticado' })
-  }
-  
+  const user = session.user
+
   // Verificar que sea ADMIN o ROOT
   const prisma = getPrisma()
   const currentUser = await prisma.user.findUnique({

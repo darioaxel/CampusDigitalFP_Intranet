@@ -14,12 +14,8 @@ const updateCalendarSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const user = session.user as any
-  
-  if (!user?.id) {
-    throw createError({ statusCode: 401, message: 'No autenticado' })
-  }
-  
+  const user = session.user
+
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID requerido' })

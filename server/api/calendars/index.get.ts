@@ -1,13 +1,8 @@
 // GET /api/calendars - Listar calendarios
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  const user = session.user as any
-  
-  // Verificar autenticación
-  if (!user?.id) {
-    throw createError({ statusCode: 401, message: 'No autenticado' })
-  }
-  
+  const user = session.user
+
   // Verificar rol (PROFESOR, ADMIN, ROOT)
   const allowedRoles = ['PROFESOR', 'ADMIN', 'ROOT']
   if (!allowedRoles.includes(user.role)) {
