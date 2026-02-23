@@ -1,6 +1,5 @@
-import { defineEventHandler, createError, getRouterParam } from 'h3'
 import pkg from '@prisma/client'
-import { prisma } from '../../utils/db'
+import { prisma } from '../../utils/db'  // Esto sí necesita import si no está auto-importado
 
 const { Role } = pkg
 
@@ -9,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 405, message: 'Method not allowed' })
   }
 
-  // Sin import - asumiendo auto-import desde server/utils/session.ts
+  // getUserSession debería estar disponible auto-importado desde server/utils
   const session = await getUserSession(event)
   
   if (!session.user?.id) {

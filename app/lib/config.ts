@@ -66,7 +66,8 @@ export const siteConfig = {
           icon: "lucide:receipt",
           isActive: true,
           items: [
-            { title: "Mi Horario", url: "/usuario" },
+            { title: "Mi Horario", url: "/usuario/horarios" },
+            { title: "Crear Horario", url: "/usuario/crear-horario" },
             { title: "Calendario", url: "/usuario/calendario" },            
           ],
         },  
@@ -75,8 +76,8 @@ export const siteConfig = {
           url: "/usuario",
           icon: "lucide:book-open",
           items: [
-            { title: "Días Libre Disposición", url: "/usuario/libre-disposicion" },
-            { title: "Permisos y bajas", url: "/usuario/permisos-bajas" },
+            { title: "Días Libre Disposición", url: "/usuario/solicitudes/libre-disposicion" },
+            { title: "Permisos y bajas", url: "/usuario/solicitudes/permisos-bajas" },
           ],
         },              
         {

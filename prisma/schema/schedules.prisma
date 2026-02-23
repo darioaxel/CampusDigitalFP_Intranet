@@ -8,7 +8,7 @@ model Schedule {
   validFrom   DateTime?     // Vigencia opcional del horario completo
   validUntil  DateTime?
   color       String?       // Para UI (ej: "#FF5733")
-  
+  isTemplate  Boolean   @default(false)  // Solo templates creados por ADMIN/ROOT
   // Relación con User
   userId      String
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
