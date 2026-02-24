@@ -4,6 +4,7 @@ import { UserSeeder } from './seeders/user.seeder.js'
 import { ScheduleSeeder } from './seeders/schedules.seeder.js'
 import { CalendarSeeder } from './seeders/calendar.seeder.js'
 import { allCalendars } from './data/calendars.js'
+import { seedStudies } from './seeders/studies.seeder.js'
 
 
 async function main() {
@@ -12,6 +13,16 @@ async function main() {
   try {
      // Limpieza en orden correcto (respetando FKs)
     console.log('🗑️  Limpiando base de datos...')
+    
+    // Limpiar tablas de estudios (orden: hijas primero)
+    await prisma.contenidoTema.deleteMany()
+    await prisma.recursoTema.deleteMany()
+    await prisma.criterioEvaluacion.deleteMany()
+    await prisma.tema.deleteMany() // La relación m:m con RA se borra automáticamente
+    await prisma.resultadoAprendizaje.deleteMany()
+    await prisma.moduloProfesional.deleteMany()
+    await prisma.cicloFormativo.deleteMany()
+    
     // Limpiar primero las tablas hijas (con FKs)
     await prisma.userCalendarEvent.deleteMany()
     await prisma.calendarEvent.deleteMany()
@@ -31,6 +42,8 @@ async function main() {
     const calendarSeeder = new CalendarSeeder(prisma)
     await calendarSeeder.run(allCalendars)
 
+    // 4. Estudios FP (Ciclos, Módulos, RAs, CEs, Temas)
+    await seedStudies()
 
     console.log('\n✨ Seed completado exitosamente')
   } catch (error) {
