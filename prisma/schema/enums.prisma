@@ -13,7 +13,9 @@ enum Role {
 enum ScheduleType {
   NORMAL
   EXAMENES
-  EXTRAORDINARIO  
+  EXTRAORDINARIO
+  GUARDIA
+  REFUERZO
 }
 
 enum DayOfWeek {

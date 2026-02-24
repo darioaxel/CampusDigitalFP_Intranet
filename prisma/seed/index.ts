@@ -5,6 +5,7 @@ import { ScheduleSeeder } from './seeders/schedules.seeder.js'
 import { CalendarSeeder } from './seeders/calendar.seeder.js'
 import { allCalendars } from './data/calendars.js'
 import { seedStudies } from './seeders/studies.seeder.js'
+import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
 
 
 async function main() {
@@ -44,6 +45,9 @@ async function main() {
 
     // 4. Estudios FP (Ciclos, Módulos, RAs, CEs, Temas)
     await seedStudies()
+
+    // 5. Horarios específicos 2025-2026 (templates y horarios de profesores)
+    await seedSchedules2025_2026()
 
     console.log('\n✨ Seed completado exitosamente')
   } catch (error) {
