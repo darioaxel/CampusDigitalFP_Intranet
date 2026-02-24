@@ -1,224 +1,12 @@
-<!-- pages/usuario/solicitudes/libre-disposicion.vue -->
-<template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
-    <!-- Header -->
-    <div class="space-y-1">
-      <h1 class="text-2xl font-bold">Días de Libre Disposición</h1>
-      <p class="text-muted-foreground text-sm">
-        Gestiona tus días de libre disposición. Tienes derecho a 4 días por curso académico.
-      </p>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="pending" class="flex items-center justify-center py-12">
-      <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
-      <span class="ml-2 text-muted-foreground">Cargando...</span>
-    </div>
-
-    <template v-else>
-      <!-- Layout con Calendario y Panel lateral -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Columna izquierda: Calendario -->
-        <div class="lg:col-span-2 space-y-4">
-          <Card>
-            <CardHeader class="pb-3">
-              <CardTitle class="flex items-center gap-2 text-lg">
-                <Calendar class="h-5 w-5" />
-                Calendario
-              </CardTitle>
-              <CardDescription>
-                Selecciona una fecha para solicitar libre disposición
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CalendarView 
-                :events="calendarEvents"
-                @date-click="onDateSelect"
-                @event-click="viewDetails"
-              />
-            </CardContent>
-          </Card>
-
-          <!-- Leyenda -->
-          <div class="flex flex-wrap gap-4 text-sm">
-            <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>Días consumidos</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>Período disponible</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-              <span>Fuera de plazo</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Columna derecha: Resumen y Solicitud -->
-        <div class="space-y-6">
-          <!-- Resumen visual -->
-          <Card>
-            <CardHeader class="pb-3">
-              <CardTitle class="text-lg">Tus Días</CardTitle>
-              <CardDescription>
-                Curso académico {{ freeDaysData?.academicYear }}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div class="grid grid-cols-2 gap-3">
-                <div
-                  v-for="n in 4"
-                  :key="n"
-                  :class="[
-                    'relative overflow-hidden rounded-lg border p-3 text-center',
-                    getDayStatus(n).consumed ? 'border-green-500 bg-green-50' : 
-                    getDayStatus(n).available ? 'border-blue-500' : 'border-gray-200 opacity-60'
-                  ]"
-                >
-                  <div class="text-2xl font-bold" :class="getDayStatus(n).consumed ? 'text-green-700' : 'text-blue-600'">
-                    {{ n }}
-                  </div>
-                  <div class="text-xs mt-1" :class="getDayStatus(n).consumed ? 'text-green-600' : 'text-muted-foreground'">
-                    {{ getDayStatus(n).label }}
-                  </div>
-                  <div v-if="getDayStatus(n).consumed && getDayStatus(n).date" class="text-xs text-green-700 mt-1 font-medium">
-                    {{ formatShortDate(getDayStatus(n).date) }}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- Formulario de nueva solicitud -->
-          <Card v-if="canRequest">
-            <CardHeader class="pb-3">
-              <CardTitle class="flex items-center gap-2 text-lg">
-                <CalendarPlus class="h-5 w-5" />
-                Nueva Solicitud
-              </CardTitle>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <!-- Fecha seleccionada del calendario -->
-              <div v-if="selectedDate" class="bg-muted p-3 rounded-md">
-                <span class="text-sm text-muted-foreground">Fecha seleccionada:</span>
-                <p class="font-medium">{{ formatDate(selectedDate) }}</p>
-              </div>
-              <div v-else class="bg-muted/50 p-3 rounded-md text-sm text-muted-foreground">
-                Haz clic en una fecha del calendario para seleccionarla
-              </div>
-
-              <!-- Información de restricciones -->
-              <Alert>
-                <Info class="h-4 w-4" />
-                <AlertTitle class="text-sm">Restricciones</AlertTitle>
-                <AlertDescription class="text-xs space-y-1">
-                  <ul class="list-disc list-inside">
-                    <li>Mínimo 15 días de antelación</li>
-                    <li>Máximo 3 meses de antelación</li>
-                    <li v-if="nextSlot">{{ nextSlotLabel }}</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-
-              <!-- Fechas permitidas -->
-              <div class="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
-                <CalendarRange class="h-3 w-3 flex-shrink-0" />
-                <span>
-                  {{ formatDate(freeDaysData?.validation?.minRequestDate) }} - {{ formatDate(freeDaysData?.validation?.maxRequestDate) }}
-                </span>
-              </div>
-
-              <!-- Motivo -->
-              <div class="space-y-2">
-                <Label for="reason" class="text-sm">Motivo (opcional)</Label>
-                <Textarea
-                  id="reason"
-                  v-model="reason"
-                  placeholder="Indica el motivo de tu solicitud..."
-                  rows="3"
-                  class="text-sm"
-                />
-              </div>
-
-              <!-- Validación automática -->
-              <Alert v-if="validationResult" :variant="validationResult.valid ? 'default' : 'destructive'" class="text-xs">
-                <CheckCircle v-if="validationResult.valid" class="h-3 w-3" />
-                <AlertCircle v-else class="h-3 w-3" />
-                <AlertDescription>
-                  {{ validationResult.message || validationResult.error }}
-                </AlertDescription>
-              </Alert>
-
-              <!-- Botón enviar -->
-              <Button 
-                @click="submitRequest" 
-                class="w-full"
-                :disabled="!canSubmit"
-                size="sm"
-              >
-                <Send class="h-4 w-4 mr-2" />
-                Enviar Solicitud
-              </Button>
-            </CardContent>
-          </Card>
-
-          <!-- Sin días disponibles -->
-          <Alert v-else variant="destructive">
-            <AlertCircle class="h-4 w-4" />
-            <AlertTitle class="text-sm">Sin días disponibles</AlertTitle>
-            <AlertDescription class="text-xs">
-              {{ freeDaysData?.consumed >= 4 
-                ? 'Has consumido todos los días de libre disposición.' 
-                : 'No puedes solicitar días en este momento.' }}
-            </AlertDescription>
-          </Alert>
-
-          <!-- Lista compacta de días consumidos -->
-          <Card v-if="freeDaysData?.consumedDays?.length">
-            <CardHeader class="pb-2">
-              <CardTitle class="text-sm flex items-center gap-2">
-                <CalendarCheck class="h-4 w-4" />
-                Días Consumidos
-              </CardTitle>
-            </CardHeader>
-            <CardContent class="pt-0">
-              <div class="space-y-2">
-                <div 
-                  v-for="day in freeDaysData.consumedDays" 
-                  :key="day.id"
-                  class="flex items-center justify-between py-2 border-b last:border-0 text-sm"
-                >
-                  <div class="flex items-center gap-2">
-                    <Badge variant="default" class="text-xs">{{ day.number }}º</Badge>
-                    <span>{{ formatShortDate(day.date) }}</span>
-                  </div>
-                  <Button variant="ghost" size="sm" class="h-7 px-2" @click="viewDetails(day.id)">
-                    Ver
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import {
-  Calendar,
-  CalendarCheck,
-  CalendarPlus,
-  CalendarRange,
-  Info,
-  CheckCircle,
-  AlertCircle,
-  Send,
-  Loader2,
+import { 
+  Calendar, 
+  Info, 
+  AlertCircle, 
+  CheckCircle, 
+  Clock,
+  X
 } from 'lucide-vue-next'
 
 definePageMeta({
@@ -226,184 +14,386 @@ definePageMeta({
   layout: 'dashboard',
 })
 
-// Datos
-const { data: freeDaysData, pending, refresh } = await useFetch('/api/requests/free-days')
-
-// Estado del formulario
-const selectedDate = ref('')
+// Estado
+const currentDate = ref(new Date())
+const selectedDate = ref<string | null>(null)
 const reason = ref('')
-const validating = ref(false)
-const validationResult = ref<{ valid: boolean; message?: string; error?: string } | null>(null)
+const submitting = ref(false)
+const showConfirmModal = ref(false)
 
-// Computed
-const canRequest = computed(() => freeDaysData.value?.validation?.canRequest)
-const nextSlot = computed(() => freeDaysData.value?.nextAvailableSlot)
+// Cargar datos del calendario
+const { data: calendarData, pending, refresh } = await useFetch('/api/calendars/free-disposition')
 
-const nextSlotLabel = computed(() => {
-  if (!nextSlot.value) return ''
-  const labels: Record<number, string> = {
-    1: '1º día (antes del 21 dic)',
-    2: '2º día (antes del 1 abr)',
-    3: '3º día (antes del 30 jun)',
-    4: '4º día (antes del 30 jun)',
-  }
-  return labels[nextSlot.value.dayNumber] || ''
-})
+const calendar = computed(() => calendarData.value?.data?.calendar)
+const days = computed(() => calendarData.value?.data?.days || [])
+const myStats = computed(() => calendarData.value?.data?.myStats || { approved: 0, remaining: 4 })
 
-const canSubmit = computed(() => {
-  return selectedDate.value && validationResult.value?.valid && !validating.value
-})
-
-// Eventos del calendario
-const calendarEvents = computed(() => {
-  const events: any[] = []
+// Días por mes para el calendario
+const calendarDays = computed(() => {
+  if (!calendar.value) return []
   
-  // Días consumidos
-  freeDaysData.value?.consumedDays?.forEach((day: any) => {
-    events.push({
-      id: day.id,
-      title: `Libre Disp. - ${day.number}º día`,
-      start: day.date,
-      end: day.date,
-      color: '#22c55e', // green
-      description: `Solicitado el ${formatDate(day.requestedAt)}`,
+  const year = currentDate.value.getFullYear()
+  const month = currentDate.value.getMonth()
+  
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  
+  // Ajustar para que empiece en lunes (0)
+  let startDayOfWeek = firstDay.getDay() - 1
+  if (startDayOfWeek < 0) startDayOfWeek = 6
+  
+  const daysArray = []
+  
+  // Días vacíos al inicio
+  for (let i = 0; i < startDayOfWeek; i++) {
+    daysArray.push({ empty: true })
+  }
+  
+  // Días del mes
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dayData = days.value.find((d: any) => d.date === dateStr)
+    
+    daysArray.push({
+      day,
+      date: dateStr,
+      ...dayData
     })
-  })
+  }
   
-  // Slots disponibles (como eventos de referencia)
-  freeDaysData.value?.availableSlots?.forEach((slot: any) => {
-    events.push({
-      id: `slot-${slot.dayNumber}`,
-      title: `Disponible (Día ${slot.dayNumber})`,
-      start: slot.earliestDate,
-      end: slot.deadline,
-      color: '#3b82f6', // blue
-      description: `Solicitar antes del ${formatDate(slot.deadline)}`,
-    })
-  })
-  
-  return events
+  return daysArray
 })
 
-// Watch para validar fecha automáticamente
-watch(selectedDate, async (newDate) => {
-  if (newDate) {
-    await validateDate()
-  } else {
-    validationResult.value = null
-  }
+const monthYearLabel = computed(() => {
+  return currentDate.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 })
 
-// Handlers
-function onDateSelect(date: string) {
-  const minDate = freeDaysData.value?.validation?.minRequestDate
-  const maxDate = freeDaysData.value?.validation?.maxRequestDate
-  
-  if (minDate && maxDate) {
-    if (date >= minDate && date <= maxDate) {
-      selectedDate.value = date
-    } else {
-      alert(`La fecha debe estar entre ${formatDate(minDate)} y ${formatDate(maxDate)}`)
-    }
-  }
+// Navegación
+const prevMonth = () => {
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
 }
 
-async function validateDate() {
+const nextMonth = () => {
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+}
+
+// Seleccionar fecha
+const selectDate = (date: string, canRequest: boolean) => {
+  if (!canRequest) return
+  selectedDate.value = date
+  showConfirmModal.value = true
+}
+
+// Enviar solicitud
+const submitRequest = async () => {
   if (!selectedDate.value) return
-
-  validating.value = true
-  validationResult.value = null
-
+  
+  submitting.value = true
   try {
-    const result = await $fetch('/api/requests/free-days/validate', {
-      method: 'POST',
-      body: { requestedDate: selectedDate.value },
-    })
-    validationResult.value = result as any
-  } catch (error: any) {
-    validationResult.value = {
-      valid: false,
-      error: error.data?.message || 'Error al validar la fecha',
-    }
-  } finally {
-    validating.value = false
-  }
-}
-
-async function submitRequest() {
-  if (!canSubmit.value) return
-
-  try {
-    await $fetch('/api/requests', {
+    await $fetch('/api/calendars/free-disposition/request', {
       method: 'POST',
       body: {
-        type: 'FREE_DAY',
-        title: `Día de libre disposición - ${formatDate(selectedDate.value)}`,
-        description: reason.value || undefined,
-        requestedDate: selectedDate.value,
-      },
+        date: selectedDate.value,
+        reason: reason.value
+      }
     })
-
-    await refresh()
-    selectedDate.value = ''
-    reason.value = ''
-    validationResult.value = null
     
+    await refresh()
+    showConfirmModal.value = false
+    selectedDate.value = null
+    reason.value = ''
     alert('Solicitud enviada correctamente')
   } catch (error: any) {
     alert(error.data?.message || 'Error al enviar la solicitud')
+  } finally {
+    submitting.value = false
   }
 }
 
-function viewDetails(id: string) {
-  navigateTo(`/usuario/solicitudes/${id}`)
-}
-
-// Helpers
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-function formatShortDate(dateStr: string | undefined): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-  })
-}
-
-function getDayStatus(n: number) {
-  const consumed = freeDaysData.value?.consumedDays?.find((d: any) => d.number === n)
-  const slot = freeDaysData.value?.availableSlots?.find((s: any) => s.dayNumber === n)
-
-  if (consumed) {
-    return {
-      consumed: true,
-      available: false,
-      label: 'Consumido',
-      date: consumed.date,
-    }
+// Helpers para clases de celdas
+const getCellClasses = (day: any) => {
+  if (day.empty) return 'bg-transparent'
+  
+  const baseClasses = 'relative h-24 border border-border p-2 cursor-pointer transition-colors hover:bg-muted/50'
+  
+  if (!day.isAvailable) {
+    return `${baseClasses} bg-gray-100 text-gray-400 cursor-not-allowed`
   }
-
-  if (slot) {
-    return {
-      consumed: false,
-      available: true,
-      label: `Disponible`,
-      deadline: slot.deadline,
-    }
+  
+  // Días del usuario
+  if (day.myStatus === 'PENDING') {
+    return `${baseClasses} bg-amber-100 border-amber-300`
   }
-
-  return {
-    consumed: false,
-    available: false,
-    label: 'No disponible',
-    deadline: null,
+  if (day.myStatus === 'APPROVED') {
+    return `${baseClasses} bg-green-100 border-green-300`
   }
+  
+  // Lleno (3 solicitudes)
+  if (day.isFull) {
+    return `${baseClasses} bg-red-100 border-red-300`
+  }
+  
+  return `${baseClasses} bg-white hover:border-primary`
 }
+
+const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 </script>
+
+<template>
+  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div class="space-y-1">
+        <h1 class="text-2xl font-bold">Días de Libre Disposición</h1>
+        <p class="text-muted-foreground text-sm">
+          Selecciona una fecha disponible en el calendario para solicitar tu día
+        </p>
+      </div>
+      
+      <!-- Resumen de días -->
+      <div class="flex items-center gap-4">
+        <div class="text-right">
+          <p class="text-sm text-muted-foreground">Días disponibles</p>
+          <p class="text-2xl font-bold">{{ myStats.remaining }}/{{ calendar?.maxPerUser || 4 }}</p>
+        </div>
+        <div class="flex gap-1">
+          <div 
+            v-for="n in 4" 
+            :key="n"
+            :class="[
+              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
+              n <= myStats.approved 
+                ? 'bg-green-500 text-white' 
+                : n <= myStats.approved + (myStats.remaining > 0 ? 0 : 0)
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-gray-200 text-gray-500'
+            ]"
+          >
+            <CheckCircle v-if="n <= myStats.approved" class="w-4 h-4" />
+            <span v-else>{{ n }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="pending" class="flex items-center justify-center py-12">
+      <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+      <span class="ml-2 text-muted-foreground">Cargando calendario...</span>
+    </div>
+
+    <!-- Sin calendario -->
+    <div v-else-if="!calendar" class="text-center py-12">
+      <AlertCircle class="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+      <p class="mt-4 text-muted-foreground">No hay calendario de libre disposición activo</p>
+    </div>
+
+    <template v-else>
+      <!-- Layout principal -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Calendario -->
+        <div class="lg:col-span-2">
+          <Card>
+            <CardHeader class="pb-3">
+              <div class="flex items-center justify-between">
+                <CardTitle class="text-lg flex items-center gap-2">
+                  <Calendar class="h-5 w-5" />
+                  {{ calendar.name }}
+                </CardTitle>
+                <div class="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" @click="prevMonth">
+                    <ChevronLeft class="h-4 w-4" />
+                  </Button>
+                  <span class="font-medium capitalize">{{ monthYearLabel }}</span>
+                  <Button variant="ghost" size="sm" @click="nextMonth">
+                    <ChevronRight class="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <!-- Grid de días -->
+              <div class="grid grid-cols-7 gap-1">
+                <!-- Cabecera días semana -->
+                <div 
+                  v-for="day in weekDays" 
+                  :key="day"
+                  class="text-center text-sm font-medium text-muted-foreground py-2"
+                >
+                  {{ day }}
+                </div>
+                
+                <!-- Celdas -->
+                <div
+                  v-for="(day, index) in calendarDays"
+                  :key="index"
+                  :class="getCellClasses(day)"
+                  @click="day.isAvailable && day.canRequest && selectDate(day.date, day.canRequest)"
+                >
+                  <template v-if="!day.empty">
+                    <span class="text-sm font-medium">{{ day.day }}</span>
+                    
+                    <!-- Contenido según estado -->
+                    <div v-if="day.isAvailable" class="mt-1">
+                      <!-- Mi solicitud pendiente -->
+                      <div v-if="day.myStatus === 'PENDING'" class="flex items-center gap-1 text-amber-600">
+                        <Clock class="w-3 h-3" />
+                        <span class="text-xs">Pendiente</span>
+                      </div>
+                      
+                      <!-- Mi solicitud aprobada -->
+                      <div v-else-if="day.myStatus === 'APPROVED'" class="flex items-center gap-1 text-green-600">
+                        <CheckCircle class="w-3 h-3" />
+                        <span class="text-xs">Aprobado</span>
+                      </div>
+                      
+                      <!-- Día lleno -->
+                      <div v-else-if="day.isFull" class="text-red-600">
+                        <span class="text-xs font-bold">COMPLETO</span>
+                      </div>
+                      
+                      <!-- Disponible con contador -->
+                      <div v-else class="flex items-center gap-1">
+                        <span 
+                          :class="[
+                            'text-xs font-bold px-1.5 py-0.5 rounded',
+                            day.approvedCount === 0 ? 'bg-green-100 text-green-700' :
+                            day.approvedCount === 1 ? 'bg-blue-100 text-blue-700' :
+                            day.approvedCount === 2 ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-700'
+                          ]"
+                        >
+                          {{ day.approvedCount }}/3
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <!-- No disponible -->
+                    <div v-else class="text-xs text-gray-400 mt-1">
+                      No disp.
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Leyenda -->
+          <div class="flex flex-wrap gap-4 mt-4 text-sm">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+              <span>Tu día aprobado</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
+              <span>Tu solicitud pendiente</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-white border border-primary rounded"></div>
+              <span>Disponible</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+              <span>Completo (3/3)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
+              <span>No disponible</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel lateral -->
+        <div class="space-y-6">
+          <!-- Información -->
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-lg">Información</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4 text-sm">
+              <div class="flex items-start gap-3">
+                <Info class="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p class="font-medium">Límite de días</p>
+                  <p class="text-muted-foreground">Tienes derecho a {{ calendar.maxPerUser }} días por curso académico</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <Info class="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p class="font-medium">Máximo por día</p>
+                  <p class="text-muted-foreground">Cada día admite máximo 3 profesores en libre disposición</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <Info class="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p class="font-medium">Aprobación</p>
+                  <p class="text-muted-foreground">Las solicitudes deben ser aprobadas por administración</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Período -->
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-lg">Período</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p class="text-sm text-muted-foreground">
+                Curso académico {{ calendar.academicYear }}
+              </p>
+              <p class="text-sm mt-2">
+                Del {{ new Date(calendar.startDate).toLocaleDateString('es-ES') }}
+                al {{ new Date(calendar.endDate).toLocaleDateString('es-ES') }}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </template>
+
+    <!-- Modal de confirmación -->
+    <Dialog v-model:open="showConfirmModal">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Solicitar día de libre disposición</DialogTitle>
+          <DialogDescription>
+            Fecha seleccionada: {{ selectedDate }}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="bg-muted p-3 rounded-md">
+            <p class="text-sm text-muted-foreground">Esta fecha tiene:</p>
+            <p class="font-medium">
+              {{ days.find(d => d.date === selectedDate)?.approvedCount || 0 }} solicitudes aprobadas
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="reason">Motivo (opcional)</Label>
+            <Textarea
+              id="reason"
+              v-model="reason"
+              placeholder="Indica el motivo de tu solicitud..."
+              rows="3"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="showConfirmModal = false">
+            Cancelar
+          </Button>
+          <Button @click="submitRequest" :disabled="submitting">
+            <Loader2 v-if="submitting" class="w-4 h-4 mr-2 animate-spin" />
+            <CheckCircle v-else class="w-4 h-4 mr-2" />
+            Confirmar solicitud
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

@@ -6,6 +6,7 @@ import { CalendarSeeder } from './seeders/calendar.seeder.js'
 import { allCalendars } from './data/calendars.js'
 import { seedStudies } from './seeders/studies.seeder.js'
 import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
+import { seedFreeDispositionCalendar } from './seeders/calendars-free-disposition.seeder.js'
 
 
 async function main() {
@@ -48,6 +49,9 @@ async function main() {
 
     // 5. Horarios específicos 2025-2026 (templates y horarios de profesores)
     await seedSchedules2025_2026()
+
+    // 6. Calendario de libre disposición
+    await seedFreeDispositionCalendar()
 
     console.log('\n✨ Seed completado exitosamente')
   } catch (error) {
