@@ -26,12 +26,14 @@ const form = reactive({
   targetUserId: user.value?.id || '',
   validFrom: '',
   validUntil: '',
-  blocks: [] as ScheduleBlockInput[]
+  blocks: [] as any[]
 })
 
 // Estados
 const users = ref<any[]>([])
 const submitting = ref(false)
+const requestValidation = ref(false)
+const validationNotes = ref('')
 
 // Cargar usuarios si es admin/root
 onMounted(async () => {
@@ -98,23 +100,35 @@ const onSubmit = async () => {
 
   submitting.value = true
   try {
+    // 1. Crear horario
     const payload = {
       ...form,
       userId: canCreateForOthers.value ? form.targetUserId : user.value?.id
     }
 
-    const { error } = await useFetch('/api/schedules', {
+    const { data: newSchedule, error } = await useFetch('/api/schedules', {
       method: 'POST',
       body: payload
     })
 
     if (error.value) throw error.value
 
-    toast.success(
-      form.isTemplate 
-        ? 'Template creado correctamente' 
-        : 'Horario creado correctamente'
-    )
+    // 2. Si se solicita validación, enviar solicitud
+    if (requestValidation.value && !form.isTemplate && newSchedule.value?.scheduleId) {
+      const { error: valError } = await useFetch(`/api/schedules/${newSchedule.value.scheduleId}/request-validation`, {
+        method: 'POST',
+        body: { notes: validationNotes.value }
+      })
+      
+      if (valError.value) {
+        toast.warning('Horario creado pero error al enviar validación')
+      } else {
+        toast.success('Horario creado y enviado para validación')
+      }
+    } else {
+      toast.success(form.isTemplate ? 'Template creado' : 'Horario creado')
+    }
+
     router.push('/usuario/horarios')
   } catch (err: any) {
     toast.error(err.message || 'Error al crear el horario')
@@ -268,6 +282,33 @@ const onCancel = () => {
                     />
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Solicitar validación (solo para usuarios normales, no templates) -->
+          <Card v-if="!form.isTemplate && !canCreateForOthers">
+            <CardHeader>
+              <CardTitle class="text-sm font-medium">Validación</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="space-y-0.5">
+                  <Label class="text-sm">Enviar a validación</Label>
+                  <p class="text-xs text-muted-foreground">
+                    La administración revisará y aprobará tu horario
+                  </p>
+                </div>
+                <Switch v-model="requestValidation" />
+              </div>
+              
+              <div v-if="requestValidation" class="space-y-2">
+                <Label class="text-xs">Notas para el revisor (opcional)</Label>
+                <Textarea 
+                  v-model="validationNotes" 
+                  placeholder="Añade comentarios sobre este horario..."
+                  class="min-h-[80px] text-sm"
+                />
               </div>
             </CardContent>
           </Card>

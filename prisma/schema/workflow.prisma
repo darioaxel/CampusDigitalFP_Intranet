@@ -22,6 +22,7 @@ enum RequestType {
   LEAVE             // Permiso
   TRAINING          // Formación
   OTHER             // Otro tipo de solicitud
+  SCHEDULE_VALIDATION
 }
 
 enum TaskType {
@@ -71,6 +72,9 @@ model Request {
   // Documentos adjuntos
   documents   RequestDocument[]
   
+  //Relación con Schedule (una solicitud puede validar un horario)
+  schedule Schedule? @relation("ScheduleValidation")
+
   // Log de actividad relacionado
   activityLogs ActivityLog[]
   

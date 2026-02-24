@@ -9,10 +9,16 @@ model Schedule {
   validUntil  DateTime?
   color       String?       // Para UI (ej: "#FF5733")
   isTemplate  Boolean   @default(false)  // Solo templates creados por ADMIN/ROOT
+  
+  validationStatus String @default("BORRADOR") // BORRADOR, PENDIENTE, VALIDADO, RECHAZADO
+
   // Relación con User
   userId      String
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  requestId   String?       @unique
+  request     Request?      @relation("ScheduleValidation", fields: [requestId], references: [id])
+
   // Bloques de tiempo
   blocks      ScheduleBlock[]
   
