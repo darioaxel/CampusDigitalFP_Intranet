@@ -19,6 +19,7 @@ interface Schedule {
   type: string
   color: string
   isActive: boolean
+  validationStatus?: 'BORRADOR' | 'PENDIENTE' | 'VALIDADO' | 'RECHAZADO'
   blocks: ScheduleBlock[]
 }
 
@@ -55,6 +56,26 @@ const getTypeLabel = (type: string) => {
     'REFUERZO': 'Refuerzo'
   }
   return labels[type] || type
+}
+
+const getValidationStatusLabel = (status?: string) => {
+  const labels: Record<string, string> = {
+    'BORRADOR': 'Borrador',
+    'PENDIENTE': 'Pendiente',
+    'VALIDADO': 'Validado',
+    'RECHAZADO': 'Rechazado'
+  }
+  return labels[status || 'BORRADOR'] || status
+}
+
+const getValidationStatusVariant = (status?: string): any => {
+  const variants: Record<string, any> = {
+    'BORRADOR': 'secondary',
+    'PENDIENTE': 'warning',
+    'VALIDADO': 'default',
+    'RECHAZADO': 'destructive'
+  }
+  return variants[status || 'BORRADOR'] || 'secondary'
 }
 
 const getBlocksForCell = (day: string, hour: string) => {
@@ -123,6 +144,28 @@ const getBlockStyle = (block: ScheduleBlock, hour: string) => {
             <h3 class="text-sm font-semibold">{{ schedule.name }}</h3>
             <Badge variant="outline" class="text-xs">
               {{ getTypeLabel(schedule.type) }}
+            </Badge>
+            <!-- Estado de validación -->
+            <Badge 
+              :variant="getValidationStatusVariant(schedule.validationStatus)" 
+              class="text-xs flex items-center gap-1"
+            >
+              <Icon 
+                v-if="schedule.validationStatus === 'VALIDADO'" 
+                name="lucide:check-circle" 
+                class="h-3 w-3" 
+              />
+              <Icon 
+                v-else-if="schedule.validationStatus === 'PENDIENTE'" 
+                name="lucide:clock" 
+                class="h-3 w-3" 
+              />
+              <Icon 
+                v-else-if="schedule.validationStatus === 'RECHAZADO'" 
+                name="lucide:x-circle" 
+                class="h-3 w-3" 
+              />
+              {{ getValidationStatusLabel(schedule.validationStatus) }}
             </Badge>
           </div>
           <span class="text-xs text-muted-foreground">

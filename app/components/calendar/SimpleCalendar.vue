@@ -85,13 +85,19 @@ const currentMonthYear = computed(() => {
   return currentDate.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 })
 
-// Parsear eventos una sola vez
+// Parsear eventos una sola vez (crear copias nuevas para evitar modificar originales)
 const parsedEvents = computed(() => {
-  return (props.events || []).map(event => ({
-    ...event,
-    startDate: new Date(event.start),
-    endDate: new Date(event.end),
-  }))
+  return (props.events || []).map(event => {
+    // Asegurar que las fechas estén en formato correcto
+    const startStr = event.start || ''
+    const endStr = event.end || event.start || '' // Si no hay end, usar start
+    
+    return {
+      ...event,
+      startDate: new Date(startStr + 'T00:00:00'),
+      endDate: new Date(endStr + 'T23:59:59'),
+    }
+  })
 })
 
 const calendarDays = computed(() => {
@@ -155,16 +161,12 @@ function isSameDay(d1: Date, d2: Date) {
 }
 
 function getEventsForDate(date: Date) {
+  const checkDate = new Date(date)
+  checkDate.setHours(12, 0, 0, 0)
+  
   return parsedEvents.value.filter(event => {
-    const eventStart = new Date(event.start)
-    const eventEnd = new Date(event.end)
-    // Normalizar horas a 00:00:00
-    eventStart.setHours(0, 0, 0, 0)
-    eventEnd.setHours(23, 59, 59, 999)
-    const checkDate = new Date(date)
-    checkDate.setHours(12, 0, 0, 0)
-    
-    return checkDate >= eventStart && checkDate <= eventEnd
+    // Las fechas ya están normalizadas en parsedEvents
+    return checkDate >= event.startDate && checkDate <= event.endDate
   })
 }
 

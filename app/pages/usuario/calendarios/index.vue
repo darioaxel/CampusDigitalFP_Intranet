@@ -113,9 +113,12 @@ const academicYears = computed(() => {
 })
 
 // Fetch calendarios
-const { data: calendars, pending, refresh } = useFetch(() => `/api/calendars?academicYear=${selectedYear.value}&isActive=true`, {
+const { data: response, pending, refresh } = useFetch(() => `/api/calendars?academicYear=${selectedYear.value}&isActive=true`, {
   watch: [selectedYear],
 })
+
+// Extraer calendarios de la respuesta
+const calendars = computed(() => response.value?.data || [])
 
 // Helpers
 function getCalendarIcon(type: string) {

@@ -18,20 +18,33 @@ const isReviewMode = computed(() => {
 })
 
 // Datos normales o de revisión
-const { data: mySchedules, pending, error, refresh } = await useFetch('/api/schedules/me', {
+const { data: mySchedulesResponse, pending, error, refresh } = await useFetch('/api/schedules/me', {
   key: 'my-schedules',
   default: () => [],
   immediate: !isReviewMode.value // Solo cargar si NO es modo revisión
 })
 
+// Extraer horarios de la respuesta (manejar ambos formatos por compatibilidad)
+const mySchedules = computed(() => {
+  const response = mySchedulesResponse.value
+  if (!response) return []
+  // Si es array, devolver directamente (formato antiguo)
+  if (Array.isArray(response)) return response
+  // Si tiene data, devolver data (nuevo formato)
+  return response.data || []
+})
+
 // Si es modo revisión, cargar el horario específico y la tarea
-const { data: reviewSchedule, pending: reviewPending } = await useFetch(
+const { data: reviewScheduleResponse, pending: reviewPending } = await useFetch(
   () => scheduleId ? `/api/schedules/${scheduleId}` : null,
   {
     key: 'review-schedule',
     immediate: isReviewMode.value
   }
 )
+
+// Extraer datos de la respuesta
+const reviewSchedule = computed(() => reviewScheduleResponse.value?.data || null)
 
 const { data: task } = await useFetch(
   () => taskId ? `/api/tasks/${taskId}` : null,
@@ -62,16 +75,19 @@ const validateAndComplete = async (action: 'VALIDAR' | 'RECHAZAR') => {
 
     if (valError.value) throw valError.value
 
-    // 2. Completar la tarea (si existe endpoint para completar tareas)
+    // 2. Completar la tarea (si existe taskId)
     if (taskId) {
-      await useFetch(`/api/tasks/${taskId}/complete`, {
+      const { error: taskError } = await useFetch(`/api/tasks/${taskId}/complete`, {
         method: 'POST'
       })
+      if (taskError.value) {
+        console.warn('Error completando tarea:', taskError.value)
+      }
     }
 
     toast.success(action === 'VALIDAR' ? 'Horario validado correctamente' : 'Horario rechazado')
     
-    // Redirigir al dashboard de tareas o a la lista de horarios
+    // Redirigir al dashboard de tareas
     router.push('/usuario/tareas')
   } catch (err: any) {
     toast.error(err.message || 'Error al procesar la validación')

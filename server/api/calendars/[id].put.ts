@@ -4,8 +4,8 @@ import { z } from 'zod'
 const updateCalendarSchema = z.object({
   name: z.string().min(3).optional(),
   description: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // formato: YYYY-MM-DD
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // formato: YYYY-MM-DD
   isActive: z.boolean().optional(),
   isPublic: z.boolean().optional(),
   allowDragDrop: z.boolean().optional(),
@@ -45,19 +45,26 @@ export default defineEventHandler(async (event) => {
   
   const data = result.data
   
-  // Actualizar calendario
+  // Actualizar calendario (normalizar fechas si se proporcionan)
+  const updateData: any = {
+    ...(data.name && { name: data.name }),
+    ...(data.description !== undefined && { description: data.description }),
+    ...(data.isActive !== undefined && { isActive: data.isActive }),
+    ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
+    ...(data.allowDragDrop !== undefined && { allowDragDrop: data.allowDragDrop }),
+    ...(data.maxEventsPerUser !== undefined && { maxEventsPerUser: data.maxEventsPerUser }),
+  }
+  
+  if (data.startDate) {
+    updateData.startDate = new Date(data.startDate + 'T00:00:00')
+  }
+  if (data.endDate) {
+    updateData.endDate = new Date(data.endDate + 'T23:59:59')
+  }
+  
   const calendar = await prisma.calendar.update({
     where: { id },
-    data: {
-      ...(data.name && { name: data.name }),
-      ...(data.description !== undefined && { description: data.description }),
-      ...(data.startDate && { startDate: new Date(data.startDate) }),
-      ...(data.endDate && { endDate: new Date(data.endDate) }),
-      ...(data.isActive !== undefined && { isActive: data.isActive }),
-      ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
-      ...(data.allowDragDrop !== undefined && { allowDragDrop: data.allowDragDrop }),
-      ...(data.maxEventsPerUser !== undefined && { maxEventsPerUser: data.maxEventsPerUser }),
-    },
+    data: updateData,
   })
   
   return {

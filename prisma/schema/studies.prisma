@@ -1,0 +1,204 @@
+// studies.prisma - Estructura de estudios FP (Ciclos, Módulos, RAs, CEs, Temas)
+
+// =====================================================
+// CICLOS FORMATIVOS
+// =====================================================
+model CicloFormativo {
+  id          String   @id @default(uuid())
+  codigo      String   @unique // Código oficial (ej: IFCD0210)
+  nombre      String   // Nombre completo del ciclo
+  nivel       NivelFP
+  familia     FamiliaProfesional
+  horasTotales Int     // Horas totales del ciclo
+  duracion    String   // "2000 horas", "2 cursos"
+  
+  // Relaciones
+  modulos     ModuloProfesional[]
+  
+  // Curso académico actual
+  cursoAcademico String? // "2024-2025"
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([nivel, familia])
+  @@index([activo])
+}
+
+// =====================================================
+// MÓDULOS PROFESIONALES
+// =====================================================
+model ModuloProfesional {
+  id          String   @id @default(uuid())
+  codigo      String   // Código del módulo (ej: 0485)
+  nombre      String   // Nombre completo
+  siglas      String?  // Siglas (ej: "PROG", "BD")
+  horasTotales Int
+  horasAnuales Int?    // Si se imparte en más de un curso
+  curso       Int      // 1, 2 (o más para ciclos de más años)
+  
+  // Relación con ciclo
+  cicloId     String
+  ciclo       CicloFormativo @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+  
+  // Relaciones
+  resultadosAprendizaje ResultadoAprendizaje[]
+  temas       Tema[]
+  
+  // Docente asignado (opcional)
+  docenteId   String?
+  docente     User?    @relation(fields: [docenteId], references: [id], onDelete: SetNull)
+  
+  activo      Boolean  @default(true)
+  orden       Int      @default(0) // Orden de impartición
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([cicloId, codigo])
+  @@index([cicloId, curso])
+  @@index([docenteId])
+}
+
+// =====================================================
+// RESULTADOS DE APRENDIZAJE (RA)
+// =====================================================
+model ResultadoAprendizaje {
+  id          String   @id @default(uuid())
+  numero      String   // "1", "2", "3"...
+  descripcion String   @db.Text // Descripción completa del RA
+  duracion    String?  // Horas estimadas (ej: "40 horas")
+  
+  // Relación con módulo
+  moduloId    String
+  modulo      ModuloProfesional @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  
+  // Relaciones
+  criteriosEvaluacion CriterioEvaluacion[]
+  temas       Tema[]   @relation("TemaResultados")
+  
+  orden       Int      @default(0)
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([moduloId, numero])
+  @@index([moduloId])
+}
+
+// =====================================================
+// CRITERIOS DE EVALUACIÓN (CE)
+// =====================================================
+model CriterioEvaluacion {
+  id          String   @id @default(uuid())
+  numero      String   // "a)", "b)", "c)" o "1", "2", "3"
+  descripcion String   @db.Text // Descripción del criterio
+  nivel       String?  // "Básico", "Avanzado", "Específico"
+  
+  // Relación con RA
+  raId        String
+  ra          ResultadoAprendizaje @relation(fields: [raId], references: [id], onDelete: Cascade)
+  
+  // Instrumentos de evaluación sugeridos
+  instrumentos String[] // ["Prueba escrita", "Proyecto", "Observación"]
+  
+  orden       Int      @default(0)
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([raId, numero])
+  @@index([raId])
+}
+
+// =====================================================
+// TEMAS / UNIDADES DIDÁCTICAS
+// =====================================================
+model Tema {
+  id          String   @id @default(uuid())
+  numero      Int      // Número de tema (1, 2, 3...)
+  titulo      String   // Título del tema
+  descripcion String?  @db.Text // Descripción/introducción
+  duracion    String?  // "12 horas", "3 semanas"
+  
+  // Relación con módulo
+  moduloId    String
+  modulo      ModuloProfesional @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  
+  // Relación con RAs (un tema puede abarcar varios RAs)
+  resultadosAprendizaje ResultadoAprendizaje[] @relation("TemaResultados")
+  
+  // Contenidos del tema (subtemas)
+  contenidos  ContenidoTema[]
+  
+  // Recursos asociados
+  recursos    RecursoTema[]
+  
+  orden       Int      @default(0)
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([moduloId, numero])
+  @@index([moduloId])
+}
+
+// =====================================================
+// CONTENIDOS DE UN TEMA (Subtemas)
+// =====================================================
+model ContenidoTema {
+  id          String   @id @default(uuid())
+  numero      String   // "1.1", "1.2", "2.1"...
+  titulo      String
+  descripcion String?  @db.Text
+  
+  // Relación con tema
+  temaId      String
+  tema        Tema     @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  
+  orden       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([temaId])
+}
+
+// =====================================================
+// RECURSOS DE UN TEMA
+// =====================================================
+model RecursoTema {
+  id          String   @id @default(uuid())
+  tipo        TipoRecurso
+  titulo      String
+  descripcion String?
+  url         String?  // URL externa
+  archivoId   String?  // Referencia a File si es archivo subido
+  
+  // Relación con tema
+  temaId      String
+  tema        Tema     @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  
+  orden       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([temaId])
+}
+
+enum TipoRecurso {
+  DOCUMENTO
+  PRESENTACION
+  VIDEO
+  ENLACE_WEB
+  EJERCICIO
+  PROYECTO
+  LECTURA
+  CODIGO
+  OTRO
+}

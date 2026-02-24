@@ -310,7 +310,7 @@ const academicYears = computed(() => {
 })
 
 // Fetch calendarios
-const { data: calendars, pending, refresh } = useFetch(() => {
+const { data: response, pending, refresh } = useFetch(() => {
   const params = new URLSearchParams()
   if (filters.type) params.append('type', filters.type)
   if (filters.academicYear) params.append('academicYear', filters.academicYear)
@@ -319,6 +319,9 @@ const { data: calendars, pending, refresh } = useFetch(() => {
 }, {
   watch: [filters],
 })
+
+// Extraer calendarios de la respuesta
+const calendars = computed(() => response.value?.data || [])
 
 // Helpers
 function getTypeLabel(type: string) {
@@ -375,10 +378,18 @@ async function saveCalendar() {
   saving.value = true
   
   try {
+    // Enviar fechas en formato YYYY-MM-DD directamente
     const payload = {
-      ...form,
-      startDate: new Date(form.startDate).toISOString(),
-      endDate: new Date(form.endDate).toISOString(),
+      name: form.name,
+      description: form.description,
+      type: form.type,
+      academicYear: form.academicYear,
+      startDate: form.startDate, // formato: YYYY-MM-DD
+      endDate: form.endDate, // formato: YYYY-MM-DD
+      isPublic: form.isPublic,
+      allowDragDrop: form.allowDragDrop,
+      isActive: form.isActive,
+      maxEventsPerUser: form.maxEventsPerUser,
     }
     
     if (editingCalendar.value) {

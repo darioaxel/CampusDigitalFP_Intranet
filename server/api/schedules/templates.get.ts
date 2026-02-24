@@ -38,5 +38,8 @@ export default defineEventHandler(async (event) => {
     orderBy: { createdAt: 'desc' }
   })
 
-  return templates
+  return {
+    success: true,
+    data: templates
+  }
 })

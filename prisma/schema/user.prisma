@@ -64,6 +64,9 @@ model User {
   // Eventos de calendario asignados (drag-drop)
   calendarAssignments UserCalendarEvent[]
   
+  // Módulos donde es docente
+  modulosDocente    ModuloProfesional[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

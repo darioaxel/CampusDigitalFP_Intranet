@@ -33,8 +33,8 @@ const scheduleSchema = z.object({
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   isTemplate: z.boolean().default(false),
   userId: z.string().uuid().optional(),
-  validFrom: z.string().datetime().optional(),
-  validUntil: z.string().datetime().optional(),
+  validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // YYYY-MM-DD
+  validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // YYYY-MM-DD
   blocks: z.array(blockSchema).min(1, 'Al menos un bloque requerido')
 })
 
@@ -121,8 +121,8 @@ export default defineEventHandler(async (event) => {
           isTemplate: data.isTemplate,
           isActive: true,
           userId: targetUserId,
-          validFrom: data.validFrom ? new Date(data.validFrom) : null,
-          validUntil: data.validUntil ? new Date(data.validUntil) : null,
+          validFrom: data.validFrom ? new Date(data.validFrom + 'T00:00:00') : null,
+          validUntil: data.validUntil ? new Date(data.validUntil + 'T23:59:59') : null,
         }
       })
 

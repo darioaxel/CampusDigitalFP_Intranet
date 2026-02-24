@@ -61,5 +61,8 @@ export default defineEventHandler(async (event) => {
     },
   })
   
-  return calendars
+  return {
+    success: true,
+    data: calendars,
+  }
 })

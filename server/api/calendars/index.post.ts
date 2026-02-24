@@ -6,8 +6,8 @@ const createCalendarSchema = z.object({
   description: z.string().optional(),
   type: z.enum(['SCHOOL_YEAR', 'EVALUATION', 'FREE_DISPOSITION', 'MEETINGS', 'OTHER']),
   academicYear: z.string().regex(/^\d{4}-\d{4}$/), // formato: 2024-2025
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
   isPublic: z.boolean().default(true),
   allowDragDrop: z.boolean().default(false),
   maxEventsPerUser: z.number().int().min(1).optional(),
@@ -42,15 +42,18 @@ export default defineEventHandler(async (event) => {
   
   const data = result.data
   
-  // Crear calendario
+  // Crear calendario (normalizar fechas a inicio del día local)
+  const startDate = new Date(data.startDate + 'T00:00:00')
+  const endDate = new Date(data.endDate + 'T23:59:59')
+  
   const calendar = await prisma.calendar.create({
     data: {
       name: data.name,
       description: data.description,
       type: data.type,
       academicYear: data.academicYear,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
+      startDate,
+      endDate,
       isPublic: data.isPublic,
       isActive: true,
       allowDragDrop: data.allowDragDrop,

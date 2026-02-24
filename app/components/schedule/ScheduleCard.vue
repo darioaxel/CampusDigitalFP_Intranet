@@ -18,6 +18,7 @@ interface Schedule {
   type: string
   color: string
   isActive: boolean
+  validationStatus?: 'BORRADOR' | 'PENDIENTE' | 'VALIDADO' | 'RECHAZADO'
   blocks: ScheduleBlock[]
 }
 
@@ -47,6 +48,26 @@ const getTypeColor = (type: string) => {
     'REFUERZO': 'bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20'
   }
   return colors[type] || 'bg-muted text-muted-foreground'
+}
+
+const getValidationStatusLabel = (status?: string) => {
+  const labels: Record<string, string> = {
+    'BORRADOR': 'Borrador',
+    'PENDIENTE': 'Pendiente',
+    'VALIDADO': 'Validado',
+    'RECHAZADO': 'Rechazado'
+  }
+  return labels[status || 'BORRADOR'] || status
+}
+
+const getValidationStatusColor = (status?: string) => {
+  const colors: Record<string, string> = {
+    'BORRADOR': 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20',
+    'PENDIENTE': 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/20',
+    'VALIDADO': 'bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20',
+    'RECHAZADO': 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20'
+  }
+  return colors[status || 'BORRADOR'] || 'bg-muted text-muted-foreground'
 }
 
 const blocksByDay = (day: string) => {
@@ -83,6 +104,28 @@ const formatTime = (time: string) => time
             class="text-xs"
           >
             Activo
+          </Badge>
+          <Badge 
+            variant="outline" 
+            :class="getValidationStatusColor(schedule.validationStatus)"
+            class="text-xs flex items-center gap-1"
+          >
+            <Icon 
+              v-if="schedule.validationStatus === 'VALIDADO'" 
+              name="lucide:check-circle" 
+              class="h-3 w-3" 
+            />
+            <Icon 
+              v-else-if="schedule.validationStatus === 'PENDIENTE'" 
+              name="lucide:clock" 
+              class="h-3 w-3" 
+            />
+            <Icon 
+              v-else-if="schedule.validationStatus === 'RECHAZADO'" 
+              name="lucide:x-circle" 
+              class="h-3 w-3" 
+            />
+            {{ getValidationStatusLabel(schedule.validationStatus) }}
           </Badge>
         </div>
       </div>

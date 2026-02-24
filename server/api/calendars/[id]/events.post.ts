@@ -56,15 +56,21 @@ export default defineEventHandler(async (event) => {
   
   const data = result.data
   
-  // Crear evento
+  // Crear evento (normalizar fechas a inicio del día local)
+  const startDate = new Date(data.startDate + 'T00:00:00')
+  // Si no hay endDate, usar startDate (evento de un día)
+  const endDate = data.endDate 
+    ? new Date(data.endDate + 'T23:59:59')
+    : new Date(data.startDate + 'T23:59:59')
+  
   const eventItem = await prisma.calendarEvent.create({
     data: {
       calendarId,
       title: data.title,
       description: data.description,
       type: data.type,
-      startDate: new Date(data.startDate),
-      endDate: data.endDate ? new Date(data.endDate) : null,
+      startDate,
+      endDate,
       isAllDay: data.isAllDay,
       startTime: data.startTime,
       endTime: data.endTime,

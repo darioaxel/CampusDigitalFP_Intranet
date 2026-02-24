@@ -30,7 +30,10 @@ export default defineEventHandler(async (event) => {
       ]
     })
 
-    return schedules
+    return {
+      success: true,
+      data: schedules
+    }
   } catch (error) {
     console.error('Error fetching schedules:', error)
     throw createError({
