@@ -112,10 +112,10 @@ export const siteConfig = {
         },
         {
           title: "Gestión Solicitudes",
-          url: "/admin/solicitudes",
+          url: "/admin/solicitudes/gestion",
           icon: "lucide:clipboard-list",
           items: [
-            { title: "Gestionar Solicitudes", url: "/admin/solicitudes" },
+            { title: "Gestionar Solicitudes", url: "/admin/solicitudes/gestion" },
           ],
         },   
         {
