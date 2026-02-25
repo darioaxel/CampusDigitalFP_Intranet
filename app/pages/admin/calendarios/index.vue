@@ -264,6 +264,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 definePageMeta({
   middleware: ['auth'],
@@ -408,9 +409,9 @@ async function saveCalendar() {
     showCreateModal.value = false
     editingCalendar.value = null
     resetForm()
-    alert(editingCalendar.value ? 'Calendario actualizado' : 'Calendario creado')
+    toast.success(editingCalendar.value ? 'Calendario actualizado' : 'Calendario creado')
   } catch (error: any) {
-    alert(error.data?.message || 'Error al guardar')
+    toast.error(error.data?.message || 'Error al guardar')
   } finally {
     saving.value = false
   }
@@ -424,9 +425,9 @@ async function deleteCalendar(calendar: any) {
       method: 'DELETE',
     })
     await refresh()
-    alert('Calendario eliminado')
+    toast.success('Calendario eliminado')
   } catch (error: any) {
-    alert(error.data?.message || 'Error al eliminar')
+    toast.error(error.data?.message || 'Error al eliminar')
   }
 }
 

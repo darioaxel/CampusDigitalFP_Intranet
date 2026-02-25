@@ -278,6 +278,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 definePageMeta({
   middleware: ['auth'],
@@ -414,9 +415,9 @@ async function saveEvent() {
     showCreateModal.value = false
     editingEvent.value = null
     resetEventForm()
-    alert('Evento creado correctamente')
+    toast.success('Evento creado correctamente')
   } catch (error: any) {
-    alert(error.data?.message || 'Error al crear el evento')
+    toast.error(error.data?.message || 'Error al crear el evento')
   } finally {
     saving.value = false
   }
@@ -427,13 +428,16 @@ async function deleteEvent(event: any) {
   
   // Nota: No hay endpoint DELETE para eventos individuales aún
   // Se implementaría similar al de calendarios
-  alert('Funcionalidad en desarrollo')
+  toast.info('Funcionalidad en desarrollo')
 }
 
 function viewEventDetails(eventId: string) {
   const event = events.value.find((e: any) => e.id === eventId)
   if (event) {
-    alert(`${event.title}\n${event.description || 'Sin descripción'}`)
+    // Mostrar detalles en un toast o modal
+    toast.info(event.title, {
+      description: event.description || 'Sin descripción'
+    })
   }
 }
 
