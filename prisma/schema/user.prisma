@@ -57,6 +57,12 @@ model User {
   // Logs de actividad
   activityLogs      ActivityLog[] @relation("ActivityActor")
   
+  // NUEVO: Historial de estados en workflows configurables
+  stateHistory      StateHistory[]
+  
+  // NUEVO: Notificaciones de workflow
+  workflowNotifications WorkflowNotification[]
+  
   // Calendarios creados (admin)
   calendarsCreated  Calendar[] @relation("CalendarsCreated")
   calendarEventsCreated CalendarEvent[] @relation("CalendarEventsCreated")

@@ -1,9 +1,6 @@
 // GET /api/tasks - Listar tareas del usuario o todas (si es admin)
 import { defineEventHandler, createError, getQuery } from 'h3'
-import pkg from '@prisma/client'
 import { prisma } from '../../utils/db'
-
-const { Role, WorkflowStatus } = pkg
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -16,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  const { status, type, limit = '50', offset = '0' } = query
+  const { stateCode, workflowCode, limit = '50', offset = '0' } = query
 
   try {
     // Verificar rol del usuario
@@ -25,25 +22,29 @@ export default defineEventHandler(async (event) => {
       select: { role: true }
     })
 
-    const isAdminOrRoot = [Role.ADMIN, Role.ROOT].includes(currentUser?.role as any)
+    const isAdminOrRoot = ['ADMIN', 'ROOT'].includes(currentUser?.role || '')
 
     // Construir where clause
     const where: any = {}
 
-    // Filtrar por estado si se proporciona
-    if (status) {
-      where.status = status as string
+    // Filtrar por código de estado si se proporciona
+    if (stateCode) {
+      where.currentState = {
+        code: stateCode as string
+      }
     }
 
-    // Filtrar por tipo si se proporciona
-    if (type) {
-      where.type = type as string
+    // Filtrar por código de workflow si se proporciona
+    if (workflowCode) {
+      where.workflow = {
+        code: workflowCode as string
+      }
     }
 
     let tasks: any[] = []
 
     if (isAdminOrRoot) {
-      // Admin/Root: ver tareas asignadas a ellos o tareas de revisión pendientes
+      // Admin/Root: ver tareas asignadas a ellos o todas las tareas
       tasks = await prisma.task.findMany({
         where: {
           ...where,
@@ -55,10 +56,9 @@ export default defineEventHandler(async (event) => {
                 }
               }
             },
-            // También ver tareas de revisión que no tienen asignaciones específicas
+            // También ver tareas creadas por ellos
             {
-              type: 'REVIEW',
-              status: { in: ['TODO', 'IN_PROGRESS'] }
+              creatorId: session.user.id
             }
           ]
         },
@@ -71,25 +71,37 @@ export default defineEventHandler(async (event) => {
               email: true
             }
           },
+          currentState: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              color: true
+            }
+          },
+          workflow: {
+            select: {
+              id: true,
+              code: true,
+              name: true
+            }
+          },
           assignments: {
             where: {
               assigneeId: session.user.id
             },
             select: {
               id: true,
-              status: true
+              completedAt: true
             }
           },
-          request: {
+          _count: {
             select: {
-              id: true,
-              type: true,
-              status: true
+              assignments: true
             }
           }
         },
         orderBy: [
-          { status: 'asc' },
           { createdAt: 'desc' }
         ],
         take: parseInt(limit as string),
@@ -115,25 +127,32 @@ export default defineEventHandler(async (event) => {
               email: true
             }
           },
+          currentState: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              color: true
+            }
+          },
+          workflow: {
+            select: {
+              id: true,
+              code: true,
+              name: true
+            }
+          },
           assignments: {
             where: {
               assigneeId: session.user.id
             },
             select: {
               id: true,
-              status: true
-            }
-          },
-          request: {
-            select: {
-              id: true,
-              type: true,
-              status: true
+              completedAt: true
             }
           }
         },
         orderBy: [
-          { status: 'asc' },
           { createdAt: 'desc' }
         ],
         take: parseInt(limit as string),

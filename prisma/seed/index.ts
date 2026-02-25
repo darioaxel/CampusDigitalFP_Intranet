@@ -7,6 +7,9 @@ import { allCalendars } from './data/calendars.js'
 import { seedStudies } from './seeders/studies.seeder.js'
 import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
 import { seedFreeDispositionCalendar } from './seeders/calendars-free-disposition.seeder.js'
+import { seedWorkflows } from './seeders/workflow.seeder.js'
+import { seedTasks } from './seeders/task.seeder.js'
+import { seedRequests } from './seeders/request.seeder.js'
 
 
 async function main() {
@@ -26,6 +29,16 @@ async function main() {
     await prisma.cicloFormativo.deleteMany()
     
     // Limpiar primero las tablas hijas (con FKs)
+    await prisma.stateHistory.deleteMany()
+    await prisma.vote.deleteMany()
+    await prisma.taskAssignment.deleteMany()
+    await prisma.requestDocument.deleteMany()
+    await prisma.task.deleteMany()
+    await prisma.request.deleteMany()
+    await prisma.workflowNotification.deleteMany()
+    await prisma.workflowTransition.deleteMany()
+    await prisma.workflowState.deleteMany()
+    await prisma.workflowDefinition.deleteMany()
     await prisma.userCalendarEvent.deleteMany()
     await prisma.calendarEvent.deleteMany()
     await prisma.calendar.deleteMany()
@@ -52,6 +65,15 @@ async function main() {
 
     // 6. Calendario de libre disposición
     await seedFreeDispositionCalendar()
+
+    // 7. Workflows configurables
+    await seedWorkflows(prisma)
+
+    // 8. Tareas de ejemplo (usando workflows configurables)
+    await seedTasks(prisma, createdUsers)
+
+    // 9. Solicitudes de ejemplo (usando workflows configurables)
+    await seedRequests(prisma, createdUsers)
 
     console.log('\n✨ Seed completado exitosamente')
   } catch (error) {

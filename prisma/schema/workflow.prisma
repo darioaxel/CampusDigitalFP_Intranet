@@ -1,39 +1,6 @@
-// WORKFLOW - Solicitudes, Tareas, Votaciones y Logs
+// WORKFLOW - Solicitudes, Tareas, Votaciones y Workflow Configurable
 
 // ENUMS ------------------------------------------------
-enum WorkflowStatus {
-  // Estados para Solicitudes
-  PENDING    // Pendiente de revisión
-  APPROVED   // Aprobada
-  REJECTED   // Rechazada
-  COMMUNICATED // Comunicada (para avisos médicos)
-  CLOSED     // Cerrada
-  
-  // Estados para Tareas
-  TODO       // Por hacer
-  IN_PROGRESS // En progreso
-  DONE       // Completada
-  CANCELLED  // Cancelada
-}
-
-enum RequestType {
-  FREE_DAY          // Día de libre disposición
-  MEDICAL_APPOINTMENT // Aviso de asistencia a visita médica
-  LEAVE             // Permiso
-  TRAINING          // Formación
-  OTHER             // Otro tipo de solicitud
-  SCHEDULE_VALIDATION
-  NEW_USER 
-}
-
-enum TaskType {
-  SYLLABUS_CREATION // Creación de programaciones didácticas
-  MEETING           // Reunión
-  VOTE              // Votación de propuestas
-  REVIEW            // Revisión de documentos
-  OTHER             // Otro tipo de tarea
-}
-
 enum DocumentStatus {
   PENDING    // Pendiente de entrega
   SUBMITTED  // Entregado
@@ -42,7 +9,10 @@ enum DocumentStatus {
   REPLACED   // Reemplazado por otro documento
 }
 
-// MODELS -----------------------------------------------
+// ============================================
+// SOLICITUDES (Request)
+// ============================================
+
 model Request {
   id          String   @id @default(uuid())
   
@@ -50,9 +20,15 @@ model Request {
   requesterId String
   requester   User     @relation("RequestsCreated", fields: [requesterId], references: [id], onDelete: Cascade)
   
-  // Tipo y estado
-  type        RequestType
-  status      WorkflowStatus @default(PENDING)
+  // Workflow configurable
+  workflowId      String
+  workflow        WorkflowDefinition  @relation(fields: [workflowId], references: [id])
+  currentStateId  String
+  currentState    WorkflowState       @relation("RequestCurrentState", fields: [currentStateId], references: [id])
+  
+  // Contexto específico del tipo de solicitud (JSON polimórfico)
+  // Ej: { "type": "FREE_DAY", "requestedDate": "2025-03-15" }
+  context         String?  @db.Text
   
   // Contenido de la solicitud
   title       String
@@ -73,18 +49,22 @@ model Request {
   // Documentos adjuntos
   documents   RequestDocument[]
   
-  //Relación con Schedule (una solicitud puede validar un horario)
+  // Relación con Schedule (una solicitud puede validar un horario)
   schedule Schedule? @relation("ScheduleValidation")
 
   // Log de actividad relacionado
   activityLogs ActivityLog[]
   
+  // Historial de estados del workflow
+  stateHistory StateHistory[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([requesterId, status])
-  @@index([adminId, status])
-  @@index([type, status])
+  @@index([requesterId])
+  @@index([adminId])
+  @@index([workflowId])
+  @@index([currentStateId])
   @@index([createdAt])
 }
 
@@ -126,6 +106,10 @@ model RequestDocument {
   @@index([uploadedById])
 }
 
+// ============================================
+// TAREAS (Task)
+// ============================================
+
 model Task {
   id          String   @id @default(uuid())
   
@@ -133,9 +117,15 @@ model Task {
   creatorId   String
   creator     User     @relation("TasksCreated", fields: [creatorId], references: [id], onDelete: Cascade)
   
-  // Tipo y estado
-  type        TaskType
-  status      WorkflowStatus @default(TODO)
+  // Workflow configurable
+  workflowId      String
+  workflow        WorkflowDefinition  @relation(fields: [workflowId], references: [id])
+  currentStateId  String
+  currentState    WorkflowState       @relation("TaskCurrentState", fields: [currentStateId], references: [id])
+  
+  // Contexto específico del tipo de tarea (JSON polimórfico)
+  // Ej: { "type": "VOTE", "votingOptions": [...] }
+  context         String?  @db.Text
   
   // Contenido
   title       String
@@ -145,7 +135,7 @@ model Task {
   dueDate     DateTime?
   completedAt DateTime?
   
-  // Para tareas de tipo VOTE
+  // Para tareas de tipo VOTE (datos específicos)
   votingEndsAt DateTime?
   votingOptions String? @db.Text // JSON con opciones de votación
   
@@ -158,11 +148,15 @@ model Task {
   // Log de actividad
   activityLogs ActivityLog[]
   
+  // Historial de estados del workflow
+  stateHistory StateHistory[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([creatorId, status])
-  @@index([type, status])
+  @@index([creatorId])
+  @@index([workflowId])
+  @@index([currentStateId])
   @@index([dueDate])
 }
 
@@ -177,10 +171,7 @@ model TaskAssignment {
   assigneeId  String
   assignee    User     @relation(fields: [assigneeId], references: [id], onDelete: Cascade)
   
-  // Estado individual
-  status      WorkflowStatus @default(TODO)
-  
-  // Notas del asignado
+  // Estado individual (solo para tracking, el principal está en Task)
   notes       String?  @db.Text
   
   // Completada en
@@ -190,7 +181,7 @@ model TaskAssignment {
   updatedAt   DateTime @updatedAt
 
   @@unique([taskId, assigneeId])
-  @@index([assigneeId, status])
+  @@index([assigneeId])
 }
 
 model Vote {
@@ -214,6 +205,10 @@ model Vote {
   @@unique([taskId, voterId])
   @@index([taskId, option])
 }
+
+// ============================================
+// LOGS Y AUDITORÍA
+// ============================================
 
 model ActivityLog {
   id          String   @id @default(uuid())
