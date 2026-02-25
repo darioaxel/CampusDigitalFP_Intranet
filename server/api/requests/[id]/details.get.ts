@@ -24,6 +24,19 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403, message: 'No autorizado' })
     }
 
+    // Obtener el workflow de días libres
+    const freeDayWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'request_free_day' },
+      include: { states: true }
+    })
+
+    if (!freeDayWorkflow) {
+      throw createError({ statusCode: 500, message: 'Workflow no configurado' })
+    }
+
+    const approvedState = freeDayWorkflow.states.find(s => s.code === 'approved')
+    const pendingState = freeDayWorkflow.states.find(s => s.code === 'pending')
+
     // Obtener solicitud
     const request = await prisma.request.findUnique({
       where: { id: requestId },
@@ -35,7 +48,8 @@ export default defineEventHandler(async (event) => {
             lastName: true,
             email: true,
           }
-        }
+        },
+        currentState: true
       }
     })
 
@@ -44,25 +58,27 @@ export default defineEventHandler(async (event) => {
     }
 
     // Contar solicitudes del profesor
-    const teacherStats = await prisma.request.groupBy({
-      by: ['status'],
+    const teacherApproved = await prisma.request.count({
       where: {
         requesterId: request.requesterId,
-        type: 'FREE_DAY'
-      },
-      _count: {
-        id: true
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id
       }
     })
 
-    const approvedByTeacher = teacherStats.find(s => s.status === 'APPROVED')?._count.id || 0
-    const pendingByTeacher = teacherStats.find(s => s.status === 'PENDING')?._count.id || 0
+    const teacherPending = await prisma.request.count({
+      where: {
+        requesterId: request.requesterId,
+        workflowId: freeDayWorkflow.id,
+        currentStateId: pendingState?.id
+      }
+    })
 
     // Contar profesores que tienen aprobado el mismo día
     const sameDayApproved = await prisma.request.count({
       where: {
-        type: 'FREE_DAY',
-        status: 'APPROVED',
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id,
         requestedDate: request.requestedDate
       }
     })
@@ -70,8 +86,8 @@ export default defineEventHandler(async (event) => {
     // Listar profesores con solicitudes aprobadas para ese día
     const sameDayTeachers = await prisma.request.findMany({
       where: {
-        type: 'FREE_DAY',
-        status: 'APPROVED',
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id,
         requestedDate: request.requestedDate,
         requesterId: { not: request.requesterId }
       },
@@ -92,7 +108,8 @@ export default defineEventHandler(async (event) => {
           id: request.id,
           title: request.title,
           description: request.description,
-          status: request.status,
+          status: request.currentState?.name || 'Desconocido',
+          statusCode: request.currentState?.code || 'unknown',
           requestedDate: request.requestedDate?.toISOString().split('T')[0],
           createdAt: request.createdAt,
           adminNotes: request.adminNotes
@@ -102,9 +119,9 @@ export default defineEventHandler(async (event) => {
           name: `${request.requester.firstName} ${request.requester.lastName}`,
           email: request.requester.email,
           stats: {
-            approved: approvedByTeacher,
-            pending: pendingByTeacher,
-            total: approvedByTeacher + pendingByTeacher
+            approved: teacherApproved,
+            pending: teacherPending,
+            total: teacherApproved + teacherPending
           }
         },
         sameDay: {

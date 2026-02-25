@@ -57,12 +57,9 @@ export default defineEventHandler(async (event) => {
       where: { id: documentId },
       include: {
         request: {
-          select: {
-            id: true,
-            status: true,
-            title: true,
-            requesterId: true,
-          },
+          include: {
+            currentState: true
+          }
         },
         file: {
           select: {
@@ -122,11 +119,9 @@ export default defineEventHandler(async (event) => {
           },
         },
         request: {
-          select: {
-            id: true,
-            title: true,
-            status: true,
-          },
+          include: {
+            currentState: true
+          }
         },
       },
     })
@@ -151,9 +146,9 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    // Si el documento es válido y la solicitud es médica en estado COMMUNICATED,
+    // Si el documento es válido y la solicitud está en estado "communicated",
     // podríamos notificar o permitir cierre automático
-    if (valid && document.request.status === 'COMMUNICATED') {
+    if (valid && document.request.currentState?.code === 'communicated') {
       // Opcional: Notificar al usuario que puede proceder al cierre
       // o cerrar automáticamente si es el único documento requerido
       
@@ -187,7 +182,7 @@ export default defineEventHandler(async (event) => {
       data: {
         document: updatedDocument,
         validationResult: valid ? 'VALID' : 'INVALID',
-        canCloseRequest: valid && document.request.status === 'COMMUNICATED',
+        canCloseRequest: valid && document.request.currentState?.code === 'communicated',
       },
     }
   } catch (error) {

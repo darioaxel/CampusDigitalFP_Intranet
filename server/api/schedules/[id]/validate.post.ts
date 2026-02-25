@@ -1,8 +1,6 @@
 import { defineEventHandler, createError, getRouterParam, readBody } from 'h3'
-import pkg from '@prisma/client'
 import { prisma } from '../../../utils/db'
-
-const { Role, WorkflowStatus } = pkg
+import { workflowEngine } from '../../../utils/workflow/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -16,7 +14,7 @@ export default defineEventHandler(async (event) => {
     select: { role: true }
   })
 
-  if (![Role.ADMIN, Role.ROOT].includes(currentUser?.role as any)) {
+  if (!['ADMIN', 'ROOT'].includes(currentUser?.role || '')) {
     throw createError({ statusCode: 403, message: 'No autorizado' })
   }
 
@@ -46,22 +44,57 @@ export default defineEventHandler(async (event) => {
       data: { validationStatus: newStatus }
     })
 
-    // Si tiene solicitud asociada, actualizarla
+    // Si tiene solicitud asociada, usar el workflow engine para transicionar
     if (schedule.request) {
+      const toStateCode = action === 'VALIDAR' ? 'approved' : 'rejected'
+      
+      // Ejecutar transición usando el workflow engine
+      await workflowEngine.executeTransition({
+        entityId: schedule.request.id,
+        entityType: 'REQUEST',
+        toStateCode: toStateCode,
+        actorId: session.user.id,
+        actorRole: currentUser!.role,
+        comment: notes || `Horario ${action === 'VALIDAR' ? 'validado' : 'rechazado'}`,
+        metadata: { scheduleId: schedule.id, action }
+      })
+
+      // Actualizar adminId y notas manualmente (si es necesario)
       await prisma.request.update({
         where: { id: schedule.request.id },
         data: {
-          status: action === 'VALIDAR' ? WorkflowStatus.APPROVED : WorkflowStatus.REJECTED,
           adminId: session.user.id,
           adminNotes: notes || null
         }
       })
 
-      // Completar todas las tareas asociadas
-      await prisma.task.updateMany({
-        where: { requestId: schedule.request.id },
-        data: { status: WorkflowStatus.DONE }
+      // Completar todas las tareas asociadas (usando el workflow engine)
+      const relatedTasks = await prisma.task.findMany({
+        where: { 
+          context: {
+            contains: `"requestId":"${schedule.request.id}"`
+          }
+        }
       })
+
+      for (const task of relatedTasks) {
+        try {
+          await workflowEngine.executeTransition({
+            entityId: task.id,
+            entityType: 'TASK',
+            toStateCode: 'done',
+            actorId: session.user.id,
+            actorRole: currentUser!.role,
+            comment: `Completada por ${action === 'VALIDAR' ? 'validación' : 'rechazo'} de horario`
+          })
+        } catch (e) {
+          // Si la transición falla, simplemente marcar como completada
+          await prisma.task.update({
+            where: { id: task.id },
+            data: { completedAt: new Date() }
+          })
+        }
+      }
 
       // Crear log de actividad
       await prisma.activityLog.create({

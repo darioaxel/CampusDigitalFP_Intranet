@@ -1,9 +1,7 @@
-// POST /api/tasks/[id]/complete - Completar una tarea
+// POST /api/tasks/[id]/complete - Completar una tarea (transición a estado done)
 import { defineEventHandler, createError, getRouterParam } from 'h3'
-import pkg from '@prisma/client'
 import { prisma } from '../../../utils/db'
-
-const { WorkflowStatus, Role } = pkg
+import { workflowEngine } from '../../../utils/workflow/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -28,7 +26,7 @@ export default defineEventHandler(async (event) => {
         assignments: {
           where: { assigneeId: session.user.id }
         },
-        request: true
+        currentState: true
       }
     })
 
@@ -42,34 +40,52 @@ export default defineEventHandler(async (event) => {
       select: { role: true }
     })
 
-    const isAdminOrRoot = [Role.ADMIN, Role.ROOT].includes(currentUser?.role as any)
+    const isAdminOrRoot = ['ADMIN', 'ROOT'].includes(currentUser?.role || '')
     const isAssigned = task.assignments.length > 0
 
     if (!isAssigned && !isAdminOrRoot) {
       throw createError({ statusCode: 403, message: 'No estás asignado a esta tarea' })
     }
 
-    // Completar la tarea
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: {
-        status: WorkflowStatus.DONE,
-        completedAt: new Date()
-      }
+    // Ejecutar transición al estado 'done' usando el workflow engine
+    const result = await workflowEngine.executeTransition({
+      entityId: id,
+      entityType: 'TASK',
+      toStateCode: 'done',
+      actorId: session.user.id,
+      actorRole: currentUser!.role,
+      comment: 'Tarea completada por el usuario',
+      metadata: { completedBy: session.user.id, completedAt: new Date() }
     })
 
-    // Si tiene solicitud asociada, actualizar el estado de la asignación
-    if (task.request) {
-      await prisma.taskAssignment.updateMany({
-        where: {
-          taskId: id,
-          assigneeId: session.user.id
-        },
+    if (!result.success) {
+      // Si la transición a 'done' no es posible, intentar actualizar manualmente
+      // (para workflows que no tengan estado 'done')
+      const updatedTask = await prisma.task.update({
+        where: { id },
         data: {
-          status: WorkflowStatus.DONE
+          completedAt: new Date()
+        },
+        include: {
+          currentState: true
         }
       })
+
+      return {
+        success: true,
+        message: 'Tarea marcada como completada',
+        data: updatedTask
+      }
     }
+
+    // Actualizar fecha de completado
+    const updatedTask = await prisma.task.update({
+      where: { id },
+      data: { completedAt: new Date() },
+      include: {
+        currentState: true
+      }
+    })
 
     return {
       success: true,

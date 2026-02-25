@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
         admin: {
           select: { firstName: true, lastName: true },
         },
+        currentState: true,
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -29,7 +30,10 @@ export default defineEventHandler(async (event) => {
     const pendingRequests = isAdmin
       ? await prisma.request.findMany({
           where: {
-            status: { in: ['PENDING', 'COMMUNICATED'] },
+            currentState: {
+              isFinal: false,
+              isTerminal: false
+            },
             requesterId: { not: userId }, // Excluir las propias
           },
           include: {
@@ -39,6 +43,7 @@ export default defineEventHandler(async (event) => {
             admin: {
               select: { firstName: true, lastName: true },
             },
+            currentState: true,
           },
           orderBy: { createdAt: 'desc' },
         })
@@ -52,9 +57,9 @@ export default defineEventHandler(async (event) => {
             creator: {
               select: { firstName: true, lastName: true, email: true },
             },
+            currentState: true,
             assignments: {
               select: {
-                status: true,
                 completedAt: true,
                 assignee: {
                   select: { firstName: true, lastName: true },
@@ -77,10 +82,10 @@ export default defineEventHandler(async (event) => {
         creator: {
           select: { firstName: true, lastName: true, email: true },
         },
+        currentState: true,
         assignments: {
           where: { assigneeId: userId },
           select: {
-            status: true,
             completedAt: true,
           },
         },
@@ -92,11 +97,8 @@ export default defineEventHandler(async (event) => {
     const formatDate = (date: Date | null | undefined) => 
       date ? new Date(date).toLocaleDateString('es-ES') : '-'
 
-    const isTerminalStatus = (status: string, type: 'request' | 'task') => {
-      if (type === 'request') {
-        return ['APPROVED', 'REJECTED', 'CLOSED'].includes(status)
-      }
-      return ['DONE', 'CANCELLED'].includes(status)
+    const isTerminalStatus = (isFinal: boolean, isTerminal: boolean) => {
+      return isFinal || isTerminal
     }
 
     const workflowItems = [
@@ -104,12 +106,13 @@ export default defineEventHandler(async (event) => {
       ...myRequests.map((req) => ({
         id: req.id,
         type: 'Solicitud',
-        subType: req.type,
         title: req.title,
         createdAt: req.createdAt,
         createdBy: `${req.requester.firstName || ''} ${req.requester.lastName || ''}`.trim() || req.requester.email,
-        status: req.status,
-        completedAt: isTerminalStatus(req.status, 'request') ? req.updatedAt : null,
+        status: req.currentState?.name || 'Desconocido',
+        statusCode: req.currentState?.code || 'unknown',
+        statusColor: req.currentState?.color || 'gray',
+        completedAt: isTerminalStatus(req.currentState?.isFinal || false, req.currentState?.isTerminal || false) ? req.updatedAt : null,
         role: 'Creador',
       })),
 
@@ -117,12 +120,13 @@ export default defineEventHandler(async (event) => {
       ...pendingRequests.map((req) => ({
         id: req.id,
         type: 'Solicitud',
-        subType: req.type,
         title: req.title,
         createdAt: req.createdAt,
         createdBy: `${req.requester.firstName || ''} ${req.requester.lastName || ''}`.trim() || req.requester.email,
-        status: req.status,
-        completedAt: isTerminalStatus(req.status, 'request') ? req.updatedAt : null,
+        status: req.currentState?.name || 'Desconocido',
+        statusCode: req.currentState?.code || 'unknown',
+        statusColor: req.currentState?.color || 'gray',
+        completedAt: isTerminalStatus(req.currentState?.isFinal || false, req.currentState?.isTerminal || false) ? req.updatedAt : null,
         role: 'Validador',
       })),
 
@@ -130,12 +134,13 @@ export default defineEventHandler(async (event) => {
       ...myTasks.map((task) => ({
         id: task.id,
         type: 'Tarea',
-        subType: task.type,
         title: task.title,
         createdAt: task.createdAt,
         createdBy: `${task.creator.firstName || ''} ${task.creator.lastName || ''}`.trim() || task.creator.email,
-        status: task.status,
-        completedAt: isTerminalStatus(task.status, 'task') ? task.completedAt : null,
+        status: task.currentState?.name || 'Desconocido',
+        statusCode: task.currentState?.code || 'unknown',
+        statusColor: task.currentState?.color || 'gray',
+        completedAt: isTerminalStatus(task.currentState?.isFinal || false, task.currentState?.isTerminal || false) ? task.completedAt : null,
         role: 'Creador',
       })),
 
@@ -143,11 +148,12 @@ export default defineEventHandler(async (event) => {
       ...assignedTasks.map((task) => ({
         id: task.id,
         type: 'Tarea',
-        subType: task.type,
         title: task.title,
         createdAt: task.createdAt,
         createdBy: `${task.creator.firstName || ''} ${task.creator.lastName || ''}`.trim() || task.creator.email,
-        status: task.assignments[0]?.status || task.status,
+        status: task.currentState?.name || 'Desconocido',
+        statusCode: task.currentState?.code || 'unknown',
+        statusColor: task.currentState?.color || 'gray',
         completedAt: task.assignments[0]?.completedAt,
         role: 'Asignado',
       })),
@@ -167,12 +173,8 @@ export default defineEventHandler(async (event) => {
       })),
       counts: {
         total: workflowItems.length,
-        pending: workflowItems.filter((i) => 
-          !isTerminalStatus(i.status, i.type === 'Solicitud' ? 'request' : 'task')
-        ).length,
-        completed: workflowItems.filter((i) => 
-          isTerminalStatus(i.status, i.type === 'Solicitud' ? 'request' : 'task')
-        ).length,
+        pending: workflowItems.filter((i) => !i.completedAt).length,
+        completed: workflowItems.filter((i) => i.completedAt).length,
       },
     }
   } catch (error) {

@@ -19,24 +19,38 @@ export default defineEventHandler(async (event) => {
   const courseStart = new Date(academicYearStart, 8, 1) // 1 de septiembre
   const courseEnd = new Date(academicYearEnd, 6, 31) // 31 de julio
 
-  // Obtener solicitudes de días de libre disposición aprobadas/cerradas del curso actual
+  // Obtener el workflow de días libres
+  const freeDayWorkflow = await prisma.workflowDefinition.findUnique({
+    where: { code: 'request_free_day' },
+    include: { states: true }
+  })
+
+  if (!freeDayWorkflow) {
+    throw createError({ statusCode: 500, message: 'Workflow no configurado' })
+  }
+
+  const approvedState = freeDayWorkflow.states.find(s => s.code === 'approved')
+
+  // Obtener solicitudes de días de libre disposición aprobadas del curso actual
   const freeDayRequests = await prisma.request.findMany({
     where: {
       requesterId: userId,
-      type: 'FREE_DAY',
-      status: { in: ['APPROVED', 'CLOSED'] },
+      workflowId: freeDayWorkflow.id,
+      currentStateId: approvedState?.id,
       requestedDate: {
         gte: courseStart,
         lte: courseEnd,
       },
     },
+    include: {
+      currentState: true
+    },
     orderBy: { requestedDate: 'asc' },
     select: {
       id: true,
       requestedDate: true,
-      status: true,
-      approvedAt: true,
       createdAt: true,
+      currentState: true,
     },
   })
 
@@ -85,7 +99,7 @@ export default defineEventHandler(async (event) => {
         number: index + 1,
         id: req.id,
         date: req.requestedDate?.toISOString().split('T')[0],
-        status: req.status,
+        status: req.currentState?.name || 'Aprobado',
         requestedAt: req.createdAt.toISOString().split('T')[0],
       })),
       nextAvailableSlot: availableSlots[0] || null,

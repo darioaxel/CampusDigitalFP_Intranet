@@ -1,8 +1,6 @@
 import { defineEventHandler, createError, getRouterParam, readBody } from 'h3'
-import pkg from '@prisma/client'
 import { prisma } from '../../../utils/db'
-
-const { Role, RequestType, WorkflowStatus, TaskType } = pkg
+import { workflowEngine } from '../../../utils/workflow/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -36,39 +34,57 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Crear solicitud de workflow
+    // Obtener workflows configurables
+    const requestWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'request_standard' },
+      include: { states: true }
+    })
+    
+    const taskWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'task_validation' },
+      include: { states: true }
+    })
+
+    if (!requestWorkflow || !taskWorkflow) {
+      throw createError({ statusCode: 500, message: 'Workflows no configurados' })
+    }
+
+    const requestInitialState = requestWorkflow.states.find(s => s.isInitial)!
+    const taskInitialState = taskWorkflow.states.find(s => s.isInitial)!
+
+    // Crear solicitud de workflow usando el motor configurable
     const request = await prisma.request.create({
       data: {
-        type: RequestType.SCHEDULE_VALIDATION,
-        status: WorkflowStatus.PENDING,
+        workflowId: requestWorkflow.id,
+        currentStateId: requestInitialState.id,
         title: `Validar horario: ${schedule.name}`,
         description: `El profesor ${schedule.user.firstName} ${schedule.user.lastName} solicita validación de su horario "${schedule.name}".
         
 Bloques: ${schedule.blocks.length} días configurados.
-${notes ? `\nNotas del profesor: ${notes}` : ''}`,
+${notes ? `
+Notas del profesor: ${notes}` : ''}`,
         requesterId: session.user.id,
-        adminId: null // Se asignará cuando un admin tome la solicitud
+        context: JSON.stringify({ type: 'SCHEDULE_VALIDATION', scheduleId: schedule.id })
       }
     })
 
     // Crear tarea para todos los admins/roots
     const admins = await prisma.user.findMany({
-      where: { role: { in: [Role.ADMIN, Role.ROOT] } },
+      where: { role: { in: ['ADMIN', 'ROOT'] } },
       select: { id: true }
     })
 
     await prisma.task.create({
       data: {
-        type: TaskType.REVIEW,
-        status: WorkflowStatus.TODO,
+        workflowId: taskWorkflow.id,
+        currentStateId: taskInitialState.id,
         title: `Revisar horario: ${schedule.name}`,
         description: `Validar horario de ${schedule.user.firstName} ${schedule.user.lastName}. Verificar bloques y asignaciones.`,
         creatorId: session.user.id,
-        requestId: request.id,
+        context: JSON.stringify({ type: 'REVIEW', scheduleId: schedule.id, requestId: request.id }),
         assignments: {
           create: admins.map(admin => ({
-            assigneeId: admin.id,
-            status: WorkflowStatus.TODO
+            assigneeId: admin.id
           }))
         }
       }

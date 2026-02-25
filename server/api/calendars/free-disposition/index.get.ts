@@ -9,6 +9,18 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 401, message: 'No autenticado' })
     }
 
+    // Obtener el workflow de días libres
+    const freeDayWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'request_free_day' },
+      include: { states: true }
+    })
+
+    if (!freeDayWorkflow) {
+      throw createError({ statusCode: 500, message: 'Workflow no configurado' })
+    }
+
+    const approvedState = freeDayWorkflow.states.find(s => s.code === 'approved')
+
     // Buscar calendario de libre disposición activo
     const calendar = await prisma.calendar.findFirst({
       where: {
@@ -35,8 +47,8 @@ export default defineEventHandler(async (event) => {
     const approvedRequests = await prisma.request.groupBy({
       by: ['requestedDate'],
       where: {
-        type: 'FREE_DAY',
-        status: 'APPROVED',
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id,
         requestedDate: {
           gte: calendar.startDate,
           lte: calendar.endDate
@@ -47,20 +59,23 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    // Obtener solicitud del usuario actual para cada día
+    // Obtener solicitud del usuario actual para cada día (incluyendo todas las solicitudes, no solo aprobadas)
     const myRequests = await prisma.request.findMany({
       where: {
         requesterId: session.user.id,
-        type: 'FREE_DAY',
+        workflowId: freeDayWorkflow.id,
         requestedDate: {
           gte: calendar.startDate,
           lte: calendar.endDate
         }
       },
+      include: {
+        currentState: true
+      },
       select: {
         id: true,
         requestedDate: true,
-        status: true
+        currentState: true
       }
     })
 
@@ -68,8 +83,8 @@ export default defineEventHandler(async (event) => {
     const myApprovedCount = await prisma.request.count({
       where: {
         requesterId: session.user.id,
-        type: 'FREE_DAY',
-        status: 'APPROVED'
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id
       }
     })
 
@@ -103,7 +118,7 @@ export default defineEventHandler(async (event) => {
       const dateStr = req.requestedDate?.toISOString().split('T')[0]
       if (dateStr && daysMap.has(dateStr)) {
         const day = daysMap.get(dateStr)
-        day.myStatus = req.status
+        day.myStatus = req.currentState?.name || 'Pendiente'
         day.myRequestId = req.id
       }
     })

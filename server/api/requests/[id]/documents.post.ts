@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
     const request = await prisma.request.findUnique({
       where: { id: requestId },
       include: {
+        currentState: true,
         documents: {
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -79,12 +80,12 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verificar que la solicitud acepte documentos
-    const allowedStatuses = ['PENDING', 'COMMUNICATED', 'REJECTED']
-    if (!allowedStatuses.includes(request.status)) {
+    // Verificar que la solicitud acepte documentos (usando currentState)
+    const allowedStateCodes = ['pending', 'communicated', 'rejected', 'docs_submitted', 'pending_docs']
+    if (!allowedStateCodes.includes(request.currentState?.code || '')) {
       throw createError({
         statusCode: 400,
-        message: `No se pueden adjuntar documentos en estado ${request.status}`,
+        message: `No se pueden adjuntar documentos en estado ${request.currentState?.name || 'actual'}`,
       })
     }
 
