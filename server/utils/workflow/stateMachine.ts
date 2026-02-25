@@ -9,7 +9,7 @@ import type { UserRole } from '@prisma/client'
 
 export type EntityType = 'REQUEST' | 'TASK' | 'TASK_ASSIGNMENT'
 
-export interface TransitionContext {
+export interface LegacyTransitionContext {
   userId: string
   userRole: UserRole
   entityId: string
@@ -64,7 +64,7 @@ export class WorkflowStateMachine {
    * Ejecuta una transición con validación adicional opcional (legacy)
    */
   async executeTransition(
-    context: TransitionContext
+    context: LegacyTransitionContext
   ): Promise<StateMachineResult> {
     return {
       success: false,

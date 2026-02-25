@@ -103,15 +103,23 @@ export const siteConfig = {
       items: [
         {
           title: "Usuarios",
-          url: "/usuario",
+          url: "/admin/usuarios",
           icon: "lucide:user-check",
           items: [
-            { title: "Lista de usuarios", url: "/usuarios/listado" },
-            { title: "Horarios Profesores", url: "/profesores/horario" },            
+            { title: "Lista de usuarios", url: "/admin/usuarios/listado" },
+            { title: "Horarios Profesores", url: "admin/profesores/horario" },            
           ],
         },
         {
-          title: "Calendarios",
+          title: "Gestión Solicitudes",
+          url: "/admin/solicitudes",
+          icon: "lucide:clipboard-list",
+          items: [
+            { title: "Gestionar Solicitudes", url: "/admin/solicitudes" },
+          ],
+        },   
+        {
+          title: "Gestión Calendarios",
           url: "/admin/calendarios",
           icon: "lucide:calendar-days",
           items: [

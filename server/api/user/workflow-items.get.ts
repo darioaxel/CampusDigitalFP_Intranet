@@ -1,5 +1,6 @@
 // server/api/user/workflow-items.get.ts
 // Obtiene solicitudes y tareas relacionadas con el usuario actual
+import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
   const isAdmin = ['ADMIN', 'ROOT'].includes(userRole)
 
   try {
+    console.log(`[workflow-items] Buscando items para usuario: ${userId}, rol: ${userRole}`)
+
     // Solicitudes creadas por el usuario
     const myRequests = await prisma.request.findMany({
       where: { requesterId: userId },
@@ -25,6 +28,7 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: { createdAt: 'desc' },
     })
+    console.log(`[workflow-items] Solicitudes creadas por usuario: ${myRequests.length}`)
 
     // Solicitudes pendientes de gestionar (para admin)
     // Incluye solicitudes públicas (NEW_USER) donde el requester es el admin placeholder
@@ -57,6 +61,7 @@ export default defineEventHandler(async (event) => {
           orderBy: { createdAt: 'desc' },
         })
       : []
+    console.log(`[workflow-items] Solicitudes pendientes para admin: ${pendingRequests.length}`)
 
     // Tareas creadas por el usuario (si es jefe depto/admin)
     const myTasks = ['JEFE_DEPT', 'ADMIN', 'ROOT'].includes(userRole)
@@ -79,6 +84,7 @@ export default defineEventHandler(async (event) => {
           orderBy: { createdAt: 'desc' },
         })
       : []
+    console.log(`[workflow-items] Tareas creadas por usuario: ${myTasks.length}`)
 
     // Tareas asignadas al usuario
     const assignedTasks = await prisma.task.findMany({
@@ -101,6 +107,7 @@ export default defineEventHandler(async (event) => {
       },
       orderBy: { createdAt: 'desc' },
     })
+    console.log(`[workflow-items] Tareas asignadas al usuario: ${assignedTasks.length}`)
 
     // Combinar y formatear todo
     const formatDate = (date: Date | null | undefined) => 
@@ -114,7 +121,8 @@ export default defineEventHandler(async (event) => {
       // Mis solicitudes
       ...myRequests.map((req) => ({
         id: req.id,
-        type: 'Solicitud',
+        type: 'Solicitud' as const,
+        subType: req.context ? JSON.parse(req.context)?.type || 'OTHER' : 'OTHER',
         title: req.title,
         createdAt: req.createdAt,
         createdBy: `${req.requester.firstName || ''} ${req.requester.lastName || ''}`.trim() || req.requester.email,
@@ -128,7 +136,8 @@ export default defineEventHandler(async (event) => {
       // Solicitudes pendientes de gestionar (admin)
       ...pendingRequests.map((req) => ({
         id: req.id,
-        type: 'Solicitud',
+        type: 'Solicitud' as const,
+        subType: req.context ? JSON.parse(req.context)?.type || 'OTHER' : 'OTHER',
         title: req.title,
         createdAt: req.createdAt,
         createdBy: `${req.requester.firstName || ''} ${req.requester.lastName || ''}`.trim() || req.requester.email,
@@ -142,7 +151,8 @@ export default defineEventHandler(async (event) => {
       // Mis tareas (creadas)
       ...myTasks.map((task) => ({
         id: task.id,
-        type: 'Tarea',
+        type: 'Tarea' as const,
+        subType: task.context ? JSON.parse(task.context)?.type || 'REVIEW' : 'REVIEW',
         title: task.title,
         createdAt: task.createdAt,
         createdBy: `${task.creator.firstName || ''} ${task.creator.lastName || ''}`.trim() || task.creator.email,
@@ -156,7 +166,8 @@ export default defineEventHandler(async (event) => {
       // Tareas asignadas
       ...assignedTasks.map((task) => ({
         id: task.id,
-        type: 'Tarea',
+        type: 'Tarea' as const,
+        subType: task.context ? JSON.parse(task.context)?.type || 'REVIEW' : 'REVIEW',
         title: task.title,
         createdAt: task.createdAt,
         createdBy: `${task.creator.firstName || ''} ${task.creator.lastName || ''}`.trim() || task.creator.email,
@@ -173,6 +184,8 @@ export default defineEventHandler(async (event) => {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
 
+    console.log(`[workflow-items] Total items encontrados: ${workflowItems.length}`)
+
     return {
       success: true,
       data: workflowItems.map((item) => ({
@@ -186,11 +199,11 @@ export default defineEventHandler(async (event) => {
         completed: workflowItems.filter((i) => i.completedAt).length,
       },
     }
-  } catch (error) {
-    console.error('Error fetching workflow items:', error)
+  } catch (error: any) {
+    console.error('[workflow-items] Error:', error)
     throw createError({
       statusCode: 500,
-      message: 'Error al obtener los elementos de workflow',
+      message: 'Error al obtener los elementos de workflow: ' + (error.message || 'Error desconocido'),
     })
   }
 })

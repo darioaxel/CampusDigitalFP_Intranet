@@ -71,11 +71,13 @@ const handleSubmit = async () => {
         description: 'Has iniciado sesión correctamente',
       })
       
+      // Recargar sesión para obtener datos actualizados
+      const { user, fetch } = useUserSession()
+      await fetch()
+      
       // Redirigir según rol
-      const { user } = await useUserSession()
-      if (user?.role === 'ROOT') {
-        await navigateTo('/admin/')
-      } else if (user?.role === 'ADMIN') {
+      const role = user.value?.role
+      if (role === 'ROOT' || role === 'ADMIN') {
         await navigateTo('/admin/')
       } else {
         await navigateTo('/usuario/')
