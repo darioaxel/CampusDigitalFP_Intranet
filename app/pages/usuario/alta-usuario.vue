@@ -24,16 +24,9 @@ const form = reactive({
   dni: '',
   phone: '',
   birthDate: '',
-  role: 'PROFESOR' as 'PROFESOR' | 'EXPERTO',
-  
   // Contraseña (la creará el usuario ahora)
   password: '',
   confirmPassword: '',
-  
-  // Información profesional
-  department: '',
-  specialty: '',
-  experience: '',
   
   // Dirección (opcional para la solicitud)
   addressLine: '',
@@ -134,12 +127,6 @@ const validateForm = () => {
     }
   }
 
-  // Rol
-  if (!form.role) {
-    errors.role = 'Debe seleccionar un rol'
-    isValid = false
-  }
-
   // Contraseña
   if (!form.password) {
     errors.password = 'La contraseña es obligatoria'
@@ -189,7 +176,7 @@ const submitApplication = async () => {
     const payload = {
       type: 'NEW_USER' as const,
       title: `Solicitud de alta - ${form.firstName} ${form.lastName}`,
-      description: `Solicitud de alta de ${form.role === 'PROFESOR' ? 'profesor' : 'experto'} para el departamento de ${form.department || 'por determinar'}`,
+      description: `Solicitud de alta de usuario`,
       
       // Datos del solicitante (en este caso, el mismo candidato)
       requesterName: `${form.firstName} ${form.lastName}`,
@@ -201,7 +188,6 @@ const submitApplication = async () => {
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
-        role: form.role,
         dni: form.dni.toUpperCase(),
         phone: form.phone,
         // Incluimos la contraseña para que el admin pueda crear el usuario con ella
@@ -210,10 +196,6 @@ const submitApplication = async () => {
         emailPersonal: form.emailPersonal || null
       },
       
-      // Información profesional
-      department: form.department || undefined,
-      specialty: form.specialty || undefined,
-      experience: form.experience || undefined
     }
 
     const { data, error } = await useFetch('/api/requests', {
@@ -373,20 +355,7 @@ const submitApplication = async () => {
                 <p v-if="errors.birthDate" class="text-xs text-destructive">{{ errors.birthDate }}</p>
               </div>
 
-              <div class="space-y-2">
-                <label class="text-sm font-medium">
-                  Rol solicitado <span class="text-destructive">*</span>
-                </label>
-                <select
-                  v-model="form.role"
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  :class="{ 'border-destructive ring-1 ring-destructive': errors.role }"
-                >
-                  <option value="PROFESOR">Profesor</option>
-                  <option value="EXPERTO">Experto/Colaborador</option>
-                </select>
-                <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
-              </div>
+
             </div>
           </div>
 
@@ -444,52 +413,6 @@ const submitApplication = async () => {
                 </button>
               </div>
               <p v-if="errors.confirmPassword" class="text-xs text-destructive">{{ errors.confirmPassword }}</p>
-            </div>
-          </div>
-
-          <!-- Sección: Información Profesional -->
-          <div class="space-y-4 pt-4 border-t">
-            <h3 class="text-sm font-semibold text-foreground flex items-center gap-2 border-b pb-2">
-              <Icon name="lucide:briefcase" class="w-4 h-4 text-primary" />
-              Información Profesional
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium">
-                  Departamento <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
-                </label>
-                <input 
-                  v-model="form.department"
-                  type="text" 
-                  placeholder="Ej: Informática, Matemáticas..."
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-sm font-medium">
-                  Especialidad <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
-                </label>
-                <input 
-                  v-model="form.specialty"
-                  type="text" 
-                  placeholder="Ej: Desarrollo Web, Bases de Datos..."
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-sm font-medium">
-                Experiencia y observaciones <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
-              </label>
-              <textarea
-                v-model="form.experience"
-                rows="3"
-                placeholder="Describa su experiencia profesional, formación o cualquier información relevante..."
-                class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 // GET /api/workflows/[id] - Obtener detalle de un workflow
 import { defineEventHandler, createError, getRouterParam } from 'h3'
-import { prisma } from '../../utils/db'
+import { prisma } from '../../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
