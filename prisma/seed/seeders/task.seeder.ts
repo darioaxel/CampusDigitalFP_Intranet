@@ -60,10 +60,10 @@ export async function seedTasks(prisma: PrismaClient, users: User[]): Promise<vo
       completedAt: new Date('2025-08-15'),
       context: JSON.stringify({ type: 'SYLLABUS_CREATION', ciclo: 'ASIR' }),
       assignments: {
-        create: [
-          { assigneeId: profesores[0].id, completedAt: new Date('2025-08-15') },
-          { assigneeId: profesores[1]?.id || profesores[0].id }
-        ]
+        create: profesores.slice(0, 2).map((p, i) => ({
+          assigneeId: p.id,
+          completedAt: i === 0 ? new Date('2025-08-15') : undefined
+        }))
       }
     }
   })
@@ -82,7 +82,7 @@ export async function seedTasks(prisma: PrismaClient, users: User[]): Promise<vo
       assignments: {
         create: [
           { assigneeId: profesores[0].id },
-          { assigneeId: expertos[0]?.id || profesores[1].id }
+          ...(expertos[0] ? [{ assigneeId: expertos[0].id }] : [])
         ]
       }
     }
@@ -123,11 +123,7 @@ export async function seedTasks(prisma: PrismaClient, users: User[]): Promise<vo
       dueDate: new Date('2025-06-30'),
       context: JSON.stringify({ type: 'REVIEW', curso: '2º' }),
       assignments: {
-        create: [
-          { assigneeId: profesores[0].id },
-          { assigneeId: profesores[1]?.id || profesores[0].id },
-          { assigneeId: expertos[0]?.id || profesores[0].id }
-        ]
+        create: profesores.slice(0, 2).map(p => ({ assigneeId: p.id }))
       }
     }
   })

@@ -28,7 +28,8 @@ async function main() {
     await prisma.moduloProfesional.deleteMany()
     await prisma.cicloFormativo.deleteMany()
     
-    // Limpiar primero las tablas hijas (con FKs)
+    // Limpiar primero las tablas hijas (con FKs) - orden importante
+    await prisma.activityLog.deleteMany()
     await prisma.stateHistory.deleteMany()
     await prisma.vote.deleteMany()
     await prisma.taskAssignment.deleteMany()

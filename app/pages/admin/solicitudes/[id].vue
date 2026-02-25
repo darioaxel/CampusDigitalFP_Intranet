@@ -301,7 +301,7 @@
             </CardHeader>
             <CardContent class="space-y-3">
               <p class="text-sm text-muted-foreground mb-3">
-                Selecciona la siguiente acción para esta solicitud:
+                Selecciona la acción para esta solicitud:
               </p>
               <button
                 v-for="transition in availableTransitions"
@@ -309,9 +309,10 @@
                 @click="executeTransition(transition)"
                 :disabled="executingTransition"
                 class="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                :class="getTransitionButtonClass(transition.toState?.code)"
               >
-                <span class="font-medium">{{ transition.toState?.name }}</span>
-                <ChevronRight class="h-4 w-4 text-muted-foreground" />
+                <span class="font-medium">{{ getTransitionLabel(transition.toState?.code) }}</span>
+                <ChevronRight class="h-4 w-4" />
               </button>
             </CardContent>
           </Card>
@@ -363,16 +364,14 @@
                 <p class="font-medium">{{ request.additionalInfo.specialty }}</p>
               </div>
 
-              <!-- Botón para crear usuario (solo admin) -->
-              <button
-                v-if="isAdmin && request.currentState?.code === 'approved'"
-                @click="createUserFromRequest"
-                :disabled="creatingUser"
-                class="w-full mt-4 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                <UserPlus class="h-4 w-4" />
-                {{ creatingUser ? 'Creando...' : 'Crear usuario en el sistema' }}
-              </button>
+              <!-- Info de usuario creado -->
+              <div v-if="request.currentState?.code === 'approved'" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-sm text-green-800">
+                  <CheckCircle class="h-4 w-4 inline mr-1" />
+                  <strong>Usuario validado</strong><br />
+                  El usuario ha sido dado de alta en el sistema con el rol asignado.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -383,12 +382,28 @@
     <Dialog :open="showTransitionModal" @update:open="showTransitionModal = $event">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{{ selectedTransition?.toState?.name }}</DialogTitle>
+          <DialogTitle>{{ getTransitionLabel(selectedTransition?.toState?.code) }}</DialogTitle>
           <DialogDescription>
             {{ selectedTransition?.requiresComment ? 'Esta acción requiere un comentario.' : 'Añade un comentario opcional.' }}
+            <span v-if="isApprovingNewUser" class="block mt-1 text-amber-600">
+              Al validar se creará automáticamente el usuario en el sistema.
+            </span>
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-4 py-4">
+          <!-- Selector de rol para NEW_USER al aprobar -->
+          <div v-if="isApprovingNewUser">
+            <label class="text-sm font-medium">Rol del nuevo usuario *</label>
+            <select
+              v-model="selectedRole"
+              class="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="PROFESOR">Profesor</option>
+              <option value="EXPERTO">Experto/Colaborador</option>
+              <option value="JEFE_DEPT">Jefe de Departamento</option>
+              <option value="ADMIN">Administrador</option>
+            </select>
+          </div>
           <div>
             <label class="text-sm font-medium">
               Comentario {{ selectedTransition?.requiresComment ? '*' : '(opcional)' }}
@@ -409,7 +424,7 @@
           </button>
           <button 
             @click="confirmTransition"
-            :disabled="executingTransition || (selectedTransition?.requiresComment && !transitionComment)"
+            :disabled="executingTransition || (selectedTransition?.requiresComment && !transitionComment) || (isApprovingNewUser && !selectedRole)"
             class="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {{ executingTransition ? 'Procesando...' : 'Confirmar' }}
@@ -477,9 +492,15 @@ const canUploadDocuments = computed(() => {
 const showTransitionModal = ref(false)
 const selectedTransition = ref<any>(null)
 const transitionComment = ref('')
+const selectedRole = ref('PROFESOR')
 const executingTransition = ref(false)
-const creatingUser = ref(false)
 const showUploadModal = ref(false)
+
+// Computed para saber si estamos aprobando una solicitud NEW_USER
+const isApprovingNewUser = computed(() => {
+  return requestType.value === 'NEW_USER' && 
+         selectedTransition.value?.toState?.code === 'approved'
+})
 
 // Métodos
 const formatDate = (date: string | null | undefined) => {
@@ -546,9 +567,24 @@ const canValidateDocument = (doc: any) => {
   return ['SUBMITTED', 'PENDING'].includes(doc.status)
 }
 
+const getTransitionLabel = (code?: string) => {
+  const labels: Record<string, string> = {
+    'approved': 'Validar',
+    'rejected': 'Rechazar'
+  }
+  return labels[code || ''] || code || 'Continuar'
+}
+
+const getTransitionButtonClass = (code?: string) => {
+  if (code === 'approved') return 'border-green-500 text-green-700 hover:bg-green-50'
+  if (code === 'rejected') return 'border-red-500 text-red-700 hover:bg-red-50'
+  return ''
+}
+
 const executeTransition = (transition: any) => {
   selectedTransition.value = transition
   transitionComment.value = ''
+  selectedRole.value = request.value?.newUserData?.role || 'PROFESOR'
   showTransitionModal.value = true
 }
 
@@ -557,12 +593,19 @@ const confirmTransition = async () => {
   
   executingTransition.value = true
   try {
+    const body: any = {
+      toState: selectedTransition.value.toState.code,
+      comment: transitionComment.value
+    }
+    
+    // Si es aprobación de NEW_USER, incluir el rol seleccionado
+    if (isApprovingNewUser.value) {
+      body.metadata = { role: selectedRole.value }
+    }
+    
     const { error } = await useFetch(`/api/requests/${requestId}/transition`, {
       method: 'POST',
-      body: {
-        toState: selectedTransition.value.toState.code,
-        comment: transitionComment.value
-      }
+      body
     })
     
     if (error.value) throw error.value

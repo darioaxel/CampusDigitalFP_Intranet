@@ -2,6 +2,7 @@
 // Transicionar el estado de una solicitud usando workflow configurable
 
 import { z } from 'zod'
+import bcrypt from 'bcrypt'
 import { canManageRequests } from '../../../utils/workflow/stateMachine'
 import { workflowEngine } from '../../../utils/workflow/engine'
 
@@ -94,6 +95,48 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Si es aprobación de solicitud NEW_USER, crear el usuario automáticamente
+    let createdUser = null
+    const requestContext = request.context ? JSON.parse(request.context) : {}
+    const requestType = requestContext.type
+    
+    if (toState === 'approved' && requestType === 'NEW_USER') {
+      try {
+        const userData = requestContext.userData
+        
+        if (userData) {
+          // Verificar que el email no exista ya
+          const existingUser = await prisma.user.findUnique({
+            where: { email: userData.email }
+          })
+          
+          if (!existingUser) {
+            // Crear el usuario con el rol seleccionado por el admin
+            const role = metadata?.role || userData.role || 'PROFESOR'
+            
+            createdUser = await prisma.user.create({
+              data: {
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                email: userData.email,
+                dni: userData.dni,
+                phone: userData.phone,
+                role: role,
+                passwordHash: userData.password ? await bcrypt.hash(userData.password, 10) : null,
+                isActive: true,
+                emailPersonal: userData.emailPersonal,
+              }
+            })
+            
+            console.log(`✅ Usuario creado desde solicitud ${requestId}: ${createdUser.email} con rol ${role}`)
+          }
+        }
+      } catch (userError) {
+        console.error('Error creando usuario desde solicitud:', userError)
+        // No fallamos la transición si el usuario no se puede crear, solo logueamos
+      }
+    }
+
     // Obtener solicitud actualizada
     const updatedRequest = await prisma.request.findUnique({
       where: { id: requestId },
@@ -127,6 +170,11 @@ export default defineEventHandler(async (event) => {
       success: true,
       data: updatedRequest,
       message: `Estado actualizado a: ${result.newState?.name}`,
+      userCreated: createdUser ? {
+        id: createdUser.id,
+        email: createdUser.email,
+        role: createdUser.role
+      } : null
     }
   } catch (error) {
     if (error instanceof Error && 'statusCode' in error) {
