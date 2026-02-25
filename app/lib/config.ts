@@ -37,6 +37,12 @@ export const siteConfig = {
   },
   navItems: [
     {
+      href: '/usuario/alta-usuario',
+      label: 'Alta Usuario',
+      icon: 'lucide:user-round-plus',
+      requiresAuth: false,
+    },
+    {
       href: '/',
       label: 'Documentación',
       icon: 'lucide:book-open',

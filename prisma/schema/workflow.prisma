@@ -23,6 +23,7 @@ enum RequestType {
   TRAINING          // Formación
   OTHER             // Otro tipo de solicitud
   SCHEDULE_VALIDATION
+  NEW_USER 
 }
 
 enum TaskType {
