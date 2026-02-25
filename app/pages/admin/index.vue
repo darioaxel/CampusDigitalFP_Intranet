@@ -84,16 +84,16 @@
             </nav>
           </div>
 
-          <!-- Filtros -->
-          <div class="flex flex-wrap items-end gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
-            <div class="flex flex-col gap-1.5">
+          <!-- Filtros compactos -->
+          <div class="flex flex-wrap items-end gap-3 mb-4 py-2 px-3 bg-muted/50 rounded-lg">
+            <div class="flex flex-col gap-1">
               <Label class="text-xs font-medium">Tipo</Label>
               <Select v-model="filterType">
-                <SelectTrigger class="w-[180px]">
-                  <SelectValue placeholder="Todos los tipos" />
+                <SelectTrigger class="w-[160px] h-8 text-xs">
+                  <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="ALL">Todos</SelectItem>
                   <SelectItem value="FREE_DAY">Día libre</SelectItem>
                   <SelectItem value="MEDICAL_APPOINTMENT">Médica</SelectItem>
                   <SelectItem value="LEAVE">Permiso</SelectItem>
@@ -108,29 +108,44 @@
                 </SelectContent>
               </Select>
             </div>
-            <div class="flex flex-col gap-1.5">
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-medium">Solicitante</Label>
+              <Select v-model="filterCreator">
+                <SelectTrigger class="w-[160px] h-8 text-xs">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem v-for="creator in uniqueCreators" :key="creator" :value="creator">
+                    {{ creator }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="flex flex-col gap-1">
               <Label class="text-xs font-medium">Desde</Label>
               <Input 
                 type="date" 
                 v-model="filterDateFrom" 
-                class="w-[150px]"
+                class="w-[130px] h-8 text-xs"
               />
             </div>
-            <div class="flex flex-col gap-1.5">
+            <div class="flex flex-col gap-1">
               <Label class="text-xs font-medium">Hasta</Label>
               <Input 
                 type="date" 
                 v-model="filterDateTo" 
-                class="w-[150px]"
+                class="w-[130px] h-8 text-xs"
               />
             </div>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               @click="clearFilters"
-              class="h-10"
+              class="h-8 px-2"
+              :disabled="!hasActiveFilters"
             >
-              <X class="h-4 w-4 mr-1" />
+              <X class="h-3 w-3 mr-1" />
               Limpiar
             </Button>
           </div>
@@ -246,17 +261,19 @@ definePageMeta({
 // Tab activo
 const activeTab = ref<'active' | 'history'>('active')
 
-// Filtros
-const filterType = ref('')
+// Filtros - usar 'ALL' en lugar de string vacío
+const filterType = ref('ALL')
+const filterCreator = ref('ALL')
 const filterDateFrom = ref('')
 const filterDateTo = ref('')
 
 const hasActiveFilters = computed(() => {
-  return filterType.value || filterDateFrom.value || filterDateTo.value
+  return filterType.value !== 'ALL' || filterCreator.value !== 'ALL' || filterDateFrom.value || filterDateTo.value
 })
 
 const clearFilters = () => {
-  filterType.value = ''
+  filterType.value = 'ALL'
+  filterCreator.value = 'ALL'
   filterDateFrom.value = ''
   filterDateTo.value = ''
 }
@@ -277,6 +294,12 @@ const { data: workflowData, pending, error, refresh } = await useFetch('/api/use
 
 const items = computed(() => workflowData.value?.data || [])
 const counts = computed(() => workflowData.value?.counts)
+
+// Lista única de solicitantes para el filtro
+const uniqueCreators = computed(() => {
+  const creators = new Set(items.value.map(item => item.createdBy))
+  return Array.from(creators).sort()
+})
 
 // Filtrar items activos (pendientes/en proceso)
 const activeItems = computed(() => {
@@ -306,8 +329,13 @@ const filteredItems = computed(() => {
   let result = currentItems.value
 
   // Filtrar por tipo
-  if (filterType.value) {
+  if (filterType.value && filterType.value !== 'ALL') {
     result = result.filter(item => item.subType === filterType.value)
+  }
+
+  // Filtrar por solicitante
+  if (filterCreator.value && filterCreator.value !== 'ALL') {
+    result = result.filter(item => item.createdBy === filterCreator.value)
   }
 
   // Filtrar por fecha desde
