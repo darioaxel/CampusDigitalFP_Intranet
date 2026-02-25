@@ -44,17 +44,22 @@ export async function seedFreeDispositionCalendar() {
         isPublic: true,
         createdById: admin.id,
         events: {
-          create: freeDispositionCalendar2025_2026.events.map(event => ({
-            title: event.title,
-            description: event.description,
-            type: event.type,
-            startDate: new Date(event.startDate),
-            endDate: new Date(event.endDate),
-            isAllDay: event.isAllDay,
-            isActive: event.isActive,
-            maxAssignments: event.maxAssignments,
-            createdById: admin.id
-          }))
+          create: freeDispositionCalendar2025_2026.events.map(event => {
+            // Crear fechas UTC para evitar problemas de timezone
+            const [startYear, startMonth, startDay] = event.startDate.split('-').map(Number)
+            const [endYear, endMonth, endDay] = event.endDate.split('-').map(Number)
+            return {
+              title: event.title,
+              description: event.description,
+              type: event.type,
+              startDate: new Date(Date.UTC(startYear, startMonth - 1, startDay, 0, 0, 0)),
+              endDate: new Date(Date.UTC(endYear, endMonth - 1, endDay, 23, 59, 59, 999)),
+              isAllDay: event.isAllDay,
+              isActive: event.isActive,
+              maxAssignments: event.maxAssignments,
+              createdById: admin.id
+            }
+          })
         }
       }
     })

@@ -18,7 +18,9 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const { date, reason } = requestSchema.parse(body)
 
-    const requestedDate = new Date(date + 'T00:00:00')
+    // Parsear la fecha solicitada
+    const [year, month, day] = date.split('-').map(Number)
+    const requestedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
 
     // Buscar calendario activo
     const calendar = await prisma.calendar.findFirst({
@@ -33,24 +35,63 @@ export default defineEventHandler(async (event) => {
     }
 
     // Verificar que la fecha está en el calendario
-    const eventDay = await prisma.calendarEvent.findFirst({
+    // Buscamos comparando solo la fecha (YYYY-MM-DD) para evitar problemas de timezone
+    const allEvents = await prisma.calendarEvent.findMany({
       where: {
         calendarId: calendar.id,
-        startDate: requestedDate,
         isActive: true
+      },
+      select: {
+        id: true,
+        startDate: true,
+        maxAssignments: true
       }
+    })
+    
+    // Encontrar evento que coincida con la fecha solicitada
+    const eventDay = allEvents.find(event => {
+      const eventDateStr = event.startDate.toISOString().split('T')[0]
+      return eventDateStr === date
     })
 
     if (!eventDay) {
       throw createError({ statusCode: 400, message: 'La fecha seleccionada no está disponible para libre disposición' })
     }
 
-    // Verificar que no ha excedido el límite
+    // Obtener workflow de días libres
+    const freeDayWorkflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'request_free_day' }
+    })
+
+    if (!freeDayWorkflow) {
+      throw createError({ statusCode: 500, message: 'Workflow no configurado' })
+    }
+
+    // Obtener estado inicial del workflow
+    const initialState = await prisma.workflowState.findFirst({
+      where: {
+        workflowId: freeDayWorkflow.id,
+        isInitial: true
+      }
+    })
+
+    if (!initialState) {
+      throw createError({ statusCode: 500, message: 'Estado inicial no configurado' })
+    }
+
+    // Verificar que no ha excedido el límite de días aprobados
+    const approvedState = await prisma.workflowState.findFirst({
+      where: {
+        workflowId: freeDayWorkflow.id,
+        code: 'approved'
+      }
+    })
+
     const userApprovedCount = await prisma.request.count({
       where: {
         requesterId: session.user.id,
-        type: 'FREE_DAY',
-        status: 'APPROVED'
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id
       }
     })
 
@@ -59,12 +100,22 @@ export default defineEventHandler(async (event) => {
     }
 
     // Verificar que no hay solicitud previa para esa fecha
-    const existingRequest = await prisma.request.findFirst({
+    // Comparamos fechas ignorando la hora
+    const allUserRequests = await prisma.request.findMany({
       where: {
         requesterId: session.user.id,
-        type: 'FREE_DAY',
-        requestedDate: requestedDate
+        workflowId: freeDayWorkflow.id
+      },
+      select: {
+        id: true,
+        requestedDate: true
       }
+    })
+    
+    const existingRequest = allUserRequests.find(req => {
+      if (!req.requestedDate) return false
+      const reqDateStr = req.requestedDate.toISOString().split('T')[0]
+      return reqDateStr === date
     })
 
     if (existingRequest) {
@@ -72,49 +123,47 @@ export default defineEventHandler(async (event) => {
     }
 
     // Verificar que no está lleno (3 solicitudes aprobadas)
-    const approvedCount = await prisma.request.count({
+    const allApprovedRequests = await prisma.request.findMany({
       where: {
-        type: 'FREE_DAY',
-        status: 'APPROVED',
-        requestedDate: requestedDate
+        workflowId: freeDayWorkflow.id,
+        currentStateId: approvedState?.id
+      },
+      select: {
+        requestedDate: true
       }
     })
+    
+    const approvedCount = allApprovedRequests.filter(req => {
+      if (!req.requestedDate) return false
+      const reqDateStr = req.requestedDate.toISOString().split('T')[0]
+      return reqDateStr === date
+    }).length
 
     if (approvedCount >= 3) {
       throw createError({ statusCode: 400, message: 'Ese día ya tiene el máximo de solicitudes aprobadas' })
     }
 
-    // Crear la solicitud
+    // Crear la solicitud usando el workflow
     const request = await prisma.request.create({
       data: {
-        type: 'FREE_DAY',
         title: `Día libre disposición - ${date}`,
         description: reason || undefined,
         requestedDate: requestedDate,
         requesterId: session.user.id,
-        status: 'PENDING',
+        workflowId: freeDayWorkflow.id,
+        currentStateId: initialState.id,
+        context: JSON.stringify({ type: 'FREE_DAY', date: date })
       }
     })
 
-    // Crear tarea para los admins
-    const admins = await prisma.user.findMany({
-      where: { role: { in: ['ADMIN', 'ROOT'] } },
-      select: { id: true }
-    })
-
-    await prisma.task.create({
+    // Crear historial de estado inicial
+    await prisma.stateHistory.create({
       data: {
-        type: 'REVIEW',
-        title: `Revisar solicitud día libre - ${session.user.firstName} ${session.user.lastName}`,
-        description: `Solicitud de día de libre disposición para el ${date}. ${reason || ''}`,
-        creatorId: session.user.id,
         requestId: request.id,
-        assignments: {
-          create: admins.map(admin => ({
-            assigneeId: admin.id,
-            status: 'TODO'
-          }))
-        }
+        fromStateId: initialState.id,
+        toStateId: initialState.id,
+        actorId: session.user.id,
+        comment: 'Solicitud creada'
       }
     })
 

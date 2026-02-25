@@ -161,8 +161,9 @@ function formatDateRange(start: string, end: string) {
 }
 
 function navigateToCalendar(calendar: any) {
-  if (calendar.allowDragDrop && calendar.type === 'FREE_DISPOSITION') {
-    navigateTo(`/usuario/calendarios/libre-disposicion/${calendar.id}`)
+  if (calendar.type === 'FREE_DISPOSITION') {
+    // El sistema de libre disposición usa solicitudes con workflow
+    navigateTo('/usuario/solicitudes/libre-disposicion')
   } else {
     navigateTo(`/usuario/calendarios/${calendar.id}`)
   }

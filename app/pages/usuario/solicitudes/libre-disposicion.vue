@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { 
   Calendar, 
   Info, 
   AlertCircle, 
   CheckCircle, 
   Clock,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Ban
 } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 
 definePageMeta({
   middleware: ['auth'],
@@ -17,6 +22,7 @@ definePageMeta({
 // Estado
 const currentDate = ref(new Date())
 const selectedDate = ref<string | null>(null)
+const selectedDayData = ref<any>(null)
 const reason = ref('')
 const submitting = ref(false)
 const showConfirmModal = ref(false)
@@ -26,7 +32,34 @@ const { data: calendarData, pending, refresh } = await useFetch('/api/calendars/
 
 const calendar = computed(() => calendarData.value?.data?.calendar)
 const days = computed(() => calendarData.value?.data?.days || [])
-const myStats = computed(() => calendarData.value?.data?.myStats || { approved: 0, remaining: 4 })
+const myStats = computed(() => calendarData.value?.data?.myStats || { approved: 0, pending: 0, used: 0, remaining: 4, hasReachedLimit: false })
+
+// Calcular límites del curso académico
+const minDate = computed(() => {
+  if (!calendar.value) return null
+  return new Date(calendar.value.startDate + 'T00:00:00')
+})
+
+const maxDate = computed(() => {
+  if (!calendar.value) return null
+  return new Date(calendar.value.endDate + 'T00:00:00')
+})
+
+// Verificar si se puede ir al mes anterior
+const canGoPrevMonth = computed(() => {
+  if (!minDate.value) return false
+  const prevMonth = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
+  // Permitir si el mes anterior tiene al menos un día dentro del rango
+  const lastDayOfPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0)
+  return lastDayOfPrevMonth >= minDate.value
+})
+
+// Verificar si se puede ir al mes siguiente
+const canGoNextMonth = computed(() => {
+  if (!maxDate.value) return false
+  const nextMonth = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+  return nextMonth <= maxDate.value
+})
 
 // Días por mes para el calendario
 const calendarDays = computed(() => {
@@ -54,9 +87,16 @@ const calendarDays = computed(() => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const dayData = days.value.find((d: any) => d.date === dateStr)
     
+    // Verificar si el día está dentro del rango del calendario
+    const currentDayDate = new Date(year, month, day)
+    const isWithinRange = minDate.value && maxDate.value && 
+                          currentDayDate >= minDate.value && 
+                          currentDayDate <= maxDate.value
+    
     daysArray.push({
       day,
       date: dateStr,
+      isWithinRange,
       ...dayData
     })
   }
@@ -68,25 +108,72 @@ const monthYearLabel = computed(() => {
   return currentDate.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 })
 
-// Navegación
+// Navegación con límites
 const prevMonth = () => {
+  if (!canGoPrevMonth.value) return
   currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
 }
 
 const nextMonth = () => {
+  if (!canGoNextMonth.value) return
   currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
 }
 
 // Seleccionar fecha
-const selectDate = (date: string, canRequest: boolean) => {
-  if (!canRequest) return
-  selectedDate.value = date
+const selectDate = (day: any) => {
+  // No permitir seleccionar si está fuera de rango
+  if (!day.isWithinRange) {
+    toast.error('Fecha no disponible', {
+      description: 'Esta fecha está fuera del período del calendario escolar.'
+    })
+    return
+  }
+  
+  // No permitir seleccionar si no se puede solicitar
+  if (!day.canRequest) {
+    // Mostrar mensaje según el motivo
+    if (myStats.value.hasReachedLimit) {
+      toast.error('Límite alcanzado', {
+        description: `Has alcanzado el límite de ${calendar.value?.maxPerUser || 4} días de libre disposición.`
+      })
+    } else if (day.myStatus === 'PENDING') {
+      toast.info('Solicitud existente', {
+        description: 'Ya tienes una solicitud pendiente para este día.'
+      })
+    } else if (day.myStatus === 'APPROVED') {
+      toast.info('Día aprobado', {
+        description: 'Ya tienes este día aprobado.'
+      })
+    } else if (day.isFull) {
+      toast.error('Día completo', {
+        description: 'Este día ya tiene 3 solicitudes aprobadas (máximo permitido).'
+      })
+    } else if (!day.isAvailable) {
+      toast.error('No disponible', {
+        description: 'Este día no está disponible (festivo o fin de semana).'
+      })
+    }
+    return
+  }
+  
+  selectedDate.value = day.date
+  selectedDayData.value = day
+  reason.value = ''
   showConfirmModal.value = true
 }
 
 // Enviar solicitud
 const submitRequest = async () => {
   if (!selectedDate.value) return
+  
+  // Validación adicional: verificar que no se haya alcanzado el límite
+  if (myStats.value.hasReachedLimit) {
+    toast.error('Límite alcanzado', {
+      description: `Has alcanzado el límite de ${calendar.value?.maxPerUser || 4} días.`
+    })
+    showConfirmModal.value = false
+    return
+  }
   
   submitting.value = true
   try {
@@ -101,10 +188,15 @@ const submitRequest = async () => {
     await refresh()
     showConfirmModal.value = false
     selectedDate.value = null
+    selectedDayData.value = null
     reason.value = ''
-    alert('Solicitud enviada correctamente')
+    toast.success('Solicitud enviada', {
+      description: 'Tu solicitud de día de libre disposición ha sido registrada correctamente.'
+    })
   } catch (error: any) {
-    alert(error.data?.message || 'Error al enviar la solicitud')
+    toast.error('Error', {
+      description: error.data?.message || 'Error al enviar la solicitud'
+    })
   } finally {
     submitting.value = false
   }
@@ -114,7 +206,12 @@ const submitRequest = async () => {
 const getCellClasses = (day: any) => {
   if (day.empty) return 'bg-transparent'
   
-  const baseClasses = 'relative h-24 border border-border p-2 cursor-pointer transition-colors hover:bg-muted/50'
+  const baseClasses = 'relative h-24 border border-border p-2 transition-colors'
+  
+  // Si está fuera del rango del calendario
+  if (!day.isWithinRange) {
+    return `${baseClasses} bg-gray-50 text-gray-300 cursor-not-allowed`
+  }
   
   if (!day.isAvailable) {
     return `${baseClasses} bg-gray-100 text-gray-400 cursor-not-allowed`
@@ -122,18 +219,23 @@ const getCellClasses = (day: any) => {
   
   // Días del usuario
   if (day.myStatus === 'PENDING') {
-    return `${baseClasses} bg-amber-100 border-amber-300`
+    return `${baseClasses} bg-amber-100 border-amber-300 cursor-not-allowed`
   }
   if (day.myStatus === 'APPROVED') {
-    return `${baseClasses} bg-green-100 border-green-300`
+    return `${baseClasses} bg-green-100 border-green-300 cursor-not-allowed`
   }
   
-  // Lleno (3 solicitudes)
-  if (day.isFull) {
-    return `${baseClasses} bg-red-100 border-red-300`
+  // Lleno (3 solicitudes) o límite alcanzado
+  if (day.isFull || myStats.value.hasReachedLimit) {
+    return `${baseClasses} bg-red-50 border-red-200 cursor-not-allowed`
   }
   
-  return `${baseClasses} bg-white hover:border-primary`
+  // Disponible para solicitar
+  if (day.canRequest) {
+    return `${baseClasses} bg-white hover:border-primary hover:bg-primary/5 cursor-pointer`
+  }
+  
+  return `${baseClasses} bg-white`
 }
 
 const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -154,27 +256,40 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
       <div class="flex items-center gap-4">
         <div class="text-right">
           <p class="text-sm text-muted-foreground">Días disponibles</p>
-          <p class="text-2xl font-bold">{{ myStats.remaining }}/{{ calendar?.maxPerUser || 4 }}</p>
+          <p class="text-2xl font-bold" :class="myStats.remaining === 0 ? 'text-red-500' : ''">
+            {{ myStats.remaining }}/{{ calendar?.maxPerUser || 4 }}
+          </p>
         </div>
         <div class="flex gap-1">
           <div 
-            v-for="n in 4" 
+            v-for="n in calendar?.maxPerUser || 4" 
             :key="n"
             :class="[
               'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
               n <= myStats.approved 
                 ? 'bg-green-500 text-white' 
-                : n <= myStats.approved + (myStats.remaining > 0 ? 0 : 0)
+                : n <= myStats.approved + myStats.pending
                   ? 'bg-amber-500 text-white'
                   : 'bg-gray-200 text-gray-500'
             ]"
           >
             <CheckCircle v-if="n <= myStats.approved" class="w-4 h-4" />
+            <Clock v-else-if="n <= myStats.approved + myStats.pending" class="w-4 h-4" />
             <span v-else>{{ n }}</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Alerta de límite alcanzado -->
+    <Alert v-if="myStats.hasReachedLimit" variant="destructive">
+      <Ban class="h-4 w-4" />
+      <AlertTitle>Límite alcanzado</AlertTitle>
+      <AlertDescription>
+        Has alcanzado el límite de {{ calendar?.maxPerUser || 4 }} días de libre disposición para este curso.
+        No puedes realizar más solicitudes.
+      </AlertDescription>
+    </Alert>
 
     <!-- Loading -->
     <div v-if="pending" class="flex items-center justify-center py-12">
@@ -201,11 +316,23 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                   {{ calendar.name }}
                 </CardTitle>
                 <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" @click="prevMonth">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    class="h-8 w-8"
+                    @click="prevMonth"
+                    :disabled="!canGoPrevMonth"
+                  >
                     <ChevronLeft class="h-4 w-4" />
                   </Button>
-                  <span class="font-medium capitalize">{{ monthYearLabel }}</span>
-                  <Button variant="ghost" size="sm" @click="nextMonth">
+                  <span class="font-medium capitalize min-w-[140px] text-center">{{ monthYearLabel }}</span>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    class="h-8 w-8"
+                    @click="nextMonth"
+                    :disabled="!canGoNextMonth"
+                  >
                     <ChevronRight class="h-4 w-4" />
                   </Button>
                 </div>
@@ -228,13 +355,13 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                   v-for="(day, index) in calendarDays"
                   :key="index"
                   :class="getCellClasses(day)"
-                  @click="day.isAvailable && day.canRequest && selectDate(day.date, day.canRequest)"
+                  @click="!day.empty && selectDate(day)"
                 >
                   <template v-if="!day.empty">
                     <span class="text-sm font-medium">{{ day.day }}</span>
                     
                     <!-- Contenido según estado -->
-                    <div v-if="day.isAvailable" class="mt-1">
+                    <div v-if="day.isAvailable && day.isWithinRange" class="mt-1">
                       <!-- Mi solicitud pendiente -->
                       <div v-if="day.myStatus === 'PENDING'" class="flex items-center gap-1 text-amber-600">
                         <Clock class="w-3 h-3" />
@@ -252,6 +379,11 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                         <span class="text-xs font-bold">COMPLETO</span>
                       </div>
                       
+                      <!-- Límite alcanzado -->
+                      <div v-else-if="myStats.hasReachedLimit" class="text-gray-400">
+                        <span class="text-xs">Límite</span>
+                      </div>
+                      
                       <!-- Disponible con contador -->
                       <div v-else class="flex items-center gap-1">
                         <span 
@@ -266,6 +398,11 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                           {{ day.approvedCount }}/3
                         </span>
                       </div>
+                    </div>
+                    
+                    <!-- Fuera de rango -->
+                    <div v-else-if="!day.isWithinRange" class="text-xs text-gray-300 mt-1">
+                      -
                     </div>
                     
                     <!-- No disponible -->
@@ -290,15 +427,15 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
             </div>
             <div class="flex items-center gap-2">
               <div class="w-4 h-4 bg-white border border-primary rounded"></div>
-              <span>Disponible</span>
+              <span>Disponible (clic para solicitar)</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
-              <span>Completo (3/3)</span>
+              <div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
+              <span>Completo o límite alcanzado</span>
             </div>
             <div class="flex items-center gap-2">
-              <div class="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
-              <span>No disponible</span>
+              <div class="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
+              <span>Fuera de período</span>
             </div>
           </div>
         </div>
@@ -314,8 +451,18 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
               <div class="flex items-start gap-3">
                 <Info class="w-4 h-4 mt-0.5 text-muted-foreground" />
                 <div>
+                  <p class="font-medium">Período del calendario</p>
+                  <p class="text-muted-foreground">Del {{ new Date(calendar.startDate).toLocaleDateString('es-ES') }} al {{ new Date(calendar.endDate).toLocaleDateString('es-ES') }}</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <Info class="w-4 h-4 mt-0.5 text-muted-foreground" />
+                <div>
                   <p class="font-medium">Límite de días</p>
                   <p class="text-muted-foreground">Tienes derecho a {{ calendar.maxPerUser }} días por curso académico</p>
+                  <p class="text-xs text-muted-foreground mt-1">
+                    Aprobados: {{ myStats.approved }} | Pendientes: {{ myStats.pending }}
+                  </p>
                 </div>
               </div>
               <div class="flex items-start gap-3">
@@ -334,22 +481,6 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
               </div>
             </CardContent>
           </Card>
-
-          <!-- Período -->
-          <Card>
-            <CardHeader>
-              <CardTitle class="text-lg">Período</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p class="text-sm text-muted-foreground">
-                Curso académico {{ calendar.academicYear }}
-              </p>
-              <p class="text-sm mt-2">
-                Del {{ new Date(calendar.startDate).toLocaleDateString('es-ES') }}
-                al {{ new Date(calendar.endDate).toLocaleDateString('es-ES') }}
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </template>
@@ -360,7 +491,7 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
         <DialogHeader>
           <DialogTitle>Solicitar día de libre disposición</DialogTitle>
           <DialogDescription>
-            Fecha seleccionada: {{ selectedDate }}
+            Fecha seleccionada: <strong>{{ selectedDate ? new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '' }}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -368,7 +499,14 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
           <div class="bg-muted p-3 rounded-md">
             <p class="text-sm text-muted-foreground">Esta fecha tiene:</p>
             <p class="font-medium">
-              {{ days.find(d => d.date === selectedDate)?.approvedCount || 0 }} solicitudes aprobadas
+              {{ selectedDayData?.approvedCount || 0 }} solicitudes aprobadas de 3 permitidas
+            </p>
+          </div>
+
+          <div class="bg-blue-50 p-3 rounded-md border border-blue-200">
+            <p class="text-sm text-blue-700">
+              <Info class="w-4 h-4 inline mr-1" />
+              Te quedan <strong>{{ myStats.remaining }}</strong> días disponibles de {{ calendar?.maxPerUser || 4 }}.
             </p>
           </div>
 

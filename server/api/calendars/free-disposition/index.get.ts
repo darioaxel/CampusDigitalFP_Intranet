@@ -71,11 +71,6 @@ export default defineEventHandler(async (event) => {
       },
       include: {
         currentState: true
-      },
-      select: {
-        id: true,
-        requestedDate: true,
-        currentState: true
       }
     })
 
@@ -87,6 +82,22 @@ export default defineEventHandler(async (event) => {
         currentStateId: approvedState?.id
       }
     })
+
+    // Verificar si el usuario tiene solicitudes pendientes (para calcular canRequest)
+    const myPendingCount = await prisma.request.count({
+      where: {
+        requesterId: session.user.id,
+        workflowId: freeDayWorkflow.id,
+        currentStateId: {
+          not: approvedState?.id
+        }
+      }
+    })
+
+    // Total de días usados (aprobados + pendientes)
+    const totalUsedDays = myApprovedCount + myPendingCount
+    const maxPerUser = calendar.maxEventsPerUser || 4
+    const hasReachedLimit = totalUsedDays >= maxPerUser
 
     // Formatear días con contadores
     const daysMap = new Map()
@@ -101,7 +112,9 @@ export default defineEventHandler(async (event) => {
         myStatus: null,
         myRequestId: null,
         maxAllowed: event.maxAssignments || 3,
-        eventId: event.id
+        eventId: event.id,
+        isFull: false,
+        canRequest: false
       })
     })
 
@@ -109,7 +122,9 @@ export default defineEventHandler(async (event) => {
     approvedRequests.forEach(req => {
       const dateStr = req.requestedDate?.toISOString().split('T')[0]
       if (dateStr && daysMap.has(dateStr)) {
-        daysMap.get(dateStr).approvedCount = req._count.id
+        const day = daysMap.get(dateStr)
+        day.approvedCount = req._count.id
+        day.isFull = req._count.id >= 3
       }
     })
 
@@ -123,6 +138,19 @@ export default defineEventHandler(async (event) => {
       }
     })
 
+    // Calcular canRequest para cada día
+    daysMap.forEach(day => {
+      // Puede solicitar si:
+      // 1. El día está disponible
+      // 2. El día no está lleno (menos de 3 aprobados)
+      // 3. El usuario no tiene solicitud previa para este día
+      // 4. El usuario no ha alcanzado el límite de 4 días
+      day.canRequest = day.isAvailable && 
+                       !day.isFull && 
+                       !day.myStatus && 
+                       !hasReachedLimit
+    })
+
     return {
       success: true,
       data: {
@@ -130,14 +158,17 @@ export default defineEventHandler(async (event) => {
           id: calendar.id,
           name: calendar.name,
           academicYear: calendar.academicYear,
-          maxPerUser: calendar.maxEventsPerUser || 4,
+          maxPerUser: maxPerUser,
           startDate: calendar.startDate.toISOString().split('T')[0],
           endDate: calendar.endDate.toISOString().split('T')[0],
         },
         days: Array.from(daysMap.values()),
         myStats: {
           approved: myApprovedCount,
-          remaining: Math.max(0, (calendar.maxEventsPerUser || 4) - myApprovedCount)
+          pending: myPendingCount,
+          used: totalUsedDays,
+          remaining: Math.max(0, maxPerUser - totalUsedDays),
+          hasReachedLimit
         }
       }
     }
