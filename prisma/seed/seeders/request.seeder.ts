@@ -273,28 +273,12 @@ export async function seedRequests(prisma: PrismaClient, users: User[]): Promise
 
   // Crear algunos historiales para mostrar el flujo
   
-  // Historial para request1 (día libre aprobado)
+  // Historial para request1 (día libre aprobado) - Workflow simplificado
   await prisma.stateHistory.createMany({
     data: [
       {
         requestId: request1.id,
         fromStateId: freeDayPending.id,
-        toStateId: freeDayWorkflow.states.find(s => s.code === 'dept_review')!.id,
-        actorId: admins[0]?.id || profesores[0].id,
-        comment: 'Revisado por jefe de departamento',
-        metadata: JSON.stringify({ action: 'dept_approval' })
-      },
-      {
-        requestId: request1.id,
-        fromStateId: freeDayWorkflow.states.find(s => s.code === 'dept_review')!.id,
-        toStateId: freeDayWorkflow.states.find(s => s.code === 'admin_review')!.id,
-        actorId: admins[0]?.id || profesores[0].id,
-        comment: 'Enviado a administración',
-        metadata: JSON.stringify({ action: 'to_admin' })
-      },
-      {
-        requestId: request1.id,
-        fromStateId: freeDayWorkflow.states.find(s => s.code === 'admin_review')!.id,
         toStateId: freeDayApproved.id,
         actorId: admins[0]?.id || profesores[0].id,
         comment: 'Aprobado por administración',

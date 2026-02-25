@@ -207,7 +207,6 @@
                 <TableHead>Solicitante</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Mi rol</TableHead>
                 <TableHead v-if="activeTab === 'history'">Resuelto</TableHead>
               </TableRow>
             </TableHeader>
@@ -219,7 +218,9 @@
                 @click="navigateToItem(item)"
               >
                 <TableCell>
-                  <span class="text-sm font-medium">{{ formatSubType(item.subType) }}</span>
+                  <Badge :style="{ backgroundColor: getSubTypeColor(item.subType), color: '#fff' }" class="w-fit">
+                    {{ formatSubType(item.subType) }}
+                  </Badge>
                 </TableCell>
                 <TableCell class="font-medium max-w-[200px] truncate" :title="item.title">
                   {{ item.title }}
@@ -230,9 +231,6 @@
                   <Badge :variant="getStatusVariant(item.status)" class="w-fit">
                     {{ item.status }}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  <span class="text-sm">{{ item.role }}</span>
                 </TableCell>
                 <TableCell v-if="activeTab === 'history'">
                   <span v-if="item.completedAt !== '-'" class="text-sm text-green-600">
@@ -401,6 +399,25 @@ function formatSubType(subType: string): string {
     REVIEW: 'Revisión',
   }
   return types[subType] || subType
+}
+
+function getSubTypeColor(subType: string): string {
+  const colors: Record<string, string> = {
+    // Request types - tonos azules/verdes
+    FREE_DAY: '#3b82f6',
+    MEDICAL_APPOINTMENT: '#06b6d4',
+    LEAVE: '#8b5cf6',
+    TRAINING: '#10b981',
+    OTHER: '#6b7280',
+    NEW_USER: '#f59e0b',
+    SCHEDULE_VALIDATION: '#ec4899',
+    // Task types - tonos naranjas/rojos
+    SYLLABUS_CREATION: '#ef4444',
+    MEETING: '#6366f1',
+    VOTE: '#14b8a6',
+    REVIEW: '#f97316',
+  }
+  return colors[subType] || '#6b7280'
 }
 
 function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {

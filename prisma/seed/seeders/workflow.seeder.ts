@@ -130,21 +130,20 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   // ========================================
   // 3. WORKFLOW: Solicitud de Día Libre
   // ========================================
+  // Flujo simplificado: Profesor → Admin/Root (sin Jefe de Departamento)
   const freeDayWorkflow = await prisma.workflowDefinition.create({
     data: {
       code: 'request_free_day',
       name: 'Solicitud de Día Libre',
-      description: 'Flujo de aprobación para días de libre disposición',
+      description: 'Flujo de aprobación para días de libre disposición (Profesor → Admin)',
       entityType: 'REQUEST',
       version: 1,
       isActive: true,
       states: {
         create: [
           { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
-          { code: 'dept_review', name: 'Revisión Jefe Depto', color: 'blue', order: 2 },
-          { code: 'admin_review', name: 'En Administración', color: 'purple', order: 3 },
-          { code: 'approved', name: 'Aprobada', color: 'green', order: 4, isFinal: true },
-          { code: 'rejected', name: 'Rechazada', color: 'red', order: 5, isFinal: true, isTerminal: true }
+          { code: 'approved', name: 'Aprobada', color: 'green', order: 2, isFinal: true },
+          { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true }
         ]
       }
     },
@@ -154,49 +153,18 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   const freeDayStates = freeDayWorkflow.states
   await prisma.workflowTransition.createMany({
     data: [
-      // pending → dept_review
+      // pending → approved (solo ADMIN/ROOT pueden aprobar directamente)
       {
         workflowId: freeDayWorkflow.id,
         fromStateId: freeDayStates.find(s => s.code === 'pending')!.id,
-        toStateId: freeDayStates.find(s => s.code === 'dept_review')!.id,
-        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT'])
-      },
-      // dept_review → admin_review
-      {
-        workflowId: freeDayWorkflow.id,
-        fromStateId: freeDayStates.find(s => s.code === 'dept_review')!.id,
-        toStateId: freeDayStates.find(s => s.code === 'admin_review')!.id,
-        allowedRoles: JSON.stringify(['ADMIN', 'ROOT'])
-      },
-      // admin_review → approved
-      {
-        workflowId: freeDayWorkflow.id,
-        fromStateId: freeDayStates.find(s => s.code === 'admin_review')!.id,
         toStateId: freeDayStates.find(s => s.code === 'approved')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
-        validatorCode: 'check_quota',
         autoActions: JSON.stringify(['create_notification', 'update_calendar'])
       },
-      // Cualquier estado previo → rejected
+      // pending → rejected (solo ADMIN/ROOT pueden rechazar)
       {
         workflowId: freeDayWorkflow.id,
         fromStateId: freeDayStates.find(s => s.code === 'pending')!.id,
-        toStateId: freeDayStates.find(s => s.code === 'rejected')!.id,
-        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
-        requiresComment: true,
-        autoActions: JSON.stringify(['create_notification'])
-      },
-      {
-        workflowId: freeDayWorkflow.id,
-        fromStateId: freeDayStates.find(s => s.code === 'dept_review')!.id,
-        toStateId: freeDayStates.find(s => s.code === 'rejected')!.id,
-        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
-        requiresComment: true,
-        autoActions: JSON.stringify(['create_notification'])
-      },
-      {
-        workflowId: freeDayWorkflow.id,
-        fromStateId: freeDayStates.find(s => s.code === 'admin_review')!.id,
         toStateId: freeDayStates.find(s => s.code === 'rejected')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         requiresComment: true,
@@ -247,8 +215,7 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
         workflowId: medicalWorkflow.id,
         fromStateId: medicalStates.find(s => s.code === 'pending_docs')!.id,
         toStateId: medicalStates.find(s => s.code === 'docs_submitted')!.id,
-        allowedRoles: JSON.stringify(['PROFESOR', 'EXPERTO', 'JEFE_DEPT']),
-        requiresFields: JSON.stringify(['documentUrl']),
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         autoActions: JSON.stringify(['create_notification'])
       },
       // docs_submitted → validated
@@ -257,7 +224,6 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
         fromStateId: medicalStates.find(s => s.code === 'docs_submitted')!.id,
         toStateId: medicalStates.find(s => s.code === 'validated')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
-        validatorCode: 'check_documents',
         autoActions: JSON.stringify(['create_notification'])
       },
       // Cualquier estado → rejected
@@ -291,13 +257,13 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   console.log(`  ✓ Workflow: ${medicalWorkflow.name}`)
 
   // ========================================
-  // 5. WORKFLOW: Tarea Simple (básica)
+  // 5. WORKFLOW: Tarea Simple
   // ========================================
   const simpleTaskWorkflow = await prisma.workflowDefinition.create({
     data: {
       code: 'task_simple',
       name: 'Tarea Simple',
-      description: 'Flujo básico para tareas sin validación compleja',
+      description: 'Flujo básico para tareas simples',
       entityType: 'TASK',
       version: 1,
       isActive: true,
@@ -327,17 +293,17 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
         fromStateId: simpleStates.find(s => s.code === 'in_progress')!.id,
         toStateId: simpleStates.find(s => s.code === 'done')!.id,
         allowedRoles: JSON.stringify(['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT']),
-        autoActions: JSON.stringify(['notify_creator'])
-      },
-      {
-        workflowId: simpleTaskWorkflow.id,
-        fromStateId: simpleStates.find(s => s.code === 'in_progress')!.id,
-        toStateId: simpleStates.find(s => s.code === 'todo')!.id,
-        allowedRoles: JSON.stringify(['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'])
+        autoActions: JSON.stringify(['create_notification'])
       },
       {
         workflowId: simpleTaskWorkflow.id,
         fromStateId: simpleStates.find(s => s.code === 'todo')!.id,
+        toStateId: simpleStates.find(s => s.code === 'cancelled')!.id,
+        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT'])
+      },
+      {
+        workflowId: simpleTaskWorkflow.id,
+        fromStateId: simpleStates.find(s => s.code === 'in_progress')!.id,
         toStateId: simpleStates.find(s => s.code === 'cancelled')!.id,
         allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT'])
       }
@@ -353,15 +319,16 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
     data: {
       code: 'request_standard',
       name: 'Solicitud Estándar',
-      description: 'Flujo estándar para permisos, formaciones y otras solicitudes',
+      description: 'Flujo simple de aprobación para solicitudes generales',
       entityType: 'REQUEST',
       version: 1,
       isActive: true,
       states: {
         create: [
           { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
-          { code: 'approved', name: 'Aprobada', color: 'green', order: 2, isFinal: true },
-          { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true }
+          { code: 'under_review', name: 'En Revisión', color: 'blue', order: 2 },
+          { code: 'approved', name: 'Aprobada', color: 'green', order: 3, isFinal: true },
+          { code: 'rejected', name: 'Rechazada', color: 'red', order: 4, isFinal: true, isTerminal: true }
         ]
       }
     },
@@ -374,8 +341,23 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
       {
         workflowId: standardRequestWorkflow.id,
         fromStateId: standardStates.find(s => s.code === 'pending')!.id,
+        toStateId: standardStates.find(s => s.code === 'under_review')!.id,
+        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT'])
+      },
+      {
+        workflowId: standardRequestWorkflow.id,
+        fromStateId: standardStates.find(s => s.code === 'under_review')!.id,
         toStateId: standardStates.find(s => s.code === 'approved')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
+      },
+      {
+        workflowId: standardRequestWorkflow.id,
+        fromStateId: standardStates.find(s => s.code === 'under_review')!.id,
+        toStateId: standardStates.find(s => s.code === 'rejected')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        requiresComment: true,
         autoActions: JSON.stringify(['create_notification'])
       },
       {
@@ -398,15 +380,17 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
     data: {
       code: 'request_new_user',
       name: 'Alta de Nuevo Usuario',
-      description: 'Proceso de solicitud y aprobación para dar de alta un nuevo usuario en el sistema',
+      description: 'Flujo para solicitar la creación de nuevos usuarios en el sistema',
       entityType: 'REQUEST',
       version: 1,
       isActive: true,
       states: {
         create: [
-          { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
-          { code: 'approved', name: 'Aprobado', color: 'green', order: 2, isFinal: true },
-          { code: 'rejected', name: 'Rechazado', color: 'red', order: 3, isFinal: true, isTerminal: true }
+          { code: 'pending', name: 'Pendiente de Validación', color: 'amber', order: 1, isInitial: true },
+          { code: 'validated', name: 'Validada', color: 'blue', order: 2 },
+          { code: 'creating', name: 'Creando Usuario', color: 'purple', order: 3 },
+          { code: 'completed', name: 'Usuario Creado', color: 'green', order: 4, isFinal: true },
+          { code: 'rejected', name: 'Rechazada', color: 'red', order: 5, isFinal: true, isTerminal: true }
         ]
       }
     },
@@ -416,17 +400,44 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   const newUserStates = newUserWorkflow.states
   await prisma.workflowTransition.createMany({
     data: [
+      // pending → validated (validación por jefe de departamento)
       {
         workflowId: newUserWorkflow.id,
         fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
-        toStateId: newUserStates.find(s => s.code === 'approved')!.id,
+        toStateId: newUserStates.find(s => s.code === 'validated')!.id,
+        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
+      },
+      // validated → creating (admin inicia creación)
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'validated')!.id,
+        toStateId: newUserStates.find(s => s.code === 'creating')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        autoActions: JSON.stringify(['create_notification'])
+      },
+      // creating → completed (usuario creado)
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'creating')!.id,
+        toStateId: newUserStates.find(s => s.code === 'completed')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         requiresComment: true,
-        autoActions: JSON.stringify(['create_notification', 'create_user'])
+        autoActions: JSON.stringify(['create_notification', 'notify_assignees'])
+      },
+      // Cualquier estado → rejected
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
+        toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
+        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
       },
       {
         workflowId: newUserWorkflow.id,
-        fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
+        fromStateId: newUserStates.find(s => s.code === 'validated')!.id,
         toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         requiresComment: true,
