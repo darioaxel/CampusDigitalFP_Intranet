@@ -38,7 +38,7 @@ const publicNewUserRequestSchema = z.object({
     firstName: z.string().min(2),
     lastName: z.string().min(2),
     email: z.string().email(),
-    role: z.enum(['PROFESOR', 'EXPERTO']),
+    role: z.enum(['PROFESOR', 'EXPERTO']).optional(), // El rol lo asignará el admin
     dni: z.string().optional(),
     phone: z.string().optional(),
     // Campos adicionales para cuando el usuario crea su contraseña
