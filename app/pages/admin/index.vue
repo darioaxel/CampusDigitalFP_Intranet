@@ -84,6 +84,57 @@
             </nav>
           </div>
 
+          <!-- Filtros -->
+          <div class="flex flex-wrap items-end gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
+            <div class="flex flex-col gap-1.5">
+              <Label class="text-xs font-medium">Tipo</Label>
+              <Select v-model="filterType">
+                <SelectTrigger class="w-[180px]">
+                  <SelectValue placeholder="Todos los tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="FREE_DAY">Día libre</SelectItem>
+                  <SelectItem value="MEDICAL_APPOINTMENT">Médica</SelectItem>
+                  <SelectItem value="LEAVE">Permiso</SelectItem>
+                  <SelectItem value="TRAINING">Formación</SelectItem>
+                  <SelectItem value="OTHER">Otro</SelectItem>
+                  <SelectItem value="NEW_USER">Nuevo usuario</SelectItem>
+                  <SelectItem value="SCHEDULE_VALIDATION">Validación horario</SelectItem>
+                  <SelectItem value="SYLLABUS_CREATION">Programación</SelectItem>
+                  <SelectItem value="MEETING">Reunión</SelectItem>
+                  <SelectItem value="VOTE">Votación</SelectItem>
+                  <SelectItem value="REVIEW">Revisión</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <Label class="text-xs font-medium">Desde</Label>
+              <Input 
+                type="date" 
+                v-model="filterDateFrom" 
+                class="w-[150px]"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <Label class="text-xs font-medium">Hasta</Label>
+              <Input 
+                type="date" 
+                v-model="filterDateTo" 
+                class="w-[150px]"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              @click="clearFilters"
+              class="h-10"
+            >
+              <X class="h-4 w-4 mr-1" />
+              Limpiar
+            </Button>
+          </div>
+
           <!-- Loading State -->
           <div v-if="pending" class="flex items-center justify-center py-8">
             <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
@@ -107,17 +158,29 @@
           </div>
 
           <!-- Empty State -->
-          <div v-else-if="currentItems.length === 0" class="text-center py-12">
+          <div v-else-if="filteredItems.length === 0" class="text-center py-12">
             <Inbox v-if="activeTab === 'active'" class="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <History v-else class="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 class="text-lg font-medium text-foreground mb-1">
               {{ activeTab === 'active' ? 'No hay tareas pendientes' : 'No hay registros en tu historial' }}
             </h3>
             <p class="text-sm text-muted-foreground max-w-md mx-auto">
-              {{ activeTab === 'active' 
-                ? 'No tienes solicitudes ni tareas pendientes de gestionar.' 
-                : 'Aún no has gestionado ninguna solicitud o tarea.' }}
+              {{ hasActiveFilters 
+                ? 'No se encontraron resultados con los filtros aplicados.' 
+                : activeTab === 'active' 
+                  ? 'No tienes solicitudes ni tareas pendientes de gestionar.' 
+                  : 'Aún no has gestionado ninguna solicitud o tarea.' }}
             </p>
+            <Button 
+              v-if="hasActiveFilters"
+              variant="outline" 
+              size="sm" 
+              @click="clearFilters"
+              class="mt-4"
+            >
+              <X class="h-4 w-4 mr-1" />
+              Limpiar filtros
+            </Button>
           </div>
 
           <!-- Table -->
@@ -135,18 +198,13 @@
             </TableHeader>
             <TableBody>
               <TableRow 
-                v-for="item in currentItems" 
+                v-for="item in filteredItems" 
                 :key="`${item.type}-${item.id}`" 
                 class="cursor-pointer hover:bg-muted/50" 
                 @click="navigateToItem(item)"
               >
                 <TableCell>
-                  <div class="flex flex-col gap-0.5">
-                    <Badge :variant="item.type === 'Solicitud' ? 'default' : 'secondary'" class="w-fit">
-                      {{ item.type }}
-                    </Badge>
-                    <span class="text-xs text-muted-foreground">{{ formatSubType(item.subType) }}</span>
-                  </div>
+                  <span class="text-sm font-medium">{{ formatSubType(item.subType) }}</span>
                 </TableCell>
                 <TableCell class="font-medium max-w-[200px] truncate" :title="item.title">
                   {{ item.title }}
@@ -177,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, History } from 'lucide-vue-next'
+import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, History, X } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
 
 definePageMeta({
@@ -187,6 +245,21 @@ definePageMeta({
 
 // Tab activo
 const activeTab = ref<'active' | 'history'>('active')
+
+// Filtros
+const filterType = ref('')
+const filterDateFrom = ref('')
+const filterDateTo = ref('')
+
+const hasActiveFilters = computed(() => {
+  return filterType.value || filterDateFrom.value || filterDateTo.value
+})
+
+const clearFilters = () => {
+  filterType.value = ''
+  filterDateFrom.value = ''
+  filterDateTo.value = ''
+}
 
 /* ----------  usuario  ---------- */
 const { user } = await useUserSession()
@@ -228,6 +301,37 @@ const currentItems = computed(() => {
   return activeTab.value === 'active' ? activeItems.value : historyItems.value
 })
 
+// Items filtrados
+const filteredItems = computed(() => {
+  let result = currentItems.value
+
+  // Filtrar por tipo
+  if (filterType.value) {
+    result = result.filter(item => item.subType === filterType.value)
+  }
+
+  // Filtrar por fecha desde
+  if (filterDateFrom.value) {
+    const fromDate = new Date(filterDateFrom.value)
+    result = result.filter(item => {
+      const itemDate = parseDate(item.createdAt)
+      return itemDate >= fromDate
+    })
+  }
+
+  // Filtrar por fecha hasta
+  if (filterDateTo.value) {
+    const toDate = new Date(filterDateTo.value)
+    toDate.setHours(23, 59, 59, 999)
+    result = result.filter(item => {
+      const itemDate = parseDate(item.createdAt)
+      return itemDate <= toDate
+    })
+  }
+
+  return result
+})
+
 const refreshData = async () => {
   await refresh()
 }
@@ -241,6 +345,17 @@ const navigateToItem = (item: any) => {
 }
 
 /* ----------  helpers  ---------- */
+function parseDate(dateStr: string): Date {
+  // Parsear formato DD/MM/YYYY o similar
+  const parts = dateStr.split('/')
+  if (parts.length === 3) {
+    const [day, month, year] = parts.map(Number)
+    return new Date(year, month - 1, day)
+  }
+  // Fallback: intentar parseo directo
+  return new Date(dateStr)
+}
+
 function formatSubType(subType: string): string {
   const types: Record<string, string> = {
     // Request types
