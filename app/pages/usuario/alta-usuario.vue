@@ -8,9 +8,15 @@ definePageMeta({
 
 const router = useRouter()
 
-// Estado del formulario - solo campos necesarios
+// Estado del formulario
 const form = reactive({
-  // Datos personales
+  // Datos del solicitante (la persona que está haciendo la solicitud)
+  // En este caso, el mismo candidato
+  requesterName: '',
+  requesterEmail: '',
+  requesterPhone: '',
+  
+  // Datos del usuario a dar de alta (el candidato)
   firstName: '',
   lastName: '',
   email: '',
@@ -18,12 +24,18 @@ const form = reactive({
   dni: '',
   phone: '',
   birthDate: '',
+  role: 'PROFESOR' as 'PROFESOR' | 'EXPERTO',
   
-  // Contraseña
+  // Contraseña (la creará el usuario ahora)
   password: '',
   confirmPassword: '',
   
-  // Dirección
+  // Información profesional
+  department: '',
+  specialty: '',
+  experience: '',
+  
+  // Dirección (opcional para la solicitud)
   addressLine: '',
   floorDoor: '',
   postalCode: '',
@@ -39,6 +51,7 @@ const showSuccess = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const errors = reactive<Record<string, string>>({})
+const requestId = ref('')
 
 // Validación DNI español
 const validateDNI = (dni: string) => {
@@ -79,7 +92,7 @@ const validateForm = () => {
   }
   
   if (!form.email.trim()) {
-    errors.email = 'El email es obligatorio'
+    errors.email = 'El email institucional es obligatorio'
     isValid = false
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
     errors.email = 'Email inválido'
@@ -121,6 +134,12 @@ const validateForm = () => {
     }
   }
 
+  // Rol
+  if (!form.role) {
+    errors.role = 'Debe seleccionar un rol'
+    isValid = false
+  }
+
   // Contraseña
   if (!form.password) {
     errors.password = 'La contraseña es obligatoria'
@@ -138,27 +157,14 @@ const validateForm = () => {
     isValid = false
   }
 
-  // Dirección obligatoria
-  if (!form.addressLine.trim()) {
-    errors.addressLine = 'La dirección es obligatoria'
+  // Dirección (opcional pero recomendada)
+  if (form.addressLine && !form.postalCode) {
+    errors.postalCode = 'El código postal es obligatorio si indica dirección'
     isValid = false
   }
   
-  if (!form.postalCode.trim()) {
-    errors.postalCode = 'El código postal es obligatorio'
-    isValid = false
-  } else if (!validatePostalCode(form.postalCode)) {
+  if (form.postalCode && !validatePostalCode(form.postalCode)) {
     errors.postalCode = 'Código postal inválido (5 dígitos)'
-    isValid = false
-  }
-  
-  if (!form.locality.trim()) {
-    errors.locality = 'La localidad es obligatoria'
-    isValid = false
-  }
-  
-  if (!form.province.trim()) {
-    errors.province = 'La provincia es obligatoria'
     isValid = false
   }
 
@@ -179,34 +185,46 @@ const submitApplication = async () => {
   submitting.value = true
   
   try {
+    // Preparar el payload según el formato esperado por el endpoint
     const payload = {
-      // Datos personales
-      firstName: form.firstName,
-      lastName: form.lastName,
-      email: form.email,
-      emailPersonal: form.emailPersonal || null,
-      dni: form.dni.toUpperCase(),
-      phone: form.phone,
-      birthDate: form.birthDate,
-      password: form.password, // Se hasheará en el backend
+      type: 'NEW_USER' as const,
+      title: `Solicitud de alta - ${form.firstName} ${form.lastName}`,
+      description: `Solicitud de alta de ${form.role === 'PROFESOR' ? 'profesor' : 'experto'} para el departamento de ${form.department || 'por determinar'}`,
       
-      // Dirección
-      address: {
-        addressLine: form.addressLine,
-        floorDoor: form.floorDoor || null,
-        postalCode: form.postalCode,
-        locality: form.locality,
-        province: form.province
-      }
+      // Datos del solicitante (en este caso, el mismo candidato)
+      requesterName: `${form.firstName} ${form.lastName}`,
+      requesterEmail: form.emailPersonal || form.email,
+      requesterPhone: form.phone,
+      
+      // Datos del usuario a dar de alta
+      userData: {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        role: form.role,
+        dni: form.dni.toUpperCase(),
+        phone: form.phone,
+        // Incluimos la contraseña para que el admin pueda crear el usuario con ella
+        password: form.password,
+        birthDate: form.birthDate,
+        emailPersonal: form.emailPersonal || null
+      },
+      
+      // Información profesional
+      department: form.department || undefined,
+      specialty: form.specialty || undefined,
+      experience: form.experience || undefined
     }
 
-    const { error } = await useFetch('/api/requests/registration', {
+    const { data, error } = await useFetch('/api/requests', {
       method: 'POST',
       body: payload
     })
 
     if (error.value) throw error.value
 
+    // Guardar el ID de la solicitud para mostrarlo
+    requestId.value = data.value?.data?.id || ''
     showSuccess.value = true
     
   } catch (err: any) {
@@ -341,17 +359,34 @@ const submitApplication = async () => {
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="text-sm font-medium">
-                Fecha de nacimiento <span class="text-destructive">*</span>
-              </label>
-              <input 
-                v-model="form.birthDate"
-                type="date" 
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                :class="{ 'border-destructive ring-1 ring-destructive': errors.birthDate }"
-              />
-              <p v-if="errors.birthDate" class="text-xs text-destructive">{{ errors.birthDate }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium">
+                  Fecha de nacimiento <span class="text-destructive">*</span>
+                </label>
+                <input 
+                  v-model="form.birthDate"
+                  type="date" 
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  :class="{ 'border-destructive ring-1 ring-destructive': errors.birthDate }"
+                />
+                <p v-if="errors.birthDate" class="text-xs text-destructive">{{ errors.birthDate }}</p>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-sm font-medium">
+                  Rol solicitado <span class="text-destructive">*</span>
+                </label>
+                <select
+                  v-model="form.role"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  :class="{ 'border-destructive ring-1 ring-destructive': errors.role }"
+                >
+                  <option value="PROFESOR">Profesor</option>
+                  <option value="EXPERTO">Experto/Colaborador</option>
+                </select>
+                <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
+              </div>
             </div>
           </div>
 
@@ -412,31 +447,71 @@ const submitApplication = async () => {
             </div>
           </div>
 
+          <!-- Sección: Información Profesional -->
+          <div class="space-y-4 pt-4 border-t">
+            <h3 class="text-sm font-semibold text-foreground flex items-center gap-2 border-b pb-2">
+              <Icon name="lucide:briefcase" class="w-4 h-4 text-primary" />
+              Información Profesional
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium">
+                  Departamento <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
+                </label>
+                <input 
+                  v-model="form.department"
+                  type="text" 
+                  placeholder="Ej: Informática, Matemáticas..."
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-sm font-medium">
+                  Especialidad <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
+                </label>
+                <input 
+                  v-model="form.specialty"
+                  type="text" 
+                  placeholder="Ej: Desarrollo Web, Bases de Datos..."
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium">
+                Experiencia y observaciones <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
+              </label>
+              <textarea
+                v-model="form.experience"
+                rows="3"
+                placeholder="Describa su experiencia profesional, formación o cualquier información relevante..."
+                class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+            </div>
+          </div>
+
           <!-- Sección: Dirección -->
           <div class="space-y-4 pt-4 border-t">
             <h3 class="text-sm font-semibold text-foreground flex items-center gap-2 border-b pb-2">
               <Icon name="lucide:map-pin" class="w-4 h-4 text-primary" />
-              Dirección
+              Dirección <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
             </h3>
 
             <div class="space-y-2">
-              <label class="text-sm font-medium">
-                Dirección <span class="text-destructive">*</span>
-              </label>
+              <label class="text-sm font-medium">Dirección</label>
               <input 
                 v-model="form.addressLine"
                 type="text" 
                 placeholder="Calle, número, etc."
                 class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                :class="{ 'border-destructive ring-1 ring-destructive': errors.addressLine }"
               />
-              <p v-if="errors.addressLine" class="text-xs text-destructive">{{ errors.addressLine }}</p>
             </div>
 
             <div class="space-y-2">
-              <label class="text-sm font-medium">
-                Piso / Puerta <span class="text-xs text-muted-foreground font-normal">(opcional)</span>
-              </label>
+              <label class="text-sm font-medium">Piso / Puerta</label>
               <input 
                 v-model="form.floorDoor"
                 type="text" 
@@ -447,9 +522,7 @@ const submitApplication = async () => {
 
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div class="space-y-2 col-span-2 md:col-span-1">
-                <label class="text-sm font-medium">
-                  Código Postal <span class="text-destructive">*</span>
-                </label>
+                <label class="text-sm font-medium">Código Postal</label>
                 <input 
                   v-model="form.postalCode"
                   type="text" 
@@ -462,31 +535,23 @@ const submitApplication = async () => {
               </div>
 
               <div class="space-y-2 col-span-2 md:col-span-1">
-                <label class="text-sm font-medium">
-                  Localidad <span class="text-destructive">*</span>
-                </label>
+                <label class="text-sm font-medium">Localidad</label>
                 <input 
                   v-model="form.locality"
                   type="text" 
                   placeholder="Madrid"
                   class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  :class="{ 'border-destructive ring-1 ring-destructive': errors.locality }"
                 />
-                <p v-if="errors.locality" class="text-xs text-destructive">{{ errors.locality }}</p>
               </div>
 
               <div class="space-y-2 col-span-2 md:col-span-1">
-                <label class="text-sm font-medium">
-                  Provincia <span class="text-destructive">*</span>
-                </label>
+                <label class="text-sm font-medium">Provincia</label>
                 <input 
                   v-model="form.province"
                   type="text" 
                   placeholder="Madrid"
                   class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  :class="{ 'border-destructive ring-1 ring-destructive': errors.province }"
                 />
-                <p v-if="errors.province" class="text-xs text-destructive">{{ errors.province }}</p>
               </div>
             </div>
           </div>
@@ -567,7 +632,7 @@ const submitApplication = async () => {
           <div class="bg-muted rounded-lg p-3 text-xs space-y-2">
             <div class="flex justify-between">
               <span class="text-muted-foreground">Referencia:</span>
-              <span class="font-mono font-medium">REG-{{ Date.now().toString(36).toUpperCase().slice(-8) }}</span>
+              <span class="font-mono font-medium">{{ requestId.slice(-8).toUpperCase() || 'REG-' + Date.now().toString(36).toUpperCase().slice(-8) }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-muted-foreground">Estado:</span>

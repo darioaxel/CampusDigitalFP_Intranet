@@ -391,5 +391,66 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
 
   console.log(`  ✓ Workflow: ${standardRequestWorkflow.name}`)
 
+  // ========================================
+  // 7. WORKFLOW: Alta de Nuevo Usuario
+  // ========================================
+  const newUserWorkflow = await prisma.workflowDefinition.create({
+    data: {
+      code: 'request_new_user',
+      name: 'Alta de Nuevo Usuario',
+      description: 'Proceso de solicitud y aprobación para dar de alta un nuevo usuario en el sistema',
+      entityType: 'REQUEST',
+      version: 1,
+      isActive: true,
+      states: {
+        create: [
+          { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
+          { code: 'reviewing', name: 'En Revisión', color: 'blue', order: 2 },
+          { code: 'approved', name: 'Aprobado', color: 'green', order: 3, isFinal: true },
+          { code: 'rejected', name: 'Rechazado', color: 'red', order: 4, isFinal: true, isTerminal: true }
+        ]
+      }
+    },
+    include: { states: true }
+  })
+
+  const newUserStates = newUserWorkflow.states
+  await prisma.workflowTransition.createMany({
+    data: [
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
+        toStateId: newUserStates.find(s => s.code === 'reviewing')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT'])
+      },
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'reviewing')!.id,
+        toStateId: newUserStates.find(s => s.code === 'approved')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
+      },
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'reviewing')!.id,
+        toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
+      },
+      {
+        workflowId: newUserWorkflow.id,
+        fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
+        toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
+        requiresComment: true,
+        autoActions: JSON.stringify(['create_notification'])
+      }
+    ]
+  })
+
+  console.log(`  ✓ Workflow: ${newUserWorkflow.name}`)
+
   console.log('✅ Workflows seedeados correctamente')
 }

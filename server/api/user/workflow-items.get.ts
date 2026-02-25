@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // Solicitudes pendientes de gestionar (para admin)
+    // Incluye solicitudes públicas (NEW_USER) donde el requester es el admin placeholder
     const pendingRequests = isAdmin
       ? await prisma.request.findMany({
           where: {
@@ -34,7 +35,15 @@ export default defineEventHandler(async (event) => {
               isFinal: false,
               isTerminal: false
             },
-            requesterId: { not: userId }, // Excluir las propias
+            OR: [
+              { requesterId: { not: userId } }, // Excluir las propias del admin
+              { 
+                // Incluir solicitudes públicas (NEW_USER desde formulario)
+                context: {
+                  contains: '"type":"NEW_USER"'
+                }
+              }
+            ]
           },
           include: {
             requester: {

@@ -214,6 +214,60 @@ export async function seedRequests(prisma: PrismaClient, users: User[]): Promise
   console.log(`  ✓ Solicitud creada: ${request8.title}`)
 
   // ========================================
+  // SOLICITUD DE ALTA DE USUARIO (Formulario público - Para testing del admin)
+  // ========================================
+  
+  const newUserWorkflow = await prisma.workflowDefinition.findUnique({
+    where: { code: 'request_new_user' },
+    include: { states: true }
+  })
+
+  if (newUserWorkflow) {
+    const newUserPending = newUserWorkflow.states.find(s => s.code === 'pending')!
+    
+    // Solicitud 9: Alta de nuevo usuario desde formulario público (sin requester autenticado)
+    const request9 = await prisma.request.create({
+      data: {
+        title: 'Solicitud de alta - Nuevo Profesor',
+        description: 'Solicitud para dar de alta a un nuevo profesor del departamento de Informática. El candidato tiene experiencia previa en desarrollo web y bases de datos.',
+        workflowId: newUserWorkflow.id,
+        currentStateId: newUserPending.id,
+        requesterId: admins[0]?.id || profesores[0].id, // Se asigna al admin por defecto
+        adminId: admins[0]?.id,
+        context: JSON.stringify({ 
+          type: 'NEW_USER',
+          requester: {
+            name: 'Ana Martínez',
+            email: 'ana.martinez.referral@email.com',
+            phone: '612345678'
+          },
+          userData: {
+            firstName: 'Carlos',
+            lastName: 'García López',
+            email: 'c.garcia@centro.edu',
+            role: 'PROFESOR',
+            dni: '12345678A',
+            phone: '623456789',
+            password: 'TempPass123', // Contraseña temporal definida por el solicitante
+            birthDate: '1985-03-15',
+            emailPersonal: 'carlos.garcia.personal@email.com'
+          },
+          department: 'Informática',
+          specialty: 'Desarrollo Web',
+          experience: '5 años en desarrollo de aplicaciones web, dominio de React, Node.js y bases de datos SQL/NoSQL'
+        })
+      }
+    })
+    console.log(`  ✓ Solicitud creada: ${request9.title} (tipo: NEW_USER)`)
+    console.log(`    → Solicitante: Ana Martínez (referente)`)
+    console.log(`    → Candidato: Carlos García López (c.garcia@centro.edu)`)
+    console.log(`    → Para probar: Inicia sesión como ADMIN y revisa la solicitud #${request9.id}`)
+    console.log(`    → Endpoint: GET /api/requests/${request9.id}/transitions`)
+    console.log(`    → Aprobar: POST /api/requests/${request9.id}/transition { "toState": "approved", "comment": "Aprobado" }`)
+    console.log(`    → Crear usuario: POST /api/users { datos del candidato }`)
+  }
+
+  // ========================================
   // HISTORIAL DE ESTADOS
   // ========================================
 
