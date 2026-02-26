@@ -239,7 +239,7 @@ export const calendarTemplate2025_2026: CalendarData = {
 export const freeDispositionCalendar2025_2026: CalendarData = {
   name: 'Dias de libre disposición 2025-2026',
   description: 'Calendario para solicitar días de libre disposición durante el curso 2025-2026',
-  type: CalendarType.FREE_DISPOSITION,
+  type: 'FREE_DISPOSITION',
   academicYear: '2025-2026',
   startDate: '2025-09-01',
   endDate: '2026-07-31',

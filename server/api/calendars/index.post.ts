@@ -126,11 +126,8 @@ export default defineEventHandler(async (event) => {
       })
     }
   }
-  
-  // Crear calendario (normalizar fechas a inicio del día local)
-  const startDate = new Date(data.startDate + 'T00:00:00')
-  const endDate = new Date(data.endDate + 'T23:59:59')
-  
+ 
+   
   // Preparar datos base del calendario
   const calendarData: any = {
     name: data.name,
