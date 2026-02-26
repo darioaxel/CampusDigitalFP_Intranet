@@ -5,10 +5,12 @@
     <div class="flex items-center justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" @click="navigateTo('/admin/calendarios')">
-            <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
-            Volver
-          </Button>
+          <NuxtLink to="/admin/calendarios">
+            <Button variant="ghost" size="sm">
+              <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
+              Volver
+            </Button>
+          </NuxtLink>
         </div>
         <h1 class="text-2xl font-bold">Editar Días: {{ calendar?.name }}</h1>
         <p class="text-muted-foreground text-sm">
@@ -23,7 +25,15 @@
           :disabled="selectedDays.length === 0"
         >
           <Icon name="lucide:x" class="h-4 w-4 mr-2" />
-          Limpiar selección ({{ selectedDays.length }})
+          Limpiar ({{ selectedDays.length }})
+        </Button>
+        <Button 
+          variant="secondary"
+          @click="clearDayFormat" 
+          :disabled="selectedDays.length === 0"
+        >
+          <Icon name="lucide:eraser" class="h-4 w-4 mr-2" />
+          Borrar formato
         </Button>
         <Button 
           @click="markAsHolidays" 
@@ -31,14 +41,14 @@
           variant="destructive"
         >
           <Icon name="lucide:calendar-x" class="h-4 w-4 mr-2" />
-          Marcar festivos
+          Festivos
         </Button>
         <Button 
           @click="showExamModal = true" 
           :disabled="selectedDays.length === 0"
         >
           <Icon name="lucide:graduation-cap" class="h-4 w-4 mr-2" />
-          Marcar exámenes
+          Exámenes
         </Button>
       </div>
     </div>
@@ -119,9 +129,12 @@
                   @mousedown="startDrag(day)"
                   @mouseenter="dragOver(day)"
                   @mouseup="endDrag"
-                  :class="getDayClasses(day)"
+                  :class="[
+                    getDayClasses(day),
+                    selectedDays.includes(day.date) ? 'ring-2 ring-blue-600 ring-offset-1' : ''
+                  ]"
                   :title="getDayTooltip(day)"
-                  class="h-8 text-xs rounded flex items-center justify-center transition-colors cursor-pointer select-none"
+                  class="h-8 text-xs rounded flex items-center justify-center transition-all cursor-pointer select-none"
                 >
                   {{ day.day }}
                 </button>
@@ -131,58 +144,6 @@
         </Card>
       </div>
 
-      <!-- Lista de eventos existentes -->
-      <Card>
-        <CardHeader>
-          <CardTitle>Eventos del Calendario</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Fechas</TableHead>
-                <TableHead class="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="event in events" :key="event.id">
-                <TableCell>
-                  <div class="flex items-center gap-2">
-                    <div 
-                      class="w-3 h-3 rounded-full" 
-                      :style="{ backgroundColor: event.color || '#3b82f6' }"
-                    />
-                    <span class="font-medium">{{ event.title }}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge :variant="getEventTypeVariant(event.type)">
-                    {{ getEventTypeLabel(event.type) }}
-                  </Badge>
-                </TableCell>
-                <TableCell>{{ formatEventDate(event) }}</TableCell>
-                <TableCell class="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    class="text-destructive"
-                    @click="deleteEvent(event)"
-                  >
-                    <Icon name="lucide:trash-2" class="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-              <TableRow v-if="events.length === 0">
-                <TableCell colspan="4" class="text-center text-muted-foreground py-8">
-                  No hay eventos creados. Usa los botones de arriba para marcar festivos o exámenes.
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </template>
 
     <!-- Modal para marcar como exámenes -->
@@ -257,6 +218,7 @@ const calendarId = route.params.id as string
 // Estado
 const selectedDays = ref<string[]>([])
 const isDragging = ref(false)
+const hasDragged = ref(false)
 const dragStartDay = ref<string | null>(null)
 const showExamModal = ref(false)
 const saving = ref(false)
@@ -377,8 +339,12 @@ function getDayTooltip(day: any) {
   return day.date
 }
 
+// Selección de días - click simple
 function toggleDay(day: any) {
   if (day.isWeekend) return
+  
+  // Si estamos arrastrando, no hacer toggle (ya se maneja en dragOver)
+  if (hasDragged.value) return
   
   const index = selectedDays.value.indexOf(day.date)
   if (index === -1) {
@@ -392,14 +358,15 @@ function toggleDay(day: any) {
 function startDrag(day: any) {
   if (day.isWeekend) return
   isDragging.value = true
+  hasDragged.value = false
   dragStartDay.value = day.date
-  if (!selectedDays.value.includes(day.date)) {
-    selectedDays.value.push(day.date)
-  }
+  // No añadir aquí, esperar a dragOver o click
 }
 
 function dragOver(day: any) {
   if (!isDragging.value || day.isWeekend) return
+  
+  hasDragged.value = true
   
   if (!selectedDays.value.includes(day.date)) {
     selectedDays.value.push(day.date)
@@ -409,6 +376,10 @@ function dragOver(day: any) {
 function endDrag() {
   isDragging.value = false
   dragStartDay.value = null
+  // Reset hasDragged después de un pequeño delay para permitir el click
+  setTimeout(() => {
+    hasDragged.value = false
+  }, 50)
 }
 
 function clearSelection() {
@@ -480,6 +451,41 @@ async function markAsExams() {
     toast.success('Días marcados como periodo de evaluación')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al guardar')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function clearDayFormat() {
+  if (selectedDays.value.length === 0) return
+  
+  if (!confirm(`¿Eliminar el formato de ${selectedDays.value.length} días seleccionados?`)) return
+  
+  saving.value = true
+  try {
+    // Encontrar eventos que contengan los días seleccionados
+    const eventsToDelete = events.value.filter((event: any) => {
+      const eventStart = event.startDate.split('T')[0]
+      const eventEnd = event.endDate ? event.endDate.split('T')[0] : eventStart
+      
+      // Verificar si algún día seleccionado está dentro de este evento
+      return selectedDays.value.some((day: string) => {
+        return day >= eventStart && day <= eventEnd
+      })
+    })
+    
+    // Eliminar los eventos encontrados
+    for (const event of eventsToDelete) {
+      await $fetch(`/api/calendars/${calendarId}/events/${event.id}`, {
+        method: 'DELETE'
+      })
+    }
+    
+    await refresh()
+    selectedDays.value = []
+    toast.success('Formato eliminado de los días seleccionados')
+  } catch (error: any) {
+    toast.error(error.data?.message || 'Error al eliminar el formato')
   } finally {
     saving.value = false
   }

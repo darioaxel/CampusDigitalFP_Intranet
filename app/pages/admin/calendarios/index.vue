@@ -77,9 +77,8 @@
             <TableHead>Tipo</TableHead>
             <TableHead>Año</TableHead>
             <TableHead>Eventos</TableHead>
-            <TableHead>Estado</TableHead>
             <TableHead>Creado por</TableHead>
-            <TableHead class="text-right">Acciones</TableHead>
+            <TableHead class="text-right">Activar/Desactivar</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -98,24 +97,30 @@
             <TableCell>{{ calendar.academicYear }}</TableCell>
             <TableCell>{{ calendar._count?.events || 0 }}</TableCell>
             <TableCell>
-              <Badge :variant="calendar.isActive ? 'default' : 'secondary'" class="text-xs">
-                {{ calendar.isActive ? 'Activo' : 'Inactivo' }}
-              </Badge>
-            </TableCell>
-            <TableCell>
               <div class="text-sm">
                 {{ calendar.createdBy?.firstName }} {{ calendar.createdBy?.lastName }}
               </div>
             </TableCell>
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-2">
-                <!-- Toggle activo/inactivo -->
-                <Switch 
-                  :checked="calendar.isActive"
-                  @update:checked="toggleActive(calendar)"
+                <!-- Toggle activo/inactivo con leyenda -->
+                <button
+                  @click="toggleActive(calendar)"
                   :disabled="toggling === calendar.id"
-                  class="data-[state=checked]:bg-green-500"
-                />
+                  class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                  :class="calendar.isActive 
+                    ? 'bg-amber-400 text-amber-950 hover:bg-amber-500' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                >
+                  <span v-if="toggling === calendar.id" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                  <span v-else class="relative inline-flex h-4 w-4 items-center justify-center">
+                    <span 
+                      class="block h-3 w-3 rounded-full transition-transform"
+                      :class="calendar.isActive ? 'bg-amber-950 scale-100' : 'bg-gray-500 scale-75'"
+                    ></span>
+                  </span>
+                  {{ calendar.isActive ? 'Desactivar' : 'Activar' }}
+                </button>
                 
                 <Button 
                   v-if="calendar.type === 'TEMPLATE'"
