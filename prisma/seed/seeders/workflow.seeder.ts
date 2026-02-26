@@ -376,21 +376,20 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   // ========================================
   // 7. WORKFLOW: Alta de Nuevo Usuario
   // ========================================
+  // Flujo simplificado: una persona no autenticada solicita alta → admin valida → se crea usuario
   const newUserWorkflow = await prisma.workflowDefinition.create({
     data: {
       code: 'request_new_user',
       name: 'Alta de Nuevo Usuario',
-      description: 'Flujo para solicitar la creación de nuevos usuarios en el sistema',
+      description: 'Flujo para solicitar la creación de nuevos usuarios en el sistema (formulario público)',
       entityType: 'REQUEST',
       version: 1,
       isActive: true,
       states: {
         create: [
           { code: 'pending', name: 'Pendiente de Validación', color: 'amber', order: 1, isInitial: true },
-          { code: 'validated', name: 'Validada', color: 'blue', order: 2 },
-          { code: 'creating', name: 'Creando Usuario', color: 'purple', order: 3 },
-          { code: 'completed', name: 'Usuario Creado', color: 'green', order: 4, isFinal: true },
-          { code: 'rejected', name: 'Rechazada', color: 'red', order: 5, isFinal: true, isTerminal: true }
+          { code: 'approved', name: 'Aprobada - Usuario Creado', color: 'green', order: 2, isFinal: true },
+          { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true }
         ]
       }
     },
@@ -400,44 +399,19 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   const newUserStates = newUserWorkflow.states
   await prisma.workflowTransition.createMany({
     data: [
-      // pending → validated (validación por jefe de departamento)
+      // pending → approved (admin aprueba y se crea el usuario automáticamente)
       {
         workflowId: newUserWorkflow.id,
         fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
-        toStateId: newUserStates.find(s => s.code === 'validated')!.id,
-        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
+        toStateId: newUserStates.find(s => s.code === 'approved')!.id,
+        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         requiresComment: true,
         autoActions: JSON.stringify(['create_notification'])
       },
-      // validated → creating (admin inicia creación)
-      {
-        workflowId: newUserWorkflow.id,
-        fromStateId: newUserStates.find(s => s.code === 'validated')!.id,
-        toStateId: newUserStates.find(s => s.code === 'creating')!.id,
-        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
-        autoActions: JSON.stringify(['create_notification'])
-      },
-      // creating → completed (usuario creado)
-      {
-        workflowId: newUserWorkflow.id,
-        fromStateId: newUserStates.find(s => s.code === 'creating')!.id,
-        toStateId: newUserStates.find(s => s.code === 'completed')!.id,
-        allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
-        requiresComment: true,
-        autoActions: JSON.stringify(['create_notification', 'notify_assignees'])
-      },
-      // Cualquier estado → rejected
+      // pending → rejected (admin rechaza)
       {
         workflowId: newUserWorkflow.id,
         fromStateId: newUserStates.find(s => s.code === 'pending')!.id,
-        toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
-        allowedRoles: JSON.stringify(['JEFE_DEPT', 'ADMIN', 'ROOT']),
-        requiresComment: true,
-        autoActions: JSON.stringify(['create_notification'])
-      },
-      {
-        workflowId: newUserWorkflow.id,
-        fromStateId: newUserStates.find(s => s.code === 'validated')!.id,
         toStateId: newUserStates.find(s => s.code === 'rejected')!.id,
         allowedRoles: JSON.stringify(['ADMIN', 'ROOT']),
         requiresComment: true,

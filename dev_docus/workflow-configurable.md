@@ -95,9 +95,10 @@ model StateHistory {
 | `task_validation` | Validación de Tarea | TASK | todo → in_progress → in_review → approved/rejected |
 | `task_voting` | Votación | TASK | voting_open → voting_closed → resolved |
 | `task_simple` | Tarea Simple | TASK | todo → in_progress → done/cancelled |
-| `request_free_day` | Día Libre | REQUEST | pending → dept_review → admin_review → approved/rejected |
+| `request_free_day` | Día Libre | REQUEST | pending → approved/rejected |
 | `request_medical` | Visita Médica | REQUEST | communicated → pending_docs → docs_submitted → validated/rejected |
-| `request_standard` | Solicitud Estándar | REQUEST | pending → approved/rejected |
+| `request_standard` | Solicitud Estándar | REQUEST | pending → under_review → approved/rejected |
+| `request_new_user` | Alta de Nuevo Usuario | REQUEST | pending → approved/rejected |
 
 ## Uso del Motor
 
@@ -197,6 +198,72 @@ Las transiciones pueden ejecutar acciones automáticas:
 | `notify_creator` | Notifica al creador de la tarea |
 | `notify_assignees` | Notifica a todos los asignados |
 | `update_calendar` | Actualiza calendario (días libres) |
+
+## Workflow: Alta de Nuevo Usuario (`request_new_user`)
+
+Este workflow permite que personas no autenticadas soliciten el alta en el sistema mediante un formulario público.
+
+### Flujo
+
+```
+┌─────────────┐     ┌─────────────────────────────┐     ┌───────────┐
+│   pending   │ ──▶ │  approved (Usuario Creado)  │     │ rejected  │
+│  (inicial)  │     │        (final)              │     │ (final)   │
+└─────────────┘     └─────────────────────────────┘     └───────────┘
+```
+
+### Formulario Público
+
+- **URL**: `/usuario/alta-usuario`
+- **Acceso**: Público (no requiere autenticación)
+- **Datos solicitados**:
+  - Datos personales: nombre, apellidos, DNI, teléfono, fecha de nacimiento
+  - Emails: institucional y personal
+  - Contraseña: el usuario define su contraseña desde el inicio
+  - Dirección opcional
+
+### Proceso de Aprobación
+
+1. **Usuario llena formulario** → Se crea solicitud con estado `pending`
+2. **Admin revisa solicitud** en `/admin/solicitudes/{id}`
+3. **Admin aprueba** (transición a `approved`):
+   - Se crea el usuario automáticamente con los datos del contexto
+   - Se hashea la contraseña proporcionada
+   - Se asigna el rol seleccionado por el admin (PROFESOR, EXPERTO, etc.)
+4. **Admin rechaza** (transición a `rejected`):
+   - Se notifica al solicitante (si hay email disponible)
+
+### Datos en Contexto
+
+```json
+{
+  "type": "NEW_USER",
+  "requester": {
+    "name": "Nombre completo",
+    "email": "email@contacto.com",
+    "phone": "600000000"
+  },
+  "userData": {
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "email": "usuario@centro.edu",
+    "dni": "12345678A",
+    "phone": "600000000",
+    "password": "contraseña_hasheada",
+    "birthDate": "1990-01-01",
+    "emailPersonal": "personal@gmail.com"
+  }
+}
+```
+
+### Endpoints Relacionados
+
+```
+POST   /api/requests              # Crear solicitud (público para NEW_USER)
+GET    /api/requests/:id          # Ver detalle (enriquecido para NEW_USER)
+POST   /api/requests/:id/transition  # Aprobar/Rechazar
+GET    /api/user/workflow-items   # Listar solicitudes pendientes (admin)
+```
 
 ## Crear Nuevo Workflow
 
