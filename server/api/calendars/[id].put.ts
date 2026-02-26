@@ -10,6 +10,7 @@ const updateCalendarSchema = z.object({
   isPublic: z.boolean().optional(),
   allowDragDrop: z.boolean().optional(),
   maxEventsPerUser: z.number().int().min(1).optional().nullable(),
+  academicYear: z.string().regex(/^\d{4}-\d{4}$/).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -44,6 +45,52 @@ export default defineEventHandler(async (event) => {
   }
   
   const data = result.data
+  
+  // Obtener calendario actual
+  const currentCalendar = await prisma.calendar.findUnique({
+    where: { id }
+  })
+  
+  if (!currentCalendar) {
+    throw createError({ statusCode: 404, message: 'Calendario no encontrado' })
+  }
+  
+  // Validar período del curso académico si se actualizan fechas
+  if (data.startDate || data.endDate || data.academicYear) {
+    const academicYear = data.academicYear || currentCalendar.academicYear
+    const academicYearStart = parseInt(academicYear.split('-')[0])
+    
+    const startDate = data.startDate ? new Date(data.startDate + 'T00:00:00') : currentCalendar.startDate
+    const endDate = data.endDate ? new Date(data.endDate + 'T23:59:59') : currentCalendar.endDate
+    
+    const expectedStart = new Date(academicYearStart, 8, 1) // 1 de septiembre
+    const expectedEnd = new Date(academicYearStart + 1, 6, 31, 23, 59, 59) // 31 de julio
+    
+    if (startDate.getTime() !== expectedStart.getTime() || endDate.getTime() !== expectedEnd.getTime()) {
+      throw createError({
+        statusCode: 400,
+        message: `El calendario debe abarcar el curso académico completo: del 1 de septiembre de ${academicYearStart} al 31 de julio de ${academicYearStart + 1}`
+      })
+    }
+  }
+  
+  // Validar: Solo puede haber un calendario de libre disposición activo a la vez
+  if (data.isActive === true && currentCalendar.type === 'FREE_DISPOSITION') {
+    const existingFreeDisposition = await prisma.calendar.findFirst({
+      where: {
+        type: 'FREE_DISPOSITION',
+        isActive: true,
+        id: { not: id } // Excluir el calendario actual
+      }
+    })
+    
+    if (existingFreeDisposition) {
+      throw createError({
+        statusCode: 409,
+        message: `Ya existe un calendario de libre disposición activo: "${existingFreeDisposition.name}". Desactívalo primero.`
+      })
+    }
+  }
   
   // Actualizar calendario (normalizar fechas si se proporcionan)
   const updateData: any = {

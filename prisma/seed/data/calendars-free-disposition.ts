@@ -9,9 +9,9 @@ export const freeDispositionCalendar2025_2026 = {
   allowDragDrop: false,
   maxEventsPerUser: 4,
   validFrom: '2025-09-01',
-  validUntil: '2026-06-30',
-  // Días disponibles (todos los días lectivos de lunes a viernes entre el 1 de septiembre y 30 de junio)
-  events: generateWeekdays('2025-09-01', '2026-06-30')
+  validUntil: '2026-07-31',
+  // Días disponibles (todos los días lectivos de lunes a viernes entre el 1 de septiembre y 31 de julio)
+  events: generateWeekdays('2025-09-01', '2026-07-31')
 }
 
 // Generar días de semana (lunes a viernes) excluyendo festivos de Aragón

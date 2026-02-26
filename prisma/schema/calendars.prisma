@@ -6,6 +6,7 @@ enum CalendarType {
   EVALUATION       // Calendario de evaluaciones
   FREE_DISPOSITION // Calendario de días de libre disposición (especial)
   MEETINGS         // Reuniones y eventos
+  TEMPLATE         // Plantilla de calendario (no activo, para clonar)
   OTHER            // Otros calendarios
 }
 

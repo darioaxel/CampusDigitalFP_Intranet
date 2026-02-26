@@ -4,7 +4,7 @@ import { z } from 'zod'
 const createCalendarSchema = z.object({
   name: z.string().min(3),
   description: z.string().optional(),
-  type: z.enum(['SCHOOL_YEAR', 'EVALUATION', 'FREE_DISPOSITION', 'MEETINGS', 'OTHER']),
+  type: z.enum(['SCHOOL_YEAR', 'EVALUATION', 'FREE_DISPOSITION', 'MEETINGS', 'TEMPLATE', 'OTHER']),
   academicYear: z.string().regex(/^\d{4}-\d{4}$/), // formato: 2024-2025
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
@@ -41,6 +41,39 @@ export default defineEventHandler(async (event) => {
   }
   
   const data = result.data
+  
+  // Validar período del curso académico: 1 septiembre - 31 julio
+  const startDate = new Date(data.startDate + 'T00:00:00')
+  const endDate = new Date(data.endDate + 'T23:59:59')
+  
+  const academicYearStart = parseInt(data.academicYear.split('-')[0])
+  const expectedStart = new Date(academicYearStart, 8, 1) // 1 de septiembre (mes 8)
+  const expectedEnd = new Date(academicYearStart + 1, 6, 31, 23, 59, 59) // 31 de julio
+  
+  // Verificar que el calendario abarque el curso completo
+  if (startDate.getTime() !== expectedStart.getTime() || endDate.getTime() !== expectedEnd.getTime()) {
+    throw createError({
+      statusCode: 400,
+      message: `El calendario debe abarcar el curso académico completo: del 1 de septiembre de ${academicYearStart} al 31 de julio de ${academicYearStart + 1}`
+    })
+  }
+  
+  // Validar: Solo puede haber un calendario de libre disposición activo a la vez
+  if (data.type === 'FREE_DISPOSITION' && data.isActive !== false) {
+    const existingFreeDisposition = await prisma.calendar.findFirst({
+      where: {
+        type: 'FREE_DISPOSITION',
+        isActive: true
+      }
+    })
+    
+    if (existingFreeDisposition) {
+      throw createError({
+        statusCode: 409,
+        message: `Ya existe un calendario de libre disposición activo: "${existingFreeDisposition.name}". Desactívalo primero.`
+      })
+    }
+  }
   
   // Crear calendario (normalizar fechas a inicio del día local)
   const startDate = new Date(data.startDate + 'T00:00:00')
