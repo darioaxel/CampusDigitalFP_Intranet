@@ -2,21 +2,31 @@ import { CalendarEventType } from '@prisma/client'
 
 // ========== TIPOS ==========
 
+// Tipos de calendario como string literals (evita dependencia de CalendarType no exportado)
+export type CalendarTypeString = 
+  | 'SCHOOL_YEAR' 
+  | 'EVALUATION' 
+  | 'FREE_DISPOSITION' 
+  | 'MEETINGS' 
+  | 'TEMPLATE' 
+  | 'OTHER'
+
 export interface CalendarEventData {
   title: string
   description?: string
-  type: CalendarEventType
+  type: CalendarEventType | 'FREE_DISPOSITION' | 'HOLIDAY' | 'LECTIVE' | 'EVALUATION' | 'MEETING' | 'DEADLINE' | 'OTHER'
   startDate: string // YYYY-MM-DD
   endDate?: string  // YYYY-MM-DD (opcional, para eventos de varios días)
   isAllDay?: boolean
   color?: string
   maxAssignments?: number
+  isActive?: boolean
 }
 
 export interface CalendarData {
   name: string
   description?: string
-  type: CalendarType
+  type: CalendarTypeString
   academicYear: string // formato: "2025-2026"
   startDate: string    // YYYY-MM-DD
   endDate: string      // YYYY-MM-DD
