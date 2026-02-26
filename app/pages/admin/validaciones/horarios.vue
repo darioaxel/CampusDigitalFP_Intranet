@@ -88,7 +88,7 @@ const validateAndComplete = async (action: 'VALIDAR' | 'RECHAZAR') => {
     toast.success(action === 'VALIDAR' ? 'Horario validado correctamente' : 'Horario rechazado')
     
     // Redirigir al dashboard de tareas
-    router.push('/usuario/tareas')
+    await navigateTo('/usuario/tareas')
   } catch (err: any) {
     toast.error(err.message || 'Error al procesar la validación')
   }
@@ -97,9 +97,9 @@ const validateAndComplete = async (action: 'VALIDAR' | 'RECHAZAR') => {
 // Volver a la lista de tareas (si es modo revisión)
 const goBack = () => {
   if (window.history.length > 1) {
-    router.back()
+    navigateTo(-1)
   } else {
-    router.push('/usuario/tareas')
+    navigateTo('/usuario/tareas')
   }
 }
 

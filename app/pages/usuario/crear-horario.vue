@@ -220,7 +220,7 @@ const onSubmit = async () => {
       toast.success('Horario creado correctamente')
     }
 
-    router.push('/usuario/horarios')
+    await navigateTo('/usuario/horarios')
   } catch (err: any) {
     toast.error(err.message || 'Error al crear el horario')
   } finally {
@@ -228,7 +228,7 @@ const onSubmit = async () => {
   }
 }
 
-const onCancel = () => router.push('/usuario/horarios')
+const onCancel = () => navigateTo('/usuario/horarios')
 </script>
 
 <template>

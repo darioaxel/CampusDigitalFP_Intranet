@@ -14,10 +14,12 @@
     <div class="flex items-center justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" @click="navigateTo('/usuario/calendarios')">
-            <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
-            Volver
-          </Button>
+          <NuxtLink to="/usuario/calendarios">
+            <Button variant="ghost" size="sm">
+              <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
+              Volver
+            </Button>
+          </NuxtLink>
         </div>
         <h1 class="text-2xl font-bold">{{ calendar?.data?.name || 'Cargando...' }}</h1>
         <p class="text-muted-foreground text-sm">

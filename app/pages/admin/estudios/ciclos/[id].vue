@@ -37,10 +37,12 @@ const getNivelLabel = (nivel: string) => {
     <div class="mx-auto max-w-7xl" v-if="ciclo">
       <!-- Cabecera -->
       <div class="mb-6">
-        <Button variant="ghost" size="sm" @click="navigateTo('/admin/estudios')" class="mb-4">
-          <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
-          Volver a estudios
-        </Button>
+        <NuxtLink to="/admin/estudios">
+          <Button variant="ghost" size="sm" class="mb-4">
+            <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
+            Volver a estudios
+          </Button>
+        </NuxtLink>
         
         <div class="flex items-start justify-between">
           <div>
@@ -72,12 +74,13 @@ const getNivelLabel = (nivel: string) => {
         </h2>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card 
-            v-for="modulo in modulos" 
+          <NuxtLink
+            v-for="modulo in modulos"
             :key="modulo.id"
-            class="cursor-pointer hover:border-primary transition-colors"
-            @click="navigateTo(`/admin/estudios/modulos/${modulo.id}`)"
+            :to="`/admin/estudios/modulos/${modulo.id}`"
+            class="block"
           >
+          <Card class="cursor-pointer hover:border-primary transition-colors h-full">
             <CardHeader class="pb-3">
               <div class="flex items-start justify-between">
                 <div class="flex items-center gap-2">
@@ -122,6 +125,7 @@ const getNivelLabel = (nivel: string) => {
               </div>
             </CardContent>
           </Card>
+          </NuxtLink>
         </div>
       </div>
     </div>

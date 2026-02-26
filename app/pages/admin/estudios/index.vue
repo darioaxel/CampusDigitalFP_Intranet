@@ -51,12 +51,13 @@ const getFamiliaLabel = (familia: string) => {
 
       <!-- Grid de Ciclos -->
       <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card 
-          v-for="ciclo in ciclos" 
+        <NuxtLink
+          v-for="ciclo in ciclos"
           :key="ciclo.id"
-          class="cursor-pointer hover:border-primary transition-colors"
-          @click="navigateTo(`/admin/estudios/ciclos/${ciclo.id}`)"
+          :to="`/admin/estudios/ciclos/${ciclo.id}`"
+          class="block"
         >
+        <Card class="cursor-pointer hover:border-primary transition-colors h-full">
           <CardHeader class="pb-3">
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-2">
@@ -99,6 +100,7 @@ const getFamiliaLabel = (familia: string) => {
             </div>
           </CardContent>
         </Card>
+        </NuxtLink>
       </div>
 
       <!-- Empty state -->

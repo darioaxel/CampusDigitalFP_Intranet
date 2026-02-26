@@ -37,12 +37,15 @@
 
     <!-- Grid de calendarios -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <Card 
-        v-for="calendar in calendars" 
+      <NuxtLink
+        v-for="calendar in calendars"
         :key="calendar.id"
-        class="cursor-pointer hover:border-primary transition-colors"
-        @click="navigateToCalendar(calendar)"
+        :to="calendar.type === 'FREE_DISPOSITION' 
+          ? '/usuario/solicitudes/libre-disposicion' 
+          : `/usuario/calendarios/${calendar.id}`"
+        class="block"
       >
+        <Card class="cursor-pointer hover:border-primary transition-colors h-full">
         <CardHeader class="pb-3">
           <div class="flex items-start justify-between">
             <div class="flex items-center gap-2">
@@ -79,6 +82,7 @@
           </div>
         </CardContent>
       </Card>
+      </NuxtLink>
     </div>
   </div>
 </template>
@@ -158,14 +162,5 @@ function formatDateRange(start: string, end: string) {
   const startDate = new Date(start)
   const endDate = new Date(end)
   return `${startDate.toLocaleDateString('es-ES', { month: 'short' })} - ${endDate.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`
-}
-
-function navigateToCalendar(calendar: any) {
-  if (calendar.type === 'FREE_DISPOSITION') {
-    // El sistema de libre disposición usa solicitudes con workflow
-    navigateTo('/usuario/solicitudes/libre-disposicion')
-  } else {
-    navigateTo(`/usuario/calendarios/${calendar.id}`)
-  }
 }
 </script>
