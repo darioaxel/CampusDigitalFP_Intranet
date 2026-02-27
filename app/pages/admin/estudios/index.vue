@@ -51,56 +51,59 @@ const getFamiliaLabel = (familia: string) => {
 
       <!-- Grid de Ciclos -->
       <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink
+        <Card 
           v-for="ciclo in ciclos"
           :key="ciclo.id"
-          :to="`/admin/estudios/ciclos/${ciclo.id}`"
-          class="block"
+          class="cursor-pointer hover:border-primary transition-colors h-full"
+          as-child
         >
-        <Card class="cursor-pointer hover:border-primary transition-colors h-full">
-          <CardHeader class="pb-3">
-            <div class="flex items-start justify-between">
-              <div class="flex items-center gap-2">
-                <div class="bg-primary/10 p-2 rounded-lg">
-                  <Icon name="lucide:graduation-cap" class="h-5 w-5 text-primary" />
+          <NuxtLink
+            :to="`/admin/estudios/ciclos/${ciclo.id}`"
+            class="block"
+          >
+            <CardHeader class="pb-3">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="bg-primary/10 p-2 rounded-lg">
+                    <Icon name="lucide:graduation-cap" class="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle class="text-base">{{ ciclo.nombre }}</CardTitle>
+                    <CardDescription class="text-xs">
+                      {{ ciclo.codigo }}
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle class="text-base">{{ ciclo.nombre }}</CardTitle>
-                  <CardDescription class="text-xs">
-                    {{ ciclo.codigo }}
-                  </CardDescription>
-                </div>
-              </div>
-              <Badge variant="outline" class="text-xs">
-                {{ ciclo._count?.modulos || 0 }} módulos
-              </Badge>
-            </div>
-          </CardHeader>
-          
-          <CardContent class="pt-0">
-            <div class="space-y-2">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-muted-foreground">Nivel:</span>
-                <Badge variant="secondary" class="text-xs">
-                  {{ getNivelLabel(ciclo.nivel) }}
+                <Badge variant="outline" class="text-xs">
+                  {{ ciclo._count?.modulos || 0 }} módulos
                 </Badge>
               </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-muted-foreground">Familia:</span>
-                <span class="text-xs">{{ getFamiliaLabel(ciclo.familia) }}</span>
+            </CardHeader>
+            
+            <CardContent class="pt-0">
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Nivel:</span>
+                  <Badge variant="secondary" class="text-xs">
+                    {{ getNivelLabel(ciclo.nivel) }}
+                  </Badge>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Familia:</span>
+                  <span class="text-xs">{{ getFamiliaLabel(ciclo.familia) }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Horas:</span>
+                  <span class="text-xs">{{ ciclo.horasTotales }}h</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-muted-foreground">Duración:</span>
+                  <span class="text-xs">{{ ciclo.duracion }}</span>
+                </div>
               </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-muted-foreground">Horas:</span>
-                <span class="text-xs">{{ ciclo.horasTotales }}h</span>
-              </div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-muted-foreground">Duración:</span>
-                <span class="text-xs">{{ ciclo.duracion }}</span>
-              </div>
-            </div>
-          </CardContent>
+            </CardContent>
+          </NuxtLink>
         </Card>
-        </NuxtLink>
       </div>
 
       <!-- Empty state -->

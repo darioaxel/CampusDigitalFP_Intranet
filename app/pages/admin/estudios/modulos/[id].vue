@@ -19,12 +19,12 @@ const modulo = computed(() => moduloResponse.value?.data)
     <div class="mx-auto max-w-7xl" v-if="modulo">
       <!-- Cabecera -->
       <div class="mb-6">
-        <NuxtLink :to="`/admin/estudios/ciclos/${modulo.ciclo.id}`">
-          <Button variant="ghost" size="sm" class="mb-4">
+        <Button variant="ghost" size="sm" class="mb-4" as-child>
+          <NuxtLink :to="`/admin/estudios/ciclos/${modulo.ciclo.id}`">
             <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
             Volver a {{ modulo.ciclo.nombre }}
-          </Button>
-        </NuxtLink>
+          </NuxtLink>
+        </Button>
         
         <div class="flex items-start justify-between">
           <div>

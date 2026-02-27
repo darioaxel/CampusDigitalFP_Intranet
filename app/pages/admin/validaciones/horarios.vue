@@ -97,7 +97,7 @@ const validateAndComplete = async (action: 'VALIDAR' | 'RECHAZAR') => {
 // Volver a la lista de tareas (si es modo revisión)
 const goBack = () => {
   if (window.history.length > 1) {
-    navigateTo(-1)
+    router.back()
   } else {
     navigateTo('/usuario/tareas')
   }
@@ -116,13 +116,15 @@ if (error.value) {
         <div class="flex items-center gap-3">
           <!-- Botón volver (solo en modo revisión) -->
           <Button 
-            v-if="isReviewMode" 
+            v-if="isReviewMode"
             variant="ghost" 
             size="sm" 
             class="h-8 w-8 p-0"
-            @click="goBack"
+            as-child
           >
-            <Icon name="lucide:arrow-left" class="h-4 w-4" />
+            <NuxtLink to="/usuario/tareas">
+              <Icon name="lucide:arrow-left" class="h-4 w-4" />
+            </NuxtLink>
           </Button>
           
           <div>

@@ -9,58 +9,88 @@
 
 **Campus Digital FP Intranet** es una aplicación web full-stack desarrollada como intranet para centros de Formación Profesional (FP) en España. Gestiona usuarios (profesores, expertos, jefes de departamento, administradores), horarios, calendarios escolares, estudios FP (ciclos, módulos, resultados de aprendizaje), solicitudes y tareas con flujos de validación.
 
-- **Framework:** Nuxt 4.2.1 (Vue 3)
-- **Base de datos:** PostgreSQL (Neon/Supabase) + Prisma ORM 7.3.0
+- **Framework:** Nuxt 4.2.1 (Vue 3) con TypeScript 5.1
+- **Base de datos:** PostgreSQL + Prisma ORM 7.3.0 (con adapter Neon)
+- **Runtime:** Nitro (incluido en Nuxt)
 - **Idioma principal del código:** Español (comentarios, variables, API)
-- **UI:** Tailwind CSS 4.x + shadcn-vue + Reka UI
+- **UI:** Tailwind CSS 4.1.17 + shadcn-vue 2.3.3 + Reka UI 2.6.1
+- **Package Manager:** pnpm 10.12.1
 
 ---
 
 ## Estructura de Directorios
 
 ```
-/home/isard/Proyectos/CampusDigitalFP_Intranet/
+/home/darioaxel/Proyectos/CampusDigitalFP_Intranet/
 ├── app/                          # Frontend Nuxt (Vue)
 │   ├── assets/css/               # Tailwind CSS y estilos globales
 │   ├── components/               # Componentes Vue
 │   │   ├── ui/                   # Componentes shadcn-vue (Button, Card, etc.)
 │   │   ├── calendar/             # Componentes de calendario
-│   │   ├── layout/               # Layouts reutilizables
-│   │   └── ...
-│   ├── composables/              # Composables de Vue (useAppUserSession, etc.)
-│   ├── layouts/                  # Layouts de Nuxt (default, dashboard)
-│   ├── middleware/               # Middleware de rutas (auth, role.global)
-│   ├── pages/                    # Páginas de la aplicación (rutas)
+│   │   └── layout/               # Layouts reutilizables
+│   ├── composables/              # Composables de Vue
+│   │   ├── useAppUserSession.ts  # Gestión de sesión extendida
+│   │   ├── useFileUpload.ts      # Subida de archivos
+│   │   └── useRole.ts            # Acceso al rol del usuario
+│   ├── layouts/                  # Layouts de Nuxt
+│   │   ├── default.vue           # Layout por defecto
+│   │   └── dashboard.vue         # Layout para panel de administración
+│   ├── middleware/               # Middleware de rutas
+│   │   ├── auth.ts               # Protección de rutas privadas
+│   │   └── role.global.ts        # Validación global de roles
+│   ├── pages/                    # Páginas de la aplicación (rutas auto-generadas)
 │   │   ├── admin/                # Sección de administración
 │   │   ├── usuario/              # Sección de usuario
-│   │   └── ...
-│   ├── types/                    # Tipos TypeScript (auth.d.ts)
-│   └── lib/                      # Utilidades del cliente (utils.ts, config.ts)
+│   │   ├── login.vue             # Página de login
+│   │   ├── register.vue          # Registro de usuarios
+│   │   └── index.vue             # Landing page
+│   ├── types/                    # Tipos TypeScript
+│   │   └── auth.d.ts             # Tipos de autenticación
+│   └── lib/                      # Utilidades del cliente
+│       ├── config.ts             # Configuración
+│       └── utils.ts              # Utilidades (función cn para Tailwind)
 ├── server/                       # Backend (Nitro/Nuxt Server)
 │   ├── api/                      # Endpoints API REST
 │   │   ├── auth/                 # Autenticación (login, logout, register)
+│   │   ├── admin/workflows/      # Gestión de workflows (CRUD estados/transiciones)
 │   │   ├── calendars/            # Gestión de calendarios
 │   │   ├── schedules/            # Gestión de horarios
-│   │   ├── studies/              # Gestión de estudios FP
+│   │   ├── studies/              # Gestión de estudios FP (ciclos, módulos)
 │   │   ├── requests/             # Solicitudes y workflow
-│   │   └── ...
+│   │   ├── tasks/                # Tareas y asignaciones
+│   │   ├── users/                # Gestión de usuarios
+│   │   └── workflows/            # Listado de workflows disponibles
 │   └── utils/                    # Utilidades del servidor
-│       └── workflow/             # Máquina de estados para workflow
+│       ├── db.ts                 # Cliente Prisma para servidor (con adapter Neon)
+│       ├── schedules.ts          # Utilidades de horarios
+│       └── workflow/             # Motor de workflows
+│           ├── engine.ts         # Motor de workflows configurable
+│           └── stateMachine.ts   # Máquina de estados legacy
 ├── prisma/                       # Base de datos
 │   ├── schema/                   # Esquemas Prisma (divididos por dominio)
 │   │   ├── schema.prisma         # Configuración principal
-│   │   ├── user.prisma           # Usuarios y autenticación
-│   │   ├── schedules.prisma      # Horarios
-│   │   ├── calendars.prisma      # Calendarios
-│   │   ├── studies.prisma        # Estudios FP
-│   │   ├── workflow.prisma       # Solicitudes, tareas, workflow
-│   │   ├── enums.prisma          # Enums compartidos
-│   │   └── file.prisma           # Gestión de archivos
+│   │   ├── user.prisma           # Usuarios y direcciones
+│   │   ├── schedules.prisma      # Horarios y bloques horarios
+│   │   ├── calendars.prisma      # Calendarios y eventos
+│   │   ├── studies.prisma        # Ciclos, módulos, RAs, CEs
+│   │   ├── workflow.prisma       # Solicitudes, tareas, votaciones
+│   │   ├── workflow-config.prisma # Workflows configurables
+│   │   ├── file.prisma           # Gestión de archivos
+│   │   └── enums.prisma          # Enumeraciones compartidas
 │   ├── migrations/               # Migraciones de Prisma
 │   └── seed/                     # Seeders para datos iniciales
+│       ├── seeders/              # Seeders individuales
+│       │   ├── user.seeder.ts
+│       │   ├── workflow.seeder.ts
+│       │   ├── calendar.seeder.ts
+│       │   └── ...
+│       ├── data/                 # Datos de seed
+│       └── index.ts              # Entry point del seed
 ├── lib/                          # Código compartido
 │   └── prisma.ts                 # Cliente Prisma para cliente
 ├── plugins/                      # Plugins de Nuxt
+│   ├── api.ts
+│   └── temporal-polyfill.client.ts
 ├── public/                       # Assets estáticos
 └── dev_docus/                    # Documentación de desarrollo
 ```
@@ -69,41 +99,45 @@
 
 ## Stack Tecnológico
 
-### Core
-- **Nuxt 4.2.1** - Framework Vue full-stack
-- **Vue 3.5.24** - Framework UI reactivo
-- **TypeScript 5.1** - Tipado estático
-- **Nitro** - Engine de servidor (incluido en Nuxt)
+### Core Framework
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| Nuxt | 4.2.1 | Framework Vue full-stack |
+| Vue | 3.5.24 | Framework UI reactivo |
+| TypeScript | 5.1 | Tipado estático |
+| Nitro | - | Engine de servidor (incluido en Nuxt) |
 
 ### Base de Datos
-- **PostgreSQL** - Base de datos relacional
-- **Prisma 7.3.0** - ORM y migraciones
-- **@prisma/adapter-neon** - Adapter para Neon PostgreSQL
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| PostgreSQL | - | Base de datos relacional |
+| Prisma | 7.3.0 | ORM y migraciones |
+| @prisma/adapter-neon | 7.3.0 | Adapter para Neon PostgreSQL |
 
 ### UI/UX
-- **Tailwind CSS 4.1.17** - Framework CSS utilitario
-- **shadcn-vue 2.3.3** - Componentes accesibles (basado en Reka UI)
-- **Reka UI 2.6.1** - Componentes headless accesibles (fork de Radix Vue)
-- **Lucide Vue** - Iconos
-- **@schedule-x/vue** - Calendario interactivo
-- **vue-sonner** - Notificaciones toast
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| Tailwind CSS | 4.1.17 | Framework CSS utilitario |
+| shadcn-vue | 2.3.3 | Componentes accesibles (basado en Reka UI) |
+| Reka UI | 2.6.1 | Componentes headless accesibles |
+| Lucide Vue | 0.554.0 | Iconos |
+| @schedule-x/vue | 4.0.0 | Calendario interactivo |
+| vue-sonner | 2.0.9 | Notificaciones toast |
 
 ### Estado y Formularios
-- **Pinia 3.0.4** - Estado global
-- **pinia-plugin-persistedstate** - Persistencia de estado
-- **Vee-Validate 4.15.1** - Validación de formularios
-- **Zod 3.25.76** - Validación de esquemas
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| Pinia | 3.0.4 | Estado global |
+| pinia-plugin-persistedstate | 4.7.1 | Persistencia de estado |
+| Vee-Validate | 4.15.1 | Validación de formularios |
+| Zod | 3.25.76 | Validación de esquemas |
 
 ### Autenticación y Seguridad
-- **nuxt-auth-utils 0.5.25** - Sesiones y autenticación
-- **bcrypt 6.0.0** - Hash de contraseñas
-- **nuxt-security 2.4.0** - Headers de seguridad
-- **jsonwebtoken** - Tokens JWT
-
-### Herramientas de Desarrollo
-- **pnpm 10.12.1** - Package manager
-- **ESLint 9** - Linter (configuración de Nuxt)
-- **Prettier 3.6.2** - Formateo de código
+| Tecnología | Versión | Descripción |
+|------------|---------|-------------|
+| nuxt-auth-utils | 0.5.25 | Sesiones y autenticación |
+| bcrypt | 6.0.0 | Hash de contraseñas |
+| nuxt-security | 2.4.0 | Headers de seguridad |
 
 ---
 
@@ -129,7 +163,7 @@ pnpm preview
 pnpm postinstall
 
 # Base de datos
-pnpm prisma:migrate        # Crear/apply migraciones
+pnpm prisma:migrate        # Crear/aplicar migraciones
 pnpm prisma:generate       # Generar cliente Prisma
 pnpm prisma:setup          # Migrar + seed inicial
 ```
@@ -154,7 +188,7 @@ SUPABASE_KEY="anon-key"
 
 ---
 
-## Arquitectura y Convenciones
+## Arquitectura del Sistema
 
 ### Sistema de Roles (RBAC)
 
@@ -169,32 +203,8 @@ El sistema tiene 6 niveles de roles definidos en `prisma/schema/enums.prisma`:
 
 ### Middleware de Autenticación
 
-- `app/middleware/auth.ts` - Protege rutas privadas, redirige a /login si no hay sesión
-- `app/middleware/role.global.ts` - Valida roles permitidos por página usando `definePageMeta({ roles: ['ADMIN'] })`
-
-### Convenciones de Código
-
-**TypeScript / Vue:**
-- Usar `<script setup lang="ts">` en todos los componentes
-- UsarComposition API (no Options API)
-- Tipar explícitamente las respuestas de API con `useFetch<T>`
-
-**Estilos:**
-- Usar Tailwind CSS con las variables CSS del tema
-- Componentes UI en `app/components/ui/` siguen convención shadcn
-- Colores personalizados en `app/assets/css/tailwind.css` (tema naranja/dorado)
-
-**Nomenclatura:**
-- Componentes: PascalCase (ej: `ScheduleViewer.vue`)
-- Composables: camelCase con prefijo `use` (ej: `useAppUserSession.ts`)
-- API routes: kebab-case (ej: `validate.post.ts`)
-- Variables/funciones: camelCase en español (ej: `usuarioActual`, `cargarDatos`)
-
-**Imports:**
-- Usar aliases configurados en `components.json`:
-  - `@/components/*` - Componentes
-  - `@/lib/*` - Utilidades
-  - `@/composables/*` - Composables
+- **`app/middleware/auth.ts`** - Protege rutas privadas, redirige a /login si no hay sesión
+- **`app/middleware/role.global.ts`** - Valida roles permitidos por página usando `definePageMeta({ roles: ['ADMIN'] })`
 
 ### Estructura de API
 
@@ -214,14 +224,14 @@ server/api/
 
 El sistema usa un **workflow engine configurable** data-driven:
 
-Ubicación: `server/utils/workflow/engine.ts`
+**Ubicación:** `server/utils/workflow/engine.ts`
 
 - Workflows definidos en base de datos (`WorkflowDefinition`, `WorkflowState`, `WorkflowTransition`)
 - Estados y transiciones configurables sin modificar código
 - Soporta validaciones custom, acciones automáticas, notificaciones
 - Historial de estados completo (`StateHistory`)
 
-**Modelos:**
+**Modelos principales:**
 - `WorkflowDefinition` - Definición del workflow (código, nombre, tipo)
 - `WorkflowState` - Estados posibles (código, nombre, color, isInitial, isFinal)
 - `WorkflowTransition` - Transiciones permitidas (roles, validaciones, acciones)
@@ -229,12 +239,8 @@ Ubicación: `server/utils/workflow/engine.ts`
 - `WorkflowNotification` - Notificaciones automáticas
 
 **Workflows predefinidos (seed):**
-- `task_validation` - Validación con revisión (todo → in_progress → in_review → approved/rejected)
-- `task_voting` - Votaciones (voting_open → voting_closed → resolved)
-- `task_simple` - Tarea básica (todo → in_progress → done/cancelled)
-- `request_free_day` - Días libres con revisión de jefe y admin
-- `request_medical` - Visitas médicas con documentación
-- `request_standard` - Solicitudes estándar simples
+- `request_new_user` - Alta de nuevos usuarios (pendiente → aprobado/rechazado)
+- `request_free_day` - Días de libre disposición
 
 **API Endpoints:**
 ```
@@ -270,17 +276,23 @@ const task = await workflowEngine.createEntityWithWorkflow('TASK', 'task_validat
 })
 ```
 
-### Base de Datos (Prisma)
+---
 
-El esquema está dividido en archivos modulares:
-- `schema.prisma` - Configuración del datasource y generator
-- `user.prisma` - Usuarios, direcciones, perfiles
-- `schedules.prisma` - Horarios y bloques horarios
-- `calendars.prisma` - Calendarios escolares y eventos
-- `studies.prisma` - Ciclos formativos, módulos, RAs, CEs
-- `workflow.prisma` - Solicitudes, tareas, votaciones, logs
-- `file.prisma` - Gestión de archivos
-- `enums.prisma` - Enumeraciones compartidas
+## Base de Datos (Prisma)
+
+El esquema está dividido en archivos modulares en `prisma/schema/`:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `schema.prisma` | Configuración del datasource y generator |
+| `user.prisma` | Usuarios, direcciones, perfiles |
+| `schedules.prisma` | Horarios y bloques horarios |
+| `calendars.prisma` | Calendarios escolares y eventos |
+| `studies.prisma` | Ciclos formativos, módulos, RAs, CEs |
+| `workflow.prisma` | Solicitudes, tareas, votaciones, logs |
+| `workflow-config.prisma` | Definición de workflows configurables |
+| `file.prisma` | Gestión de archivos |
+| `enums.prisma` | Enumeraciones compartidas |
 
 **Relaciones importantes:**
 - Usuario tiene muchos Schedule (horarios)
@@ -288,6 +300,32 @@ El esquema está dividido en archivos modulares:
 - Calendar tiene muchos CalendarEvent (eventos)
 - UserCalendarEvent (tabla intermedia) para asignaciones drag-drop
 - Request/Document/Task para el workflow
+
+---
+
+## Convenciones de Código
+
+### TypeScript / Vue
+- Usar `<script setup lang="ts">` en todos los componentes
+- Usar Composition API (no Options API)
+- Tipar explícitamente las respuestas de API con `useFetch<T>`
+
+### Estilos
+- Usar Tailwind CSS con las variables CSS del tema
+- Componentes UI en `app/components/ui/` siguen convención shadcn
+- Colores personalizados en `app/assets/css/tailwind.css` (tema naranja/dorado)
+
+### Nomenclatura
+- **Componentes:** PascalCase (ej: `ScheduleViewer.vue`)
+- **Composables:** camelCase con prefijo `use` (ej: `useAppUserSession.ts`)
+- **API routes:** kebab-case (ej: `validate.post.ts`)
+- **Variables/funciones:** camelCase en español (ej: `usuarioActual`, `cargarDatos`)
+
+### Imports
+Usar aliases configurados en `components.json`:
+- `@/components/*` - Componentes
+- `@/lib/*` - Utilidades
+- `@/composables/*` - Composables
 
 ---
 
@@ -316,6 +354,7 @@ Las variables CSS están definidas en `app/assets/css/tailwind.css` usando `oklc
 - **CSP:** Desactivado en desarrollo (configurado en `nuxt.config.ts`)
 - **Rate limiting:** Preparado para `rate-limiter-flexible` (no activo por defecto)
 - **Headers de seguridad:** Configurados vía `nuxt-security`
+- **Validación:** Zod para validación de inputs en frontend y backend
 
 ---
 
@@ -347,16 +386,6 @@ Verificar que los imports de Tailwind estén en `app/assets/css/tailwind.css`:
 
 ---
 
-## Recursos tiles
-
-- [Documentación Nuxt](https://nuxt.com/docs)
-- [Documentación Prisma](https://www.prisma.io/docs)
-- [shadcn-vue](https://www.shadcn-vue.com/)
-- [Reka UI](https://reka-ui.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-
----
-
 ## Notas para Agentes de IA
 
 1. **Idioma:** El código base usa español para comentarios, nombres de variables y API. Mantener consistencia.
@@ -376,7 +405,22 @@ Verificar que los imports de Tailwind estén en `app/assets/css/tailwind.css`:
 
 7. **API routes:** Validar siempre el body con Zod usando `readValidatedBody(event, schema.parse)`.
 
-8. **Workflow:** 
-   - Modificar `prisma/seed/seeders/workflow.seeder.ts` para cambiar workflows predefinidos
+8. **Workflow:**
+   - Modificar `prisma/seed/data/workflows.ts` para cambiar workflows predefinidos
    - El motor está en `server/utils/workflow/engine.ts`
    - Las entidades Task y Request requieren `workflowId` y `currentStateId` obligatoriamente
+
+9. **Patrones comunes:**
+   - Usar `cn()` de `@/lib/utils` para clases condicionales de Tailwind
+   - Usar `useUserSession()` de `nuxt-auth-utils` para acceso a sesión
+   - Usar `useAppUserSession()` para datos extendidos del usuario
+
+---
+
+## Recursos Útiles
+
+- [Documentación Nuxt](https://nuxt.com/docs)
+- [Documentación Prisma](https://www.prisma.io/docs)
+- [shadcn-vue](https://www.shadcn-vue.com/)
+- [Reka UI](https://reka-ui.com/)
+- [Tailwind CSS](https://tailwindcss.com/)

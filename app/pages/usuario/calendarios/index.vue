@@ -37,52 +37,55 @@
 
     <!-- Grid de calendarios -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <NuxtLink
+      <Card 
         v-for="calendar in calendars"
         :key="calendar.id"
-        :to="calendar.type === 'FREE_DISPOSITION' 
-          ? '/usuario/solicitudes/libre-disposicion' 
-          : `/usuario/calendarios/${calendar.id}`"
-        class="block"
+        class="cursor-pointer hover:border-primary transition-colors h-full"
+        as-child
       >
-        <Card class="cursor-pointer hover:border-primary transition-colors h-full">
-        <CardHeader class="pb-3">
-          <div class="flex items-start justify-between">
-            <div class="flex items-center gap-2">
-              <div 
-                class="w-10 h-10 rounded-lg flex items-center justify-center"
-                :class="getCalendarIconClass(calendar.type)"
-              >
-                <Icon :name="getCalendarIcon(calendar.type)" class="h-5 w-5" />
+        <NuxtLink
+          :to="calendar.type === 'FREE_DISPOSITION' 
+            ? '/usuario/solicitudes/libre-disposicion' 
+            : `/usuario/calendarios/${calendar.id}`"
+          class="block"
+        >
+          <CardHeader class="pb-3">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-2">
+                <div 
+                  class="w-10 h-10 rounded-lg flex items-center justify-center"
+                  :class="getCalendarIconClass(calendar.type)"
+                >
+                  <Icon :name="getCalendarIcon(calendar.type)" class="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle class="text-base">{{ calendar.name }}</CardTitle>
+                  <CardDescription class="text-xs">
+                    {{ getCalendarTypeLabel(calendar.type) }}
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle class="text-base">{{ calendar.name }}</CardTitle>
-                <CardDescription class="text-xs">
-                  {{ getCalendarTypeLabel(calendar.type) }}
-                </CardDescription>
-              </div>
+              <Badge v-if="calendar.allowDragDrop" variant="secondary" class="text-[10px]">
+                Interactivo
+              </Badge>
             </div>
-            <Badge v-if="calendar.allowDragDrop" variant="secondary" class="text-[10px]">
-              Interactivo
-            </Badge>
-          </div>
-        </CardHeader>
-        
-        <CardContent class="pt-0">
-          <p class="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {{ calendar.description || 'Sin descripción' }}
-          </p>
+          </CardHeader>
           
-          <div class="flex items-center justify-between text-xs text-muted-foreground">
-            <div class="flex items-center gap-1">
-              <Icon name="lucide:calendar" class="h-3 w-3" />
-              <span>{{ formatDateRange(calendar.startDate, calendar.endDate) }}</span>
+          <CardContent class="pt-0">
+            <p class="text-sm text-muted-foreground line-clamp-2 mb-3">
+              {{ calendar.description || 'Sin descripción' }}
+            </p>
+            
+            <div class="flex items-center justify-between text-xs text-muted-foreground">
+              <div class="flex items-center gap-1">
+                <Icon name="lucide:calendar" class="h-3 w-3" />
+                <span>{{ formatDateRange(calendar.startDate, calendar.endDate) }}</span>
+              </div>
+              <span>{{ calendar._count?.events || 0 }} eventos</span>
             </div>
-            <span>{{ calendar._count?.events || 0 }} eventos</span>
-          </div>
-        </CardContent>
+          </CardContent>
+        </NuxtLink>
       </Card>
-      </NuxtLink>
     </div>
   </div>
 </template>

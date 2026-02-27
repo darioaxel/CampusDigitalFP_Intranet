@@ -37,12 +37,12 @@ const getNivelLabel = (nivel: string) => {
     <div class="mx-auto max-w-7xl" v-if="ciclo">
       <!-- Cabecera -->
       <div class="mb-6">
-        <NuxtLink to="/admin/estudios">
-          <Button variant="ghost" size="sm" class="mb-4">
+        <Button variant="ghost" size="sm" class="mb-4" as-child>
+          <NuxtLink to="/admin/estudios">
             <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
             Volver a estudios
-          </Button>
-        </NuxtLink>
+          </NuxtLink>
+        </Button>
         
         <div class="flex items-start justify-between">
           <div>
@@ -74,58 +74,61 @@ const getNivelLabel = (nivel: string) => {
         </h2>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <NuxtLink
+          <Card 
             v-for="modulo in modulos"
             :key="modulo.id"
-            :to="`/admin/estudios/modulos/${modulo.id}`"
-            class="block"
+            class="cursor-pointer hover:border-primary transition-colors h-full"
+            as-child
           >
-          <Card class="cursor-pointer hover:border-primary transition-colors h-full">
-            <CardHeader class="pb-3">
-              <div class="flex items-start justify-between">
-                <div class="flex items-center gap-2">
-                  <div 
-                    class="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                    :style="{ backgroundColor: modulo.color || '#3b82f6', color: 'white' }"
-                  >
-                    {{ modulo.siglas || modulo.codigo }}
+            <NuxtLink
+              :to="`/admin/estudios/modulos/${modulo.id}`"
+              class="block"
+            >
+              <CardHeader class="pb-3">
+                <div class="flex items-start justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      class="h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                      :style="{ backgroundColor: modulo.color || '#3b82f6', color: 'white' }"
+                    >
+                      {{ modulo.siglas || modulo.codigo }}
+                    </div>
+                    <div>
+                      <CardTitle class="text-sm">{{ modulo.nombre }}</CardTitle>
+                      <CardDescription class="text-xs">
+                        Código: {{ modulo.codigo }}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle class="text-sm">{{ modulo.nombre }}</CardTitle>
-                    <CardDescription class="text-xs">
-                      Código: {{ modulo.codigo }}
-                    </CardDescription>
+                </div>
+              </CardHeader>
+              
+              <CardContent class="pt-0">
+                <div class="space-y-2 text-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted-foreground">Horas:</span>
+                    <span>{{ modulo.horasTotales }}h</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted-foreground">RAs:</span>
+                    <Badge variant="outline" class="text-xs">
+                      {{ modulo._count?.resultadosAprendizaje || 0 }}
+                    </Badge>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted-foreground">Temas:</span>
+                    <Badge variant="outline" class="text-xs">
+                      {{ modulo._count?.temas || 0 }}
+                    </Badge>
+                  </div>
+                  <div v-if="modulo.docente" class="flex items-center justify-between">
+                    <span class="text-muted-foreground">Docente:</span>
+                    <span class="text-xs">{{ modulo.docente.firstName }} {{ modulo.docente.lastName }}</span>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent class="pt-0">
-              <div class="space-y-2 text-sm">
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">Horas:</span>
-                  <span>{{ modulo.horasTotales }}h</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">RAs:</span>
-                  <Badge variant="outline" class="text-xs">
-                    {{ modulo._count?.resultadosAprendizaje || 0 }}
-                  </Badge>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-muted-foreground">Temas:</span>
-                  <Badge variant="outline" class="text-xs">
-                    {{ modulo._count?.temas || 0 }}
-                  </Badge>
-                </div>
-                <div v-if="modulo.docente" class="flex items-center justify-between">
-                  <span class="text-muted-foreground">Docente:</span>
-                  <span class="text-xs">{{ modulo.docente.firstName }} {{ modulo.docente.lastName }}</span>
-                </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            </NuxtLink>
           </Card>
-          </NuxtLink>
         </div>
       </div>
     </div>

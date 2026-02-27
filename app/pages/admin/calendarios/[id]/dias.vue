@@ -5,12 +5,12 @@
     <div class="flex items-center justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <NuxtLink to="/admin/calendarios">
-            <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" as-child>
+            <NuxtLink to="/admin/calendarios">
               <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
               Volver
-            </Button>
-          </NuxtLink>
+            </NuxtLink>
+          </Button>
         </div>
         <h1 class="text-2xl font-bold">Editar Días: {{ calendar?.name }}</h1>
         <p class="text-muted-foreground text-sm">
@@ -210,6 +210,7 @@ import { toast } from 'vue-sonner'
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
+  roles: ['ADMIN', 'ROOT'],
 })
 
 const route = useRoute()
@@ -229,7 +230,7 @@ const examForm = reactive({
 })
 
 // Fetch calendario
-const { data: calendarData, pending, refresh } = await useFetch(`/api/calendars/${calendarId}`)
+const { data: calendarData, pending, refresh } = useFetch(`/api/calendars/${calendarId}`)
 const calendar = computed(() => calendarData.value?.data)
 const events = computed(() => calendar.value?.events || [])
 

@@ -5,12 +5,12 @@
     <div class="flex items-center justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <NuxtLink to="/admin/calendarios">
-            <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" as-child>
+            <NuxtLink to="/admin/calendarios">
               <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
               Volver
-            </Button>
-          </NuxtLink>
+            </NuxtLink>
+          </Button>
         </div>
         <h1 class="text-2xl font-bold">{{ calendar?.name }}</h1>
         <p class="text-muted-foreground text-sm">
@@ -57,10 +57,17 @@
           <CardTitle class="text-lg">Vista Previa</CardTitle>
         </CardHeader>
         <CardContent>
-          <CalendarView 
-            :events="calendarEvents"
-            @event-click="viewEventDetails"
-          />
+          <ClientOnly>
+            <CalendarView 
+              :events="calendarEvents"
+              @event-click="viewEventDetails"
+            />
+            <template #fallback>
+              <div class="flex items-center justify-center h-[400px] text-muted-foreground">
+                Cargando calendario...
+              </div>
+            </template>
+          </ClientOnly>
         </CardContent>
       </Card>
 
@@ -285,6 +292,7 @@ import { toast } from 'vue-sonner'
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
+  roles: ['ADMIN', 'ROOT'],
 })
 
 const route = useRoute()
@@ -309,7 +317,7 @@ const eventForm = reactive({
 })
 
 // Fetch calendario con eventos
-const { data: calendar, pending, refresh } = useFetch(() => `/api/calendars/${calendarId}`)
+const { data: calendar, pending, refresh } = useFetch(`/api/calendars/${calendarId}`)
 
 const events = computed(() => calendar.value?.data?.events || [])
 
@@ -408,18 +416,28 @@ async function saveEvent() {
       maxAssignments: eventForm.maxAssignments ? parseInt(eventForm.maxAssignments as any) : undefined,
     }
     
-    await $fetch(`/api/calendars/${calendarId}/events`, {
-      method: 'POST',
-      body: payload,
-    })
+    if (editingEvent.value) {
+      // Actualizar evento existente
+      await $fetch(`/api/calendars/${calendarId}/events/${editingEvent.value.id}`, {
+        method: 'PUT',
+        body: payload,
+      })
+      toast.success('Evento actualizado correctamente')
+    } else {
+      // Crear nuevo evento
+      await $fetch(`/api/calendars/${calendarId}/events`, {
+        method: 'POST',
+        body: payload,
+      })
+      toast.success('Evento creado correctamente')
+    }
     
     await refresh()
     showCreateModal.value = false
     editingEvent.value = null
     resetEventForm()
-    toast.success('Evento creado correctamente')
   } catch (error: any) {
-    toast.error(error.data?.message || 'Error al crear el evento')
+    toast.error(error.data?.message || `Error al ${editingEvent.value ? 'actualizar' : 'crear'} el evento`)
   } finally {
     saving.value = false
   }
@@ -428,9 +446,15 @@ async function saveEvent() {
 async function deleteEvent(event: any) {
   if (!confirm(`¿Eliminar el evento "${event.title}"?`)) return
   
-  // Nota: No hay endpoint DELETE para eventos individuales aún
-  // Se implementaría similar al de calendarios
-  toast.info('Funcionalidad en desarrollo')
+  try {
+    await $fetch(`/api/calendars/${calendarId}/events/${event.id}`, {
+      method: 'DELETE'
+    })
+    await refresh()
+    toast.success('Evento eliminado correctamente')
+  } catch (error: any) {
+    toast.error(error.data?.message || 'Error al eliminar el evento')
+  }
 }
 
 function viewEventDetails(eventId: string) {

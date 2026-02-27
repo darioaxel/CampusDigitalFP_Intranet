@@ -78,7 +78,8 @@
             <TableHead>Año</TableHead>
             <TableHead>Eventos</TableHead>
             <TableHead>Creado por</TableHead>
-            <TableHead class="text-right">Activar/Desactivar</TableHead>
+            <TableHead class="text-center">Activar/Desactivar</TableHead>
+            <TableHead class="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -101,33 +102,23 @@
                 {{ calendar.createdBy?.firstName }} {{ calendar.createdBy?.lastName }}
               </div>
             </TableCell>
+            <TableCell class="text-center">
+              <!-- Toggle activo/inactivo con Switch -->
+              <Switch
+                :checked="calendar.isActive"
+                @update:checked="() => toggleActive(calendar)"
+                :disabled="toggling === calendar.id"
+                class="data-[state=checked]:bg-amber-400 data-[state=unchecked]:bg-gray-200"
+              />
+            </TableCell>
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-2">
-                <!-- Toggle activo/inactivo con leyenda -->
-                <button
-                  @click="toggleActive(calendar)"
-                  :disabled="toggling === calendar.id"
-                  class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
-                  :class="calendar.isActive 
-                    ? 'bg-amber-400 text-amber-950 hover:bg-amber-500' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
-                >
-                  <span v-if="toggling === calendar.id" class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                  <span v-else class="relative inline-flex h-4 w-4 items-center justify-center">
-                    <span 
-                      class="block h-3 w-3 rounded-full transition-transform"
-                      :class="calendar.isActive ? 'bg-amber-950 scale-100' : 'bg-gray-500 scale-75'"
-                    ></span>
-                  </span>
-                  {{ calendar.isActive ? 'Desactivar' : 'Activar' }}
-                </button>
-                
                 <Button 
                   v-if="calendar.type === 'TEMPLATE'"
                   variant="ghost" 
                   size="sm"
                   @click="cloneFromTemplate(calendar)"
-                  title="Calar desde plantilla"
+                  title="Clonar esta plantilla"
                 >
                   <Icon name="lucide:copy" class="h-4 w-4" />
                 </Button>
@@ -136,10 +127,12 @@
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  @click="editDays(calendar)"
                   title="Editar días"
+                  as-child
                 >
-                  <Icon name="lucide:grid-3x3" class="h-4 w-4" />
+                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/dias`">
+                    <Icon name="lucide:grid-3x3" class="h-4 w-4" />
+                  </NuxtLink>
                 </Button>
                 
                 <Button 
@@ -154,10 +147,12 @@
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  @click="manageEvents(calendar)"
                   title="Gestionar eventos"
+                  as-child
                 >
-                  <Icon name="lucide:calendar-days" class="h-4 w-4" />
+                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/eventos`">
+                    <Icon name="lucide:calendar-days" class="h-4 w-4" />
+                  </NuxtLink>
                 </Button>
                 
                 <Button 
@@ -478,6 +473,7 @@ import { toast } from 'vue-sonner'
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
+  roles: ['ADMIN', 'ROOT'],
 })
 
 // Estado
@@ -657,8 +653,12 @@ async function saveCalendar() {
       endDate: form.endDate,
       isPublic: form.isPublic,
       allowDragDrop: form.allowDragDrop,
-      isActive: form.isActive,
       maxEventsPerUser: form.maxEventsPerUser,
+    }
+    
+    // Solo incluir isActive al crear, no al editar (se maneja con toggle)
+    if (!editingCalendar.value) {
+      payload.isActive = form.isActive
     }
     
     if (editingCalendar.value) {
@@ -731,13 +731,7 @@ async function deleteCalendar(calendar: any) {
   }
 }
 
-function manageEvents(calendar: any) {
-  navigateTo(`/admin/calendarios/${calendar.id}/eventos`)
-}
 
-function editDays(calendar: any) {
-  navigateTo(`/admin/calendarios/${calendar.id}/dias`)
-}
 
 async function toggleActive(calendar: any) {
   toggling.value = calendar.id
