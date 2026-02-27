@@ -1,4 +1,4 @@
-<!-- pages/admin/calendarios/[id]/dias.vue -->
+<!-- pages/admin/calendarios/[id]/dias.vue - Vista unificada de días y eventos -->
 <template>
   <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
     <!-- Header -->
@@ -12,9 +12,9 @@
             </NuxtLink>
           </Button>
         </div>
-        <h1 class="text-2xl font-bold">Editar Días: {{ calendar?.name }}</h1>
+        <h1 class="text-2xl font-bold">{{ calendar?.name }}</h1>
         <p class="text-muted-foreground text-sm">
-          Selecciona múltiples días para marcarlos como festivos o periodo de exámenes
+          Selecciona días para crear eventos o gestiona los eventos existentes
         </p>
       </div>
       
@@ -50,46 +50,53 @@
           <Icon name="lucide:graduation-cap" class="h-4 w-4 mr-2" />
           Exámenes
         </Button>
+        <Button 
+          @click="openCreateEventModal"
+          variant="default"
+        >
+          <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
+          Nuevo Evento
+        </Button>
       </div>
     </div>
 
-    <!-- Info -->
-    <Card class="bg-muted/50">
-      <CardContent class="py-4">
-        <div class="flex items-center gap-6 text-sm flex-wrap">
-          <div class="flex items-center gap-2">
-            <Icon name="lucide:calendar" class="h-4 w-4 text-muted-foreground" />
-            <span>{{ calendar?.academicYear }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <Icon name="lucide:clock" class="h-4 w-4 text-muted-foreground" />
-            <span>{{ formatDateRange(calendar?.startDate, calendar?.endDate) }}</span>
-          </div>
-          <div class="flex items-center gap-4 ml-auto">
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-gray-200 border border-gray-300"></div>
-              <span class="text-muted-foreground">Fin de semana</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-red-100 border border-red-300"></div>
-              <span class="text-muted-foreground">Festivo</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-amber-100 border border-amber-300"></div>
-              <span class="text-muted-foreground">Exámenes</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-green-100 border border-green-300"></div>
-              <span class="text-muted-foreground">Día lectivo</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded bg-blue-500 border border-blue-600"></div>
-              <span class="text-muted-foreground">Seleccionado</span>
-            </div>
-          </div>
+    <!-- Info básica del calendario con leyenda -->
+    <div class="flex items-center gap-6 text-xs text-muted-foreground flex-wrap">
+      <div class="flex items-center gap-1.5">
+        <Icon name="lucide:calendar" class="h-3 w-3" />
+        <span>{{ calendar?.academicYear }}</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <Icon name="lucide:clock" class="h-3 w-3" />
+        <span>{{ formatDateRange(calendar?.startDate, calendar?.endDate) }}</span>
+      </div>
+      <div v-if="calendar?.allowDragDrop" class="flex items-center gap-1.5">
+        <Icon name="lucide:mouse-pointer-click" class="h-3 w-3" />
+        <span>Drag-drop habilitado</span>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded bg-gray-200 border border-gray-300"></div>
+          <span>Fin de semana</span>
         </div>
-      </CardContent>
-    </Card>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded bg-red-100 border border-red-300"></div>
+          <span>Festivo</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded bg-amber-100 border border-amber-300"></div>
+          <span>Exámenes</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded bg-green-100 border border-green-300"></div>
+          <span>Día lectivo</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded bg-blue-500 border border-blue-600"></div>
+          <span>Seleccionado</span>
+        </div>
+      </div>
+    </div>
 
     <!-- Loading -->
     <div v-if="pending" class="flex items-center justify-center py-12">
@@ -98,12 +105,58 @@
     </div>
 
     <template v-else>
-      <!-- Grid de meses -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <Card v-for="month in months" :key="month.key" class="overflow-hidden">
-          <CardHeader class="py-3 px-4 bg-muted/50">
-            <CardTitle class="text-base capitalize">{{ month.name }} {{ month.year }}</CardTitle>
-          </CardHeader>
+      <!-- Card de eventos del día seleccionado (ancho completo, compacto) -->
+      <Card v-if="selectedDays.length === 1" class="bg-muted/30">
+        <CardContent class="py-3 px-4">
+          <div class="flex items-center gap-4">
+            <div class="font-semibold text-sm whitespace-nowrap">
+              {{ formatDate(selectedDays[0]) }}
+            </div>
+            <div class="flex-1 flex items-center gap-3 overflow-x-auto">
+              <template v-if="selectedDayEvents.length === 0">
+                <span class="text-sm text-muted-foreground">No hay eventos en este día</span>
+              </template>
+              <template v-else>
+                <div 
+                  v-for="event in selectedDayEvents" 
+                  :key="event.id"
+                  class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background border text-xs whitespace-nowrap"
+                >
+                  <div 
+                    class="w-2 h-2 rounded-full flex-shrink-0"
+                    :style="{ backgroundColor: event.color || '#3b82f6' }"
+                  />
+                  <span class="font-medium">{{ event.title }}</span>
+                  <span class="text-muted-foreground">· {{ getEventTypeLabel(event.type) }}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    class="h-5 w-5 ml-1 -mr-1"
+                    @click="editEvent(event)"
+                  >
+                    <Icon name="lucide:pencil" class="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    class="h-5 w-5 -mr-1 text-destructive"
+                    @click="deleteEvent(event)"
+                  >
+                    <Icon name="lucide:trash-2" class="h-3 w-3" />
+                  </Button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Grid de meses (ancho completo) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <Card v-for="month in months" :key="month.key" class="overflow-hidden p-0 gap-0">
+          <div class="py-3 px-4 bg-muted/50">
+            <div class="text-base font-semibold capitalize text-center leading-none">{{ month.name }} {{ month.year }}</div>
+          </div>
           <CardContent class="p-3">
             <!-- Cabecera días de semana -->
             <div class="grid grid-cols-7 gap-1 mb-1">
@@ -134,19 +187,26 @@
                     selectedDays.includes(day.date) ? 'ring-2 ring-blue-600 ring-offset-1' : ''
                   ]"
                   :title="getDayTooltip(day)"
-                  class="h-8 text-xs rounded flex items-center justify-center transition-all cursor-pointer select-none"
+                  class="h-8 text-xs rounded flex items-center justify-center transition-all cursor-pointer select-none relative"
                 >
                   {{ day.day }}
+                  <!-- Indicador de eventos -->
+                  <div v-if="day.eventCount > 0" class="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                    <div 
+                      v-for="n in Math.min(day.eventCount, 3)" 
+                      :key="n"
+                      class="w-1 h-1 rounded-full bg-current opacity-60"
+                    />
+                  </div>
                 </button>
               </template>
             </div>
           </CardContent>
         </Card>
       </div>
-
     </template>
 
-    <!-- Modal para marcar como exámenes -->
+    <!-- Modal: Marcar como exámenes -->
     <Dialog v-model:open="showExamModal">
       <DialogContent class="max-w-lg">
         <DialogHeader>
@@ -199,6 +259,134 @@
         </form>
       </DialogContent>
     </Dialog>
+
+    <!-- Modal: Crear/Editar Evento -->
+    <Dialog v-model:open="showEventModal">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{{ editingEvent ? 'Editar Evento' : 'Nuevo Evento' }}</DialogTitle>
+          <DialogDescription>
+            {{ editingEvent ? 'Modifica los datos del evento' : 'Añade un nuevo evento al calendario' }}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form @submit.prevent="saveEvent" class="space-y-4">
+          <div class="space-y-2">
+            <Label for="title">Título</Label>
+            <Input 
+              id="title" 
+              v-model="eventForm.title" 
+              placeholder="Día de libre disposición"
+              required
+            />
+          </div>
+          
+          <div class="space-y-2">
+            <Label for="eventDescription">Descripción</Label>
+            <Textarea 
+              id="eventDescription" 
+              v-model="eventForm.description" 
+              placeholder="Descripción del evento..."
+              rows="2"
+            />
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="eventType">Tipo</Label>
+              <Select v-model="eventForm.type">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HOLIDAY">Festivo / No lectivo</SelectItem>
+                  <SelectItem value="LECTIVE">Día lectivo</SelectItem>
+                  <SelectItem value="EVALUATION">Evaluación</SelectItem>
+                  <SelectItem value="FREE_DISPOSITION">Libre Disposición</SelectItem>
+                  <SelectItem value="MEETING">Reunión</SelectItem>
+                  <SelectItem value="DEADLINE">Fecha límite</SelectItem>
+                  <SelectItem value="OTHER">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div class="space-y-2">
+              <Label for="color">Color</Label>
+              <div class="flex gap-2">
+                <Input 
+                  id="color" 
+                  v-model="eventForm.color" 
+                  type="color"
+                  class="w-16 h-10 p-1"
+                />
+                <Input 
+                  v-model="eventForm.color" 
+                  placeholder="#3b82f6"
+                  class="flex-1"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="eventStartDate">Fecha inicio</Label>
+              <Input 
+                id="eventStartDate" 
+                v-model="eventForm.startDate" 
+                type="date"
+                required
+              />
+            </div>
+            
+            <div class="space-y-2">
+              <Label for="eventEndDate">Fecha fin (opcional)</Label>
+              <Input 
+                id="eventEndDate" 
+                v-model="eventForm.endDate" 
+                type="date"
+              />
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <Switch id="isAllDay" v-model="eventForm.isAllDay" />
+              <Label for="isAllDay" class="cursor-pointer">Todo el día</Label>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <Switch id="eventIsActive" v-model="eventForm.isActive" />
+              <Label for="eventIsActive" class="cursor-pointer">Activo</Label>
+            </div>
+          </div>
+          
+          <div class="space-y-2">
+            <Label for="maxAssignments">Máximo de asignaciones (opcional)</Label>
+            <Input 
+              id="maxAssignments" 
+              v-model="eventForm.maxAssignments" 
+              type="number"
+              min="1"
+              placeholder="Sin límite"
+            />
+            <p class="text-xs text-muted-foreground">
+              Para eventos de libre disposición, límite de profesores que pueden seleccionar este día
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" @click="showEventModal = false">
+              Cancelar
+            </Button>
+            <Button type="submit" :disabled="saving">
+              <Loader2 v-if="saving" class="h-4 w-4 mr-2 animate-spin" />
+              {{ editingEvent ? 'Guardar Cambios' : 'Crear Evento' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -222,11 +410,27 @@ const isDragging = ref(false)
 const hasDragged = ref(false)
 const dragStartDay = ref<string | null>(null)
 const showExamModal = ref(false)
+const showEventModal = ref(false)
+const editingEvent = ref<any>(null)
 const saving = ref(false)
 
 const examForm = reactive({
   type: '',
   description: '',
+})
+
+const eventForm = reactive({
+  title: '',
+  description: '',
+  type: 'FREE_DISPOSITION',
+  startDate: '',
+  endDate: '',
+  isAllDay: true,
+  startTime: '',
+  endTime: '',
+  color: '#3b82f6',
+  maxAssignments: null as number | null,
+  isActive: true,
 })
 
 // Fetch calendario
@@ -235,6 +439,25 @@ const calendar = computed(() => calendarData.value?.data)
 const events = computed(() => calendar.value?.events || [])
 
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+// Eventos ordenados por fecha
+const sortedEvents = computed(() => {
+  return [...events.value].sort((a: any, b: any) => {
+    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  })
+})
+
+// Eventos del día seleccionado (solo cuando hay exactamente 1 día seleccionado)
+const selectedDayEvents = computed(() => {
+  if (selectedDays.value.length !== 1) return []
+  const selectedDate = selectedDays.value[0]
+  
+  return events.value.filter((event: any) => {
+    const eventStart = event.startDate.split('T')[0]
+    const eventEnd = event.endDate ? event.endDate.split('T')[0] : eventStart
+    return selectedDate >= eventStart && selectedDate <= eventEnd
+  })
+})
 
 // Generar meses del curso académico
 const months = computed(() => {
@@ -274,7 +497,7 @@ const months = computed(() => {
       const dayOfWeek = date.getDay()
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
       
-      // Buscar si hay evento para este día
+      // Buscar eventos para este día
       const dayEvents = events.value.filter((e: any) => {
         const eventStart = e.startDate.split('T')[0]
         const eventEnd = e.endDate ? e.endDate.split('T')[0] : eventStart
@@ -291,6 +514,7 @@ const months = computed(() => {
         isHoliday: !!holidayEvent,
         isExam: !!examEvent,
         eventTitle: holidayEvent?.title || examEvent?.title || '',
+        eventCount: dayEvents.length,
         empty: false
       })
     }
@@ -337,14 +561,13 @@ function getDayClasses(day: any) {
 function getDayTooltip(day: any) {
   if (day.isWeekend) return 'Fin de semana (no laborable)'
   if (day.eventTitle) return day.eventTitle
+  if (day.eventCount > 0) return `${day.eventCount} evento(s)`
   return day.date
 }
 
-// Selección de días - click simple
 function toggleDay(day: any) {
   if (day.isWeekend) return
   
-  // Si estamos arrastrando, no hacer toggle (ya se maneja en dragOver)
   if (hasDragged.value) return
   
   const index = selectedDays.value.indexOf(day.date)
@@ -355,13 +578,11 @@ function toggleDay(day: any) {
   }
 }
 
-// Drag selection
 function startDrag(day: any) {
   if (day.isWeekend) return
   isDragging.value = true
   hasDragged.value = false
   dragStartDay.value = day.date
-  // No añadir aquí, esperar a dragOver o click
 }
 
 function dragOver(day: any) {
@@ -377,7 +598,6 @@ function dragOver(day: any) {
 function endDrag() {
   isDragging.value = false
   dragStartDay.value = null
-  // Reset hasDragged después de un pequeño delay para permitir el click
   setTimeout(() => {
     hasDragged.value = false
   }, 50)
@@ -392,7 +612,6 @@ async function markAsHolidays() {
   
   saving.value = true
   try {
-    // Agrupar días consecutivos
     const ranges = groupConsecutiveDates(selectedDays.value.sort())
     
     for (const range of ranges) {
@@ -425,7 +644,6 @@ async function markAsExams() {
   
   saving.value = true
   try {
-    // Agrupar días consecutivos
     const ranges = groupConsecutiveDates(selectedDays.value.sort())
     
     for (const range of ranges) {
@@ -464,18 +682,15 @@ async function clearDayFormat() {
   
   saving.value = true
   try {
-    // Encontrar eventos que contengan los días seleccionados
     const eventsToDelete = events.value.filter((event: any) => {
       const eventStart = event.startDate.split('T')[0]
       const eventEnd = event.endDate ? event.endDate.split('T')[0] : eventStart
       
-      // Verificar si algún día seleccionado está dentro de este evento
       return selectedDays.value.some((day: string) => {
         return day >= eventStart && day <= eventEnd
       })
     })
     
-    // Eliminar los eventos encontrados
     for (const event of eventsToDelete) {
       await $fetch(`/api/calendars/${calendarId}/events/${event.id}`, {
         method: 'DELETE'
@@ -492,6 +707,77 @@ async function clearDayFormat() {
   }
 }
 
+// CRUD de eventos individuales
+function openCreateEventModal() {
+  editingEvent.value = null
+  resetEventForm()
+  showEventModal.value = true
+}
+
+function resetEventForm() {
+  eventForm.title = ''
+  eventForm.description = ''
+  eventForm.type = 'FREE_DISPOSITION'
+  eventForm.startDate = selectedDays.value[0] || ''
+  eventForm.endDate = ''
+  eventForm.isAllDay = true
+  eventForm.startTime = ''
+  eventForm.endTime = ''
+  eventForm.color = '#3b82f6'
+  eventForm.maxAssignments = null
+  eventForm.isActive = true
+}
+
+function editEvent(event: any) {
+  editingEvent.value = event
+  eventForm.title = event.title
+  eventForm.description = event.description || ''
+  eventForm.type = event.type
+  eventForm.startDate = event.startDate.split('T')[0]
+  eventForm.endDate = event.endDate ? event.endDate.split('T')[0] : ''
+  eventForm.isAllDay = event.isAllDay
+  eventForm.startTime = event.startTime || ''
+  eventForm.endTime = event.endTime || ''
+  eventForm.color = event.color || '#3b82f6'
+  eventForm.maxAssignments = event.maxAssignments
+  eventForm.isActive = event.isActive
+  showEventModal.value = true
+}
+
+async function saveEvent() {
+  saving.value = true
+  
+  try {
+    const payload = {
+      ...eventForm,
+      maxAssignments: eventForm.maxAssignments ? parseInt(eventForm.maxAssignments as any) : undefined,
+    }
+    
+    if (editingEvent.value) {
+      await $fetch(`/api/calendars/${calendarId}/events/${editingEvent.value.id}`, {
+        method: 'PUT',
+        body: payload,
+      })
+      toast.success('Evento actualizado correctamente')
+    } else {
+      await $fetch(`/api/calendars/${calendarId}/events`, {
+        method: 'POST',
+        body: payload,
+      })
+      toast.success('Evento creado correctamente')
+    }
+    
+    await refresh()
+    showEventModal.value = false
+    editingEvent.value = null
+    resetEventForm()
+  } catch (error: any) {
+    toast.error(error.data?.message || `Error al ${editingEvent.value ? 'actualizar' : 'crear'} el evento`)
+  } finally {
+    saving.value = false
+  }
+}
+
 async function deleteEvent(event: any) {
   if (!confirm(`¿Eliminar el evento "${event.title}"?`)) return
   
@@ -500,9 +786,9 @@ async function deleteEvent(event: any) {
       method: 'DELETE'
     })
     await refresh()
-    toast.success('Evento eliminado')
+    toast.success('Evento eliminado correctamente')
   } catch (error: any) {
-    toast.error(error.data?.message || 'Error al eliminar')
+    toast.error(error.data?.message || 'Error al eliminar el evento')
   }
 }
 
@@ -520,10 +806,8 @@ function groupConsecutiveDates(dates: string[]): { start: string, end: string }[
     const diffDays = diffTime / (1000 * 60 * 60 * 24)
     
     if (diffDays === 1) {
-      // Consecutivo
       end = dates[i]
     } else {
-      // No consecutivo, guardar rango anterior
       ranges.push({ start, end })
       start = dates[i]
       end = dates[i]
@@ -538,6 +822,14 @@ function formatDateRange(start: string, end: string) {
   const startDate = new Date(start)
   const endDate = new Date(end)
   return `${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}`
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  })
 }
 
 function formatEventDate(event: any) {
@@ -560,18 +852,5 @@ function getEventTypeLabel(type: string) {
     'OTHER': 'Otro',
   }
   return labels[type] || type
-}
-
-function getEventTypeVariant(type: string): any {
-  const variants: Record<string, any> = {
-    'HOLIDAY': 'destructive',
-    'LECTIVE': 'default',
-    'EVALUATION': 'secondary',
-    'FREE_DISPOSITION': 'outline',
-    'MEETING': 'default',
-    'DEADLINE': 'secondary',
-    'OTHER': 'secondary',
-  }
-  return variants[type] || 'default'
 }
 </script>

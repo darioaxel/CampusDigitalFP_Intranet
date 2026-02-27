@@ -26,10 +26,9 @@
     <div class="flex gap-4">
       <Select v-model="filters.type">
         <SelectTrigger class="w-[200px]">
-          <SelectValue placeholder="Tipo de calendario" />
+          <SelectValue placeholder="Todos los tipos" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
           <SelectItem value="SCHOOL_YEAR">Calendario Escolar</SelectItem>
           <SelectItem value="EVALUATION">Evaluaciones</SelectItem>
           <SelectItem value="FREE_DISPOSITION">Libre Disposición</SelectItem>
@@ -52,10 +51,9 @@
       
       <Select v-model="filters.isActive">
         <SelectTrigger class="w-[150px]">
-          <SelectValue placeholder="Estado" />
+          <SelectValue placeholder="Todos los estados" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
           <SelectItem value="true">Activos</SelectItem>
           <SelectItem value="false">Inactivos</SelectItem>
         </SelectContent>
@@ -73,11 +71,11 @@
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Año</TableHead>
-            <TableHead>Eventos</TableHead>
-            <TableHead>Creado por</TableHead>
+            <TableHead class="text-left">Nombre</TableHead>
+            <TableHead class="text-left">Tipo</TableHead>
+            <TableHead class="text-left">Año</TableHead>
+            <TableHead class="text-center">Eventos</TableHead>
+            <TableHead class="text-left">Creado por</TableHead>
             <TableHead class="text-center">Activar/Desactivar</TableHead>
             <TableHead class="text-right">Acciones</TableHead>
           </TableRow>
@@ -96,7 +94,7 @@
               </Badge>
             </TableCell>
             <TableCell>{{ calendar.academicYear }}</TableCell>
-            <TableCell>{{ calendar._count?.events || 0 }}</TableCell>
+            <TableCell class="text-center">{{ calendar._count?.events || 0 }}</TableCell>
             <TableCell>
               <div class="text-sm">
                 {{ calendar.createdBy?.firstName }} {{ calendar.createdBy?.lastName }}
@@ -105,8 +103,8 @@
             <TableCell class="text-center">
               <!-- Toggle activo/inactivo con Switch -->
               <Switch
-                :checked="calendar.isActive"
-                @update:checked="() => toggleActive(calendar)"
+                :model-value="calendar.isActive"
+                @update:model-value="() => toggleActive(calendar)"
                 :disabled="toggling === calendar.id"
                 class="data-[state=checked]:bg-amber-400 data-[state=unchecked]:bg-gray-200"
               />
@@ -123,18 +121,6 @@
                   <Icon name="lucide:copy" class="h-4 w-4" />
                 </Button>
                 
-                <!-- Editar días -->
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  title="Editar días"
-                  as-child
-                >
-                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/dias`">
-                    <Icon name="lucide:grid-3x3" class="h-4 w-4" />
-                  </NuxtLink>
-                </Button>
-                
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -147,10 +133,10 @@
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  title="Gestionar eventos"
+                  title="Gestionar días y eventos"
                   as-child
                 >
-                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/eventos`">
+                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/dias`">
                     <Icon name="lucide:calendar-days" class="h-4 w-4" />
                   </NuxtLink>
                 </Button>
@@ -485,9 +471,9 @@ const cloning = ref(false)
 const toggling = ref<string | null>(null)
 
 const filters = reactive({
-  type: '',
-  academicYear: '',
-  isActive: 'true',
+  type: undefined as string | undefined,
+  academicYear: undefined as string | undefined,
+  isActive: 'true' as string | undefined,
 })
 
 const form = reactive({
@@ -536,7 +522,7 @@ const { data: response, pending, refresh } = useFetch(() => {
   const params = new URLSearchParams()
   if (filters.type) params.append('type', filters.type)
   if (filters.academicYear) params.append('academicYear', filters.academicYear)
-  if (filters.isActive) params.append('isActive', filters.isActive)
+  if (filters.isActive !== undefined) params.append('isActive', filters.isActive)
   return `/api/calendars?${params.toString()}`
 }, {
   watch: [filters],

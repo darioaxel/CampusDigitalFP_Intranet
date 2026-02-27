@@ -7,10 +7,6 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import DynamicBreadCrumb from '@/components/layout/dashboard/DynamicBreadCrumb.vue'
-
-definePageMeta({
-  middleware: ['auth'], // usa app/middleware/auth.ts
-})
 </script>
 
 <template>
