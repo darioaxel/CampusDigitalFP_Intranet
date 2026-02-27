@@ -23,22 +23,22 @@ async function onLogout() {
     <SidebarGroupContent>
       <SidebarMenu>
         <SidebarMenuItem v-for="item in items" :key="item.title">
-          <SidebarMenuButton as-child>
+          <SidebarMenuButton as-child :tooltip="item.title">
             <NuxtLink :to="item.url">
               <Icon v-if="item.icon" :name="item.icon" class="h-4 w-4" />
-              {{ item.title }}
+              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
             </NuxtLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
       
       <Button        
-        class="bg-sidebar-primary text-sidebar-primary-foreground w-full shadow-none"
+        class="bg-sidebar-primary text-sidebar-primary-foreground w-full shadow-none group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
         size="sm"
         @click="onLogout"
       >
         <LogOutIcon class="h-4 w-4" />
-        Desconectarse
+        <span class="group-data-[collapsible=icon]:hidden">Desconectarse</span>
       </Button>
     </SidebarGroupContent>
   </SidebarGroup>

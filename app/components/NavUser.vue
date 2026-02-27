@@ -58,11 +58,11 @@ const { user } = await useUserSession()
                 {{ user?.firstName?.slice(0, 2).toUpperCase() || 'US' }}
               </AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-sm leading-tight">
+            <div class="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
               <span class="truncate font-medium">{{ user?.firstName }} {{ user?.lastName }}</span>
               <span class="truncate text-xs">{{ user?.email }}</span>
             </div>
-            <ChevronsUpDown class="ml-auto size-4" />
+            <ChevronsUpDown class="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
