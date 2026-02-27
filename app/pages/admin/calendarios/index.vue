@@ -474,6 +474,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useCalendarsList, useCalendarCrud, useCalendarTemplates } from '~/composables/useCalendarApi'
+import ConfirmDialog from '~/components/calendar/dialogs/ConfirmDialog.vue'
 
 definePageMeta({
   middleware: ['auth'],

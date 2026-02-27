@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Loader2 } from 'lucide-vue-next'
 /**
  * Modal para marcar días como período de evaluación/exámenes
  * 

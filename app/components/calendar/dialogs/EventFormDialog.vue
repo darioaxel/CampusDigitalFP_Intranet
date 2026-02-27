@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Loader2 } from 'lucide-vue-next'
 import type { CalendarEventPayload } from '~/composables/useCalendarApi'
 
 /**

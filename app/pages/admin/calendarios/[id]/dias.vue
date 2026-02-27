@@ -233,6 +233,9 @@ import { ref, computed, reactive } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { CalendarDay } from '~/components/calendar/CalendarMonthCard.vue'
+import ConfirmDialog from '~/components/calendar/dialogs/ConfirmDialog.vue'
+import EventFormDialog from '~/components/calendar/dialogs/EventFormDialog.vue'
+import ExamPeriodDialog from '~/components/calendar/dialogs/ExamPeriodDialog.vue'
 
 definePageMeta({
   middleware: ['auth'],
