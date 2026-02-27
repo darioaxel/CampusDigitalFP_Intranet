@@ -9,152 +9,131 @@
           Administra los calendarios escolares y eventos
         </p>
       </div>
-      
+
       <div class="flex gap-2">
         <Button variant="outline" @click="showTemplateModal = true">
           <Icon name="lucide:copy" class="h-4 w-4 mr-2" />
           Desde Plantilla
         </Button>
-        <Button @click="showCreateModal = true">
+        <Button @click="openCreateModal">
           <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
           Nuevo Calendario
         </Button>
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="flex gap-4">
-      <Select v-model="filters.type">
-        <SelectTrigger class="w-[200px]">
-          <SelectValue placeholder="Todos los tipos" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="SCHOOL_YEAR">Calendario Escolar</SelectItem>
-          <SelectItem value="EVALUATION">Evaluaciones</SelectItem>
-          <SelectItem value="FREE_DISPOSITION">Libre Disposición</SelectItem>
-          <SelectItem value="MEETINGS">Reuniones</SelectItem>
-          <SelectItem value="TEMPLATE">Plantillas</SelectItem>
-          <SelectItem value="OTHER">Otros</SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <Select v-model="filters.academicYear">
-        <SelectTrigger class="w-[180px]">
-          <SelectValue placeholder="Año académico" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="year in academicYears" :key="year" :value="year">
-            {{ year }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <Select v-model="filters.isActive">
-        <SelectTrigger class="w-[150px]">
-          <SelectValue placeholder="Todos los estados" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="true">Activos</SelectItem>
-          <SelectItem value="false">Inactivos</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="pending" class="flex items-center justify-center py-12">
-      <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
-      <span class="ml-2 text-muted-foreground">Cargando...</span>
-    </div>
-
-    <!-- Tabla de calendarios -->
-    <Card v-else>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="text-left">Nombre</TableHead>
-            <TableHead class="text-left">Tipo</TableHead>
-            <TableHead class="text-left">Año</TableHead>
-            <TableHead class="text-center">Eventos</TableHead>
-            <TableHead class="text-left">Creado por</TableHead>
-            <TableHead class="text-center">Activar/Desactivar</TableHead>
-            <TableHead class="text-right">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="calendar in calendars" :key="calendar.id">
-            <TableCell>
-              <div class="font-medium">{{ calendar.name }}</div>
-              <div class="text-xs text-muted-foreground truncate max-w-[200px]">
-                {{ calendar.description || 'Sin descripción' }}
-              </div>
-            </TableCell>
-            <TableCell>
-              <Badge :variant="getTypeVariant(calendar.type)" class="text-xs">
-                {{ getTypeLabel(calendar.type) }}
-              </Badge>
-            </TableCell>
-            <TableCell>{{ calendar.academicYear }}</TableCell>
-            <TableCell class="text-center">{{ calendar._count?.events || 0 }}</TableCell>
-            <TableCell>
-              <div class="text-sm">
-                {{ calendar.createdBy?.firstName }} {{ calendar.createdBy?.lastName }}
-              </div>
-            </TableCell>
-            <TableCell class="text-center">
-              <!-- Toggle activo/inactivo con Switch -->
-              <Switch
-                :model-value="calendar.isActive"
-                @update:model-value="() => toggleActive(calendar)"
-                :disabled="toggling === calendar.id"
-                class="data-[state=checked]:bg-amber-400 data-[state=unchecked]:bg-gray-200"
+    <!-- DataTable con TanStack Table -->
+    <Card>
+      <CardHeader class="pb-4">
+        <!-- Toolbar con filtros -->
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-1 items-center gap-2">
+              <!-- Filtro de búsqueda -->
+              <Input
+                placeholder="Buscar por nombre..."
+                class="h-8 w-[200px] lg:w-[300px]"
+                :model-value="(table?.getColumn('name')?.getFilterValue() as string) ?? ''"
+                @update:model-value="table?.getColumn('name')?.setFilterValue($event)"
               />
-            </TableCell>
-            <TableCell class="text-right">
-              <div class="flex items-center justify-end gap-2">
-                <Button 
-                  v-if="calendar.type === 'TEMPLATE'"
-                  variant="ghost" 
+
+              <!-- Filtro por tipo -->
+              <Select
+                :model-value="(table?.getColumn('type')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="table?.getColumn('type')?.setFilterValue($event?.length ? $event : undefined)"
+              >
+                <SelectTrigger class="h-8 w-[150px]">
+                  <SelectValue placeholder="Todos los tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SCHOOL_YEAR">Escolar</SelectItem>
+                  <SelectItem value="EVALUATION">Evaluaciones</SelectItem>
+                  <SelectItem value="FREE_DISPOSITION">Libre Disp.</SelectItem>
+                  <SelectItem value="MEETINGS">Reuniones</SelectItem>
+                  <SelectItem value="TEMPLATE">Plantillas</SelectItem>
+                  <SelectItem value="OTHER">Otros</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <!-- Filtro por año -->
+              <Select
+                :model-value="(table?.getColumn('academicYear')?.getFilterValue() as string) ?? ''"
+                @update:model-value="table?.getColumn('academicYear')?.setFilterValue($event)"
+              >
+                <SelectTrigger class="h-8 w-[140px]">
+                  <SelectValue placeholder="Año académico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="year in academicYears"
+                    :key="year"
+                    :value="year"
+                  >
+                    {{ year }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <!-- Botón limpiar filtros -->
+              <Button
+                v-if="table?.getState().columnFilters.length > 0"
+                variant="ghost"
+                size="sm"
+                class="h-8 px-2"
+                @click="table?.resetColumnFilters()"
+              >
+                <Icon name="lucide:x" class="mr-1 h-4 w-4" />
+                Limpiar
+              </Button>
+            </div>
+
+            <!-- Selector de columnas -->
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="outline"
                   size="sm"
-                  @click="cloneFromTemplate(calendar)"
-                  title="Clonar esta plantilla"
+                  class="ml-auto hidden h-8 lg:flex"
                 >
-                  <Icon name="lucide:copy" class="h-4 w-4" />
+                  <Icon name="lucide:sliders-horizontal" class="mr-2 h-4 w-4" />
+                  Ver
                 </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  @click="editCalendar(calendar)"
-                  title="Editar calendario"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-[180px]">
+                <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  v-for="column in table?.getAllColumns().filter((col) => col.getCanHide())"
+                  :key="column.id"
+                  class="capitalize"
+                  :model-value="column.getIsVisible()"
+                  @update:model-value="(value) => column.toggleVisibility(!!value)"
                 >
-                  <Icon name="lucide:pencil" class="h-4 w-4" />
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  title="Gestionar días y eventos"
-                  as-child
-                >
-                  <NuxtLink :to="`/admin/calendarios/${calendar.id}/dias`">
-                    <Icon name="lucide:calendar-days" class="h-4 w-4" />
-                  </NuxtLink>
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  class="text-destructive"
-                  @click="openDeleteModal(calendar)"
-                  title="Eliminar calendario"
-                >
-                  <Icon name="lucide:trash-2" class="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+                  {{ columnNames[column.id] || column.id }}
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <!-- Loading -->
+        <div v-if="pending" class="flex items-center justify-center py-12">
+          <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+          <span class="ml-2 text-muted-foreground">Cargando...</span>
+        </div>
+
+        <!-- Tabla TanStack -->
+        <DataTable
+          v-else
+          ref="dataTableRef"
+          :columns="columns"
+          :data="calendars || []"
+        />
+      </CardContent>
     </Card>
 
     <!-- Modal de creación/edición -->
@@ -166,19 +145,19 @@
             {{ editingCalendar ? 'Modifica los datos del calendario' : 'Crea un nuevo calendario para el curso' }}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form @submit.prevent="saveCalendar" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="name">Nombre</Label>
-              <Input 
-                id="name" 
-                v-model="form.name" 
+              <Input
+                id="name"
+                v-model="form.name"
                 placeholder="Calendario Escolar 2024-25"
                 required
               />
             </div>
-            
+
             <div class="space-y-2">
               <Label for="type">Tipo</Label>
               <Select v-model="form.type">
@@ -196,56 +175,56 @@
               </Select>
             </div>
           </div>
-          
+
           <div class="space-y-2">
             <Label for="description">Descripción</Label>
-            <Textarea 
-              id="description" 
-              v-model="form.description" 
+            <Textarea
+              id="description"
+              v-model="form.description"
               placeholder="Descripción del calendario..."
               rows="2"
             />
           </div>
-          
+
           <div class="grid grid-cols-3 gap-4">
             <div class="space-y-2">
               <Label for="academicYear">Año Académico</Label>
-              <Input 
-                id="academicYear" 
-                v-model="form.academicYear" 
+              <Input
+                id="academicYear"
+                v-model="form.academicYear"
                 placeholder="2024-2025"
                 pattern="\d{4}-\d{4}"
                 required
               />
             </div>
-            
+
             <div class="space-y-2">
               <Label for="startDate">Fecha inicio</Label>
-              <Input 
-                id="startDate" 
-                v-model="form.startDate" 
+              <Input
+                id="startDate"
+                v-model="form.startDate"
                 type="date"
                 required
               />
             </div>
-            
+
             <div class="space-y-2">
               <Label for="endDate">Fecha fin</Label>
-              <Input 
-                id="endDate" 
-                v-model="form.endDate" 
+              <Input
+                id="endDate"
+                v-model="form.endDate"
                 type="date"
                 required
               />
             </div>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="maxEventsPerUser">Máx. eventos por usuario</Label>
-              <Input 
-                id="maxEventsPerUser" 
-                v-model="form.maxEventsPerUser" 
+              <Input
+                id="maxEventsPerUser"
+                v-model="form.maxEventsPerUser"
                 type="number"
                 min="1"
                 placeholder="4"
@@ -255,24 +234,24 @@
               </p>
             </div>
           </div>
-          
+
           <div class="flex gap-4">
             <div class="flex items-center gap-2">
               <Switch id="isPublic" v-model="form.isPublic" />
               <Label for="isPublic" class="cursor-pointer">Público</Label>
             </div>
-            
+
             <div class="flex items-center gap-2">
               <Switch id="allowDragDrop" v-model="form.allowDragDrop" />
               <Label for="allowDragDrop" class="cursor-pointer">Permitir drag-drop</Label>
             </div>
-            
+
             <div class="flex items-center gap-2">
               <Switch id="isActive" v-model="form.isActive" />
               <Label for="isActive" class="cursor-pointer">Activo</Label>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" @click="showCreateModal = false">
               Cancelar
@@ -295,12 +274,12 @@
             Selecciona una plantilla y configura el nuevo calendario
           </DialogDescription>
         </DialogHeader>
-        
+
         <div v-if="templatesLoading" class="flex items-center justify-center py-8">
           <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
           <span class="ml-2 text-muted-foreground">Cargando plantillas...</span>
         </div>
-        
+
         <form v-else @submit.prevent="saveFromTemplate" class="space-y-4">
           <!-- Selección de plantilla -->
           <div class="space-y-2">
@@ -310,9 +289,9 @@
                 <SelectValue placeholder="Selecciona una plantilla" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem 
-                  v-for="template in templates" 
-                  :key="template.id" 
+                <SelectItem
+                  v-for="template in templates"
+                  :key="template.id"
                   :value="template.id"
                 >
                   {{ template.name }} ({{ template.academicYear }})
@@ -330,18 +309,18 @@
             <p><strong>Año de la plantilla:</strong> {{ selectedTemplate.academicYear }}</p>
             <p><strong>Eventos incluidos:</strong> {{ selectedTemplate._count?.events || 0 }}</p>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="templateName">Nombre del nuevo calendario</Label>
-              <Input 
-                id="templateName" 
-                v-model="templateForm.name" 
+              <Input
+                id="templateName"
+                v-model="templateForm.name"
                 placeholder="Calendario Escolar 2027-2028"
                 required
               />
             </div>
-            
+
             <div class="space-y-2">
               <Label for="templateType">Tipo</Label>
               <Select v-model="templateForm.type">
@@ -358,23 +337,23 @@
               </Select>
             </div>
           </div>
-          
+
           <div class="space-y-2">
             <Label for="templateDescription">Descripción</Label>
-            <Textarea 
-              id="templateDescription" 
-              v-model="templateForm.description" 
+            <Textarea
+              id="templateDescription"
+              v-model="templateForm.description"
               placeholder="Descripción del calendario..."
               rows="2"
             />
           </div>
-          
+
           <div class="grid grid-cols-3 gap-4">
             <div class="space-y-2">
               <Label for="templateAcademicYear">Año Académico</Label>
-              <Input 
-                id="templateAcademicYear" 
-                v-model="templateForm.academicYear" 
+              <Input
+                id="templateAcademicYear"
+                v-model="templateForm.academicYear"
                 placeholder="2027-2028"
                 pattern="\d{4}-\d{4}"
                 required
@@ -383,34 +362,34 @@
                 Las fechas de los eventos se ajustarán automáticamente
               </p>
             </div>
-            
+
             <div class="space-y-2">
               <Label for="templateStartDate">Fecha inicio</Label>
-              <Input 
-                id="templateStartDate" 
-                v-model="templateForm.startDate" 
+              <Input
+                id="templateStartDate"
+                v-model="templateForm.startDate"
                 type="date"
                 required
               />
             </div>
-            
+
             <div class="space-y-2">
               <Label for="templateEndDate">Fecha fin</Label>
-              <Input 
-                id="templateEndDate" 
-                v-model="templateForm.endDate" 
+              <Input
+                id="templateEndDate"
+                v-model="templateForm.endDate"
                 type="date"
                 required
               />
             </div>
           </div>
-          
+
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="templateMaxEvents">Máx. eventos por usuario</Label>
-              <Input 
-                id="templateMaxEvents" 
-                v-model="templateForm.maxEventsPerUser" 
+              <Input
+                id="templateMaxEvents"
+                v-model="templateForm.maxEventsPerUser"
                 type="number"
                 min="1"
                 placeholder="4"
@@ -420,25 +399,25 @@
               </p>
             </div>
           </div>
-          
+
           <div class="flex gap-4">
             <div class="flex items-center gap-2">
               <Switch id="templateIsPublic" v-model="templateForm.isPublic" />
               <Label for="templateIsPublic" class="cursor-pointer">Público</Label>
             </div>
-            
+
             <div class="flex items-center gap-2">
               <Switch id="templateAllowDragDrop" v-model="templateForm.allowDragDrop" />
               <Label for="templateAllowDragDrop" class="cursor-pointer">Permitir drag-drop</Label>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" @click="showTemplateModal = false">
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               :disabled="cloning || !templateForm.templateId || templates.length === 0"
             >
               <Loader2 v-if="cloning" class="h-4 w-4 mr-2 animate-spin" />
@@ -470,11 +449,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useCalendarsList, useCalendarCrud, useCalendarTemplates } from '~/composables/useCalendarApi'
 import ConfirmDialog from '~/components/calendar/dialogs/ConfirmDialog.vue'
+import DataTable from '~/components/data-table/DataTable.vue'
+import { columns, columnNames, type CalendarWithRelations } from '~/components/calendars/columns'
+import type { Table } from '@tanstack/vue-table'
 
 definePageMeta({
   middleware: ['auth'],
@@ -482,24 +464,22 @@ definePageMeta({
   roles: ['ADMIN', 'ROOT'],
 })
 
-// Estado
+// Estado de la tabla
+const dataTableRef = ref<{ table: Table<CalendarWithRelations> } | null>(null)
+const table = computed(() => dataTableRef.value?.table)
+
+// Estado de modales
 const showCreateModal = ref(false)
 const showTemplateModal = ref(false)
 const showDeleteModal = ref(false)
-const editingCalendar = ref<any>(null)
-const calendarToDelete = ref<any>(null)
-const toggling = ref<string | null>(null)
+const editingCalendar = ref<CalendarWithRelations | null>(null)
+const calendarToDelete = ref<CalendarWithRelations | null>(null)
 
-const filters = reactive({
-  type: undefined as string | undefined,
-  academicYear: undefined as string | undefined,
-  isActive: 'true' as string | undefined,
-})
-
+// Formularios
 const form = reactive({
   name: '',
   description: '',
-  type: 'SCHOOL_YEAR',
+  type: 'SCHOOL_YEAR' as const,
   academicYear: '',
   startDate: '',
   endDate: '',
@@ -513,7 +493,7 @@ const templateForm = reactive({
   templateId: '',
   name: '',
   description: '',
-  type: 'SCHOOL_YEAR',
+  type: 'SCHOOL_YEAR' as const,
   academicYear: '',
   startDate: '',
   endDate: '',
@@ -524,32 +504,30 @@ const templateForm = reactive({
 
 // Composables
 const { calendars, pending, refresh } = useCalendarsList({
-  type: toRef(filters, 'type'),
-  academicYear: toRef(filters, 'academicYear'),
-  isActive: toRef(filters, 'isActive')
+  isActive: ref('true'),
 })
 
-const { 
-  createCalendar, 
-  updateCalendar, 
-  deleteCalendar: deleteCalendarApi, 
+const {
+  createCalendar,
+  updateCalendar,
+  deleteCalendar: deleteCalendarApi,
   toggleCalendarActive,
-  isLoading: crudLoading 
+  isLoading: crudLoading
 } = useCalendarCrud()
 
-const { 
-  templates, 
-  pending: templatesLoading, 
-  refresh: refreshTemplates, 
+const {
+  templates,
+  pending: templatesLoading,
+  refresh: refreshTemplates,
   cloneTemplate,
-  isLoading: templateLoading 
+  isLoading: templateLoading
 } = useCalendarTemplates()
 
-// Estados de carga computados
+// Estados computados
 const saving = computed(() => crudLoading.value)
 const cloning = computed(() => templateLoading.value)
 
-// Año académico actual
+// Años académicos
 const now = new Date()
 const currentYear = now.getFullYear()
 const academicYearStart = now.getMonth() >= 8 ? currentYear : currentYear - 1
@@ -564,9 +542,6 @@ const academicYears = computed(() => {
   return years
 })
 
-// Templates computado
-
-
 const selectedTemplate = computed(() => {
   return templates.value.find((t: any) => t.id === templateForm.templateId)
 })
@@ -580,31 +555,7 @@ watch(() => templateForm.academicYear, (newYear) => {
   }
 })
 
-// Helpers
-function getTypeLabel(type: string) {
-  const labels: Record<string, string> = {
-    'SCHOOL_YEAR': 'Escolar',
-    'EVALUATION': 'Evaluaciones',
-    'FREE_DISPOSITION': 'Libre Disp.',
-    'MEETINGS': 'Reuniones',
-    'TEMPLATE': 'Plantilla',
-    'OTHER': 'Otros',
-  }
-  return labels[type] || type
-}
-
-function getTypeVariant(type: string): any {
-  const variants: Record<string, any> = {
-    'SCHOOL_YEAR': 'default',
-    'EVALUATION': 'secondary',
-    'FREE_DISPOSITION': 'outline',
-    'MEETINGS': 'destructive',
-    'TEMPLATE': 'warning',
-    'OTHER': 'secondary',
-  }
-  return variants[type] || 'default'
-}
-
+// Funciones de ayuda
 function resetForm() {
   form.name = ''
   form.description = ''
@@ -631,7 +582,13 @@ function resetTemplateForm() {
   templateForm.maxEventsPerUser = null
 }
 
-function editCalendar(calendar: any) {
+function openCreateModal() {
+  editingCalendar.value = null
+  resetForm()
+  showCreateModal.value = true
+}
+
+function editCalendar(calendar: CalendarWithRelations) {
   editingCalendar.value = calendar
   form.name = calendar.name
   form.description = calendar.description || ''
@@ -646,14 +603,19 @@ function editCalendar(calendar: any) {
   showCreateModal.value = true
 }
 
-function cloneFromTemplate(template: any) {
+function cloneFromTemplate(calendar: CalendarWithRelations) {
   resetTemplateForm()
-  templateForm.templateId = template.id
-  templateForm.name = template.name.replace(/\d{4}-\d{4}/, templateForm.academicYear)
-  templateForm.description = template.description || ''
-  templateForm.type = template.type === 'TEMPLATE' ? 'SCHOOL_YEAR' : template.type
+  templateForm.templateId = calendar.id
+  templateForm.name = calendar.name.replace(/\d{4}-\d{4}/, templateForm.academicYear)
+  templateForm.description = calendar.description || ''
+  templateForm.type = calendar.type === 'TEMPLATE' ? 'SCHOOL_YEAR' : calendar.type
   showTemplateModal.value = true
   refreshTemplates()
+}
+
+function openDeleteModal(calendar: CalendarWithRelations) {
+  calendarToDelete.value = calendar
+  showDeleteModal.value = true
 }
 
 async function saveCalendar() {
@@ -669,12 +631,12 @@ async function saveCalendar() {
       allowDragDrop: form.allowDragDrop,
       maxEventsPerUser: form.maxEventsPerUser,
     }
-    
+
     // Solo incluir isActive al crear, no al editar (se maneja con toggle)
     if (!editingCalendar.value) {
-      payload.isActive = form.isActive
+      Object.assign(payload, { isActive: form.isActive })
     }
-    
+
     if (editingCalendar.value) {
       await updateCalendar(editingCalendar.value.id, payload)
       toast.success('Calendario actualizado')
@@ -682,7 +644,7 @@ async function saveCalendar() {
       await createCalendar(payload)
       toast.success('Calendario creado')
     }
-    
+
     await refresh()
     showCreateModal.value = false
     editingCalendar.value = null
@@ -705,9 +667,9 @@ async function saveFromTemplate() {
       allowDragDrop: templateForm.allowDragDrop,
       maxEventsPerUser: templateForm.maxEventsPerUser,
     }
-    
+
     await cloneTemplate(templateForm.templateId, payload)
-    
+
     await refresh()
     showTemplateModal.value = false
     resetTemplateForm()
@@ -717,14 +679,9 @@ async function saveFromTemplate() {
   }
 }
 
-function openDeleteModal(calendar: any) {
-  calendarToDelete.value = calendar
-  showDeleteModal.value = true
-}
-
 async function confirmDeleteCalendar() {
   if (!calendarToDelete.value) return
-  
+
   try {
     await deleteCalendarApi(calendarToDelete.value.id)
     await refresh()
@@ -737,21 +694,47 @@ async function confirmDeleteCalendar() {
   }
 }
 
-
-
-async function toggleActive(calendar: any) {
-  toggling.value = calendar.id
-  
+async function toggleActive(calendar: CalendarWithRelations) {
   try {
     await toggleCalendarActive(calendar.id, !calendar.isActive)
     await refresh()
     toast.success(calendar.isActive ? 'Calendario desactivado' : 'Calendario activado')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al cambiar el estado')
-  } finally {
-    toggling.value = null
   }
 }
+
+// Event listeners para acciones de la tabla
+function handleEdit(event: CustomEvent<CalendarWithRelations>) {
+  editCalendar(event.detail)
+}
+
+function handleDelete(event: CustomEvent<CalendarWithRelations>) {
+  openDeleteModal(event.detail)
+}
+
+function handleClone(event: CustomEvent<CalendarWithRelations>) {
+  cloneFromTemplate(event.detail)
+}
+
+function handleToggleActive(event: CustomEvent<CalendarWithRelations>) {
+  toggleActive(event.detail)
+}
+
+onMounted(() => {
+  document.addEventListener('calendar:edit', handleEdit as EventListener)
+  document.addEventListener('calendar:delete', handleDelete as EventListener)
+  document.addEventListener('calendar:clone', handleClone as EventListener)
+  document.addEventListener('calendar:toggle-active', handleToggleActive as EventListener)
+  resetForm()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('calendar:edit', handleEdit as EventListener)
+  document.removeEventListener('calendar:delete', handleDelete as EventListener)
+  document.removeEventListener('calendar:clone', handleClone as EventListener)
+  document.removeEventListener('calendar:toggle-active', handleToggleActive as EventListener)
+})
 
 // Cargar plantillas cuando se abre el modal
 watch(showTemplateModal, (isOpen) => {
@@ -759,7 +742,4 @@ watch(showTemplateModal, (isOpen) => {
     refreshTemplates()
   }
 })
-
-// Inicializar
-resetForm()
 </script>
