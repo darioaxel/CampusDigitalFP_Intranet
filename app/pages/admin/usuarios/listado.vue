@@ -7,12 +7,12 @@
 
     <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
       <!-- Acciones en lote -->
-      <Card v-if="selectedUsers.length > 0" class="border-primary/50 bg-primary/5">
+      <Card v-if="selectedRows.length > 0" class="border-primary/50 bg-primary/5">
         <CardContent class="py-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium">
-                {{ selectedUsers.length }} usuario(s) seleccionado(s)
+                {{ selectedRows.length }} usuario(s) seleccionado(s)
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -26,8 +26,8 @@
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 @click="applyBulkRole"
                 :disabled="!bulkActionRole || isApplyingBulk"
@@ -36,8 +36,8 @@
                 Aplicar Rol
               </Button>
               <Separator orientation="vertical" class="h-6" />
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 @click="bulkActivate(true)"
                 :disabled="isApplyingBulk"
@@ -45,8 +45,8 @@
                 <Icon name="lucide:check-circle" class="mr-2 h-4 w-4" />
                 Activar
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 @click="bulkActivate(false)"
                 :disabled="isApplyingBulk"
@@ -62,7 +62,7 @@
         </CardContent>
       </Card>
 
-      <!-- Tabla de usuarios -->
+      <!-- DataTable de Usuarios -->
       <Card>
         <CardHeader>
           <div class="flex items-center justify-between">
@@ -73,117 +73,92 @@
               </CardDescription>
             </div>
             <div class="flex items-center gap-2">
+              <!-- Filtro de búsqueda -->
               <Input
-                v-model="searchQuery"
                 placeholder="Buscar usuario..."
-                class="w-64"
+                class="w-64 h-8"
+                :model-value="(table?.getColumn('user')?.getFilterValue() as string) ?? ''"
+                @update:model-value="table?.getColumn('user')?.setFilterValue($event)"
               />
+
+              <!-- Filtro por rol -->
+              <Select
+                :model-value="(table?.getColumn('role')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="handleRoleFilterChange"
+              >
+                <SelectTrigger class="h-8 w-[140px]">
+                  <SelectValue placeholder="Todos los roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos los roles</SelectItem>
+                  <SelectItem v-for="role in availableRoles" :key="role.value" :value="role.value">
+                    {{ role.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <!-- Botón refrescar -->
               <Button variant="outline" size="icon" @click="refreshUsers" :disabled="isLoading">
-                <Icon :name="isLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'" 
-                      :class="{ 'animate-spin': isLoading }" 
+                <Icon :name="isLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'"
+                      :class="{ 'animate-spin': isLoading }"
                       class="h-4 w-4" />
               </Button>
+
+              <!-- Selector de columnas -->
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="hidden h-8 lg:flex"
+                  >
+                    <Icon name="lucide:sliders-horizontal" class="mr-2 h-4 w-4" />
+                    Ver
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-[180px]">
+                  <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    v-for="column in table?.getAllColumns().filter((col) => col.getCanHide())"
+                    :key="column.id"
+                    class="capitalize"
+                    :model-value="column.getIsVisible()"
+                    @update:model-value="(value) => column.toggleVisibility(!!value)"
+                  >
+                    {{ columnNames[column.id] || column.id }}
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
+
         <CardContent>
-          <div class="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead class="w-12">
-                    <Checkbox 
-                      :checked="isAllSelected" 
-                      @update:checked="toggleSelectAll"
-                    />
-                  </TableHead>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Fecha de Alta</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead class="w-24">Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow v-for="user in paginatedUsers" :key="user.id" :class="{ 'bg-muted/50': isSelected(user.id) }">
-                  <TableCell>
-                    <Checkbox 
-                      :checked="isSelected(user.id)" 
-                      @update:checked="toggleSelect(user.id)"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div class="flex items-center gap-3">
-                      <Avatar class="h-8 w-8">
-                        <AvatarFallback class="text-xs">
-                          {{ getInitials(user.firstName, user.lastName) }}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p class="font-medium">{{ user.firstName }} {{ user.lastName }}</p>
-                        <p class="text-xs text-muted-foreground">ID: {{ user.id.slice(0, 8) }}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{{ user.email }}</TableCell>
-                  <TableCell>{{ formatDate(user.createdAt) }}</TableCell>
-                  <TableCell>
-                    <Select 
-                      :model-value="user.role" 
-                      @update:model-value="(role) => updateUserRole(user.id, role)"
-                    >
-                      <SelectTrigger class="w-36">
-                        <Badge :variant="getRoleBadgeVariant(user.role)" class="font-normal">
-                          {{ getRoleLabel(user.role) }}
-                        </Badge>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem v-for="role in availableRoles" :key="role.value" :value="role.value">
-                          {{ role.label }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <div class="flex items-center gap-2">
-                      <Switch 
-                        :checked="user.isActive" 
-                        @update:checked="(active) => updateUserStatus(user.id, active)"
-                        :disabled="updatingUsers.has(user.id)"
-                      />
-                      <Badge 
-                        :variant="user.isActive ? 'default' : 'destructive'" 
-                        class="text-xs transition-colors duration-200"
-                      >
-                        {{ user.isActive ? 'Activo' : 'Bloqueado' }}
-                      </Badge>
-                      <Icon 
-                        v-if="updatingUsers.has(user.id)" 
-                        name="lucide:loader-2" 
-                        class="h-4 w-4 animate-spin text-muted-foreground" 
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow v-if="paginatedUsers.length === 0">
-                  <TableCell colspan="6" class="h-32 text-center">
-                    <div class="flex flex-col items-center justify-center text-muted-foreground">
-                      <Icon name="lucide:users" class="h-8 w-8 mb-2" />
-                      <p>No se encontraron usuarios</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+          <!-- Loading -->
+          <div v-if="isLoading && !users.length" class="flex items-center justify-center py-12">
+            <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
 
-          <!-- Controles de paginación -->
-          <div class="flex items-center justify-between mt-4">
+          <!-- Tabla -->
+          <DataTable
+            v-else
+            ref="dataTableRef"
+            :columns="columns"
+            :data="users"
+            :manual-pagination="true"
+            :page-count="pagination.totalPages"
+            :row-count="pagination.total"
+            :enable-row-selection="true"
+            @pagination-change="handlePaginationChange"
+            @row-selection-change="handleRowSelectionChange"
+          />
+
+          <!-- Controles de paginación manuales (si se necesitan) -->
+          <div v-if="pagination.totalPages > 1" class="flex items-center justify-between mt-4">
             <div class="text-sm text-muted-foreground">
-              Mostrando {{ paginatedUsers.length }} de {{ pagination.total }} usuarios
-              <span v-if="pagination.totalPages > 1">
-                (Página {{ pagination.page }} de {{ pagination.totalPages }})
-              </span>
+              Mostrando {{ users.length }} de {{ pagination.total }} usuarios
+              <span>(Página {{ pagination.page }} de {{ pagination.totalPages }})</span>
             </div>
             <div class="flex items-center gap-2">
               <Button
@@ -195,7 +170,7 @@
                 <Icon name="lucide:chevron-left" class="h-4 w-4 mr-1" />
                 Anterior
               </Button>
-              
+
               <div class="flex items-center gap-1">
                 <Button
                   v-for="pageNum in visiblePages"
@@ -228,19 +203,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import type { Table, PaginationState, RowSelectionState } from '@tanstack/vue-table'
+import DataTable from '~/components/data-table/DataTable.vue'
+import { getColumns, availableRoles, columnNames, type User } from '~/components/users/columns'
+
+// Configuración de la página
+definePageMeta({
+  middleware: ['auth'],
+  layout: 'dashboard',
+})
 
 // Tipos
-interface User {
-  id: string
-  firstName: string | null
-  lastName: string | null
-  email: string
-  role: string
-  isActive: boolean
-  createdAt: string
-}
-
 interface Pagination {
   page: number
   limit: number
@@ -250,22 +225,20 @@ interface Pagination {
 
 type RoleValue = 'USER' | 'PROFESOR' | 'EXPERTO' | 'JEFE_DEPT' | 'ADMIN' | 'ROOT'
 
-// Configuración de la página
-definePageMeta({
-  middleware: ['auth'],
-  layout: 'dashboard',
-})
-
 // Estados
 const users = ref<User[]>([])
-const selectedUsers = ref<string[]>([])
-const searchQuery = ref('')
 const isLoading = ref(false)
 const isApplyingBulk = ref(false)
 const bulkActionRole = ref<RoleValue | ''>('')
-
-// Usuarios en proceso de actualización
 const updatingUsers = ref<Set<string>>(new Set())
+const dataTableRef = ref<{ table: Table<User> } | null>(null)
+const table = computed(() => dataTableRef.value?.table)
+
+// Computed para filas seleccionadas
+const selectedRows = computed(() => {
+  if (!table.value) return []
+  return table.value.getSelectedRowModel().rows.map(row => row.original)
+})
 
 // Paginación
 const pagination = ref<Pagination>({
@@ -275,158 +248,76 @@ const pagination = ref<Pagination>({
   totalPages: 0,
 })
 
-// Roles disponibles
-const availableRoles = [
-  { value: 'USER', label: 'Usuario' },
-  { value: 'PROFESOR', label: 'Profesor' },
-  { value: 'EXPERTO', label: 'Experto' },
-  { value: 'JEFE_DEPT', label: 'Jefe Dept.' },
-  { value: 'ADMIN', label: 'Administrador' },
-  { value: 'ROOT', label: 'Root' },
-] as const
-
-// Usuarios filtrados por búsqueda (client-side)
-const filteredUsers = computed(() => {
-  if (!searchQuery.value) return users.value
-  const query = searchQuery.value.toLowerCase()
-  return users.value.filter(user => 
-    user.firstName?.toLowerCase().includes(query) ||
-    user.lastName?.toLowerCase().includes(query) ||
-    user.email.toLowerCase().includes(query)
-  )
-})
-
-// Usuarios paginados (si hay búsqueda, paginamos en cliente, si no mostramos todos los de la página actual)
-const paginatedUsers = computed(() => {
-  // Si hay búsqueda, aplicamos paginación client-side sobre los resultados filtrados
-  if (searchQuery.value) {
-    const start = (pagination.value.page - 1) * pagination.value.limit
-    const end = start + pagination.value.limit
-    return filteredUsers.value.slice(start, end)
-  }
-  // Sin búsqueda, mostramos los usuarios de la página actual (ya vienen paginados del servidor)
-  return users.value
-})
+// Columnas
+const columns = computed(() =>
+  getColumns({
+    onRoleChange: updateUserRole,
+    onStatusChange: updateUserStatus,
+    updatingUsers: updatingUsers.value,
+  })
+)
 
 // Páginas visibles (máximo 5 números)
 const visiblePages = computed(() => {
   const total = pagination.value.totalPages
   const current = pagination.value.page
-  
+
   if (total <= 5) {
     return Array.from({ length: total }, (_, i) => i + 1)
   }
-  
+
   if (current <= 3) {
     return [1, 2, 3, 4, 5]
   }
-  
+
   if (current >= total - 2) {
     return [total - 4, total - 3, total - 2, total - 1, total]
   }
-  
+
   return [current - 2, current - 1, current, current + 1, current + 2]
 })
 
-// Lógica de selección
-const isAllSelected = computed(() => {
-  return paginatedUsers.value.length > 0 && paginatedUsers.value.every(u => isSelected(u.id))
-})
+// Handlers de eventos de la tabla
+function handlePaginationChange(state: PaginationState) {
+  pagination.value.page = state.pageIndex + 1
+  pagination.value.limit = state.pageSize
+  refreshUsers()
+}
 
-const isSelected = (userId: string) => selectedUsers.value.includes(userId)
+function handleRowSelectionChange(state: RowSelectionState) {
+  // El estado se maneja internamente por TanStack Table
+  // pero podemos hacer acciones adicionales aquí si es necesario
+}
 
-const toggleSelect = (userId: string) => {
-  const index = selectedUsers.value.indexOf(userId)
-  if (index === -1) {
-    selectedUsers.value.push(userId)
+function handleRoleFilterChange(value: string | string[]) {
+  // Si es 'ALL' o array vacío, limpiar el filtro
+  if (value === 'ALL' || (Array.isArray(value) && value.length === 0)) {
+    table.value?.getColumn('role')?.setFilterValue(undefined)
+  } else if (Array.isArray(value)) {
+    table.value?.getColumn('role')?.setFilterValue(value)
   } else {
-    selectedUsers.value.splice(index, 1)
+    table.value?.getColumn('role')?.setFilterValue([value])
   }
 }
 
-const toggleSelectAll = () => {
-  if (isAllSelected.value) {
-    selectedUsers.value = selectedUsers.value.filter(id => !paginatedUsers.value.find(u => u.id === id))
-  } else {
-    const newSelections = paginatedUsers.value.filter(u => !isSelected(u.id)).map(u => u.id)
-    selectedUsers.value.push(...newSelections)
-  }
-}
-
-const clearSelection = () => {
-  selectedUsers.value = []
+function clearSelection() {
+  table.value?.toggleAllPageRowsSelected(false)
   bulkActionRole.value = ''
-}
-
-// Helpers
-const getInitials = (firstName: string | null, lastName: string | null) => {
-  const first = firstName?.charAt(0) || ''
-  const last = lastName?.charAt(0) || ''
-  return (first + last).toUpperCase() || 'U'
-}
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
-}
-
-const getRoleLabel = (role: string) => {
-  return availableRoles.find(r => r.value === role)?.label || role
-}
-
-const getRoleBadgeVariant = (role: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-  const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    'ROOT': 'destructive',
-    'ADMIN': 'default',
-    'JEFE_DEPT': 'secondary',
-    'EXPERTO': 'outline',
-    'PROFESOR': 'outline',
-    'USER': 'secondary',
-  }
-  return variants[role] || 'secondary'
-}
-
-// Paginación
-const goToPage = async (page: number) => {
-  if (page < 1 || page > pagination.value.totalPages) return
-  pagination.value.page = page
-  clearSelection()
-  await refreshUsers()
 }
 
 // API Calls
 const refreshUsers = async () => {
   isLoading.value = true
   try {
-    // Si hay búsqueda activa, cargamos más datos o todos para filtrar en cliente
-    const limit = searchQuery.value ? 1000 : pagination.value.limit
-    const page = searchQuery.value ? 1 : pagination.value.page
-    
     const data = await $fetch<{ users: User[], pagination: Pagination }>('/api/users', {
       query: {
-        page,
-        limit,
+        page: pagination.value.page,
+        limit: pagination.value.limit,
       }
     })
-    
+
     users.value = data.users
-    
-    // Solo actualizamos la paginación si no hay búsqueda activa
-    if (!searchQuery.value) {
-      pagination.value = data.pagination
-    } else {
-      // Con búsqueda, recalculamos la paginación basada en resultados filtrados
-      const filtered = filteredUsers.value
-      pagination.value.total = filtered.length
-      pagination.value.totalPages = Math.ceil(filtered.length / pagination.value.limit)
-      // Aseguramos que la página actual sea válida
-      if (pagination.value.page > pagination.value.totalPages) {
-        pagination.value.page = Math.max(1, pagination.value.totalPages)
-      }
-    }
+    pagination.value = data.pagination
   } catch (error) {
     toast.error('Error', {
       description: 'No se pudieron cargar los usuarios',
@@ -442,10 +333,10 @@ const updateUserRole = async (userId: string, newRole: string) => {
       method: 'PATCH',
       body: { role: newRole }
     })
-    
+
     const user = users.value.find(u => u.id === userId)
-    if (user) user.role = newRole
-    
+    if (user) user.role = newRole as RoleValue
+
     toast.success('Éxito', {
       description: 'Rol actualizado correctamente',
     })
@@ -453,33 +344,29 @@ const updateUserRole = async (userId: string, newRole: string) => {
     toast.error('Error', {
       description: 'No se pudo actualizar el rol',
     })
-    // Revertir cambio en UI
     refreshUsers()
   }
 }
 
 const updateUserStatus = async (userId: string, isActive: boolean) => {
-  // Marcar usuario como en actualización
   updatingUsers.value.add(userId)
-  
-  // Actualización optimista de la UI
+
   const user = users.value.find(u => u.id === userId)
   const previousState = user?.isActive
   if (user) user.isActive = isActive
-  
+
   try {
     await $fetch(`/api/users/${userId}`, {
       method: 'PATCH',
       body: { isActive }
     })
-    
+
     toast.success('Éxito', {
       description: `Usuario ${isActive ? 'activado' : 'desactivado'} correctamente`,
     })
   } catch (error) {
-    // Revertir cambio en UI si falla
     if (user) user.isActive = previousState
-    
+
     toast.error('Error', {
       description: 'No se pudo actualizar el estado',
     })
@@ -488,29 +375,36 @@ const updateUserStatus = async (userId: string, isActive: boolean) => {
   }
 }
 
+// Paginación
+const goToPage = async (page: number) => {
+  if (page < 1 || page > pagination.value.totalPages) return
+  pagination.value.page = page
+  clearSelection()
+  await refreshUsers()
+}
+
 // Acciones en lote
 const applyBulkRole = async () => {
-  if (!bulkActionRole.value || selectedUsers.value.length === 0) return
-  
+  if (!bulkActionRole.value || selectedRows.value.length === 0) return
+
   isApplyingBulk.value = true
   try {
     await $fetch('/api/users/bulk', {
       method: 'PATCH',
       body: {
-        userIds: selectedUsers.value,
+        userIds: selectedRows.value.map(u => u.id),
         role: bulkActionRole.value
       }
     })
-    
-    // Actualizar usuarios localmente
+
     users.value.forEach(user => {
-      if (selectedUsers.value.includes(user.id)) {
-        user.role = bulkActionRole.value
+      if (selectedRows.value.find(u => u.id === user.id)) {
+        user.role = bulkActionRole.value as RoleValue
       }
     })
-    
+
     toast.success('Éxito', {
-      description: `Rol actualizado en ${selectedUsers.value.length} usuario(s)`,
+      description: `Rol actualizado en ${selectedRows.value.length} usuario(s)`,
     })
     clearSelection()
   } catch (error) {
@@ -523,27 +417,26 @@ const applyBulkRole = async () => {
 }
 
 const bulkActivate = async (isActive: boolean) => {
-  if (selectedUsers.value.length === 0) return
-  
+  if (selectedRows.value.length === 0) return
+
   isApplyingBulk.value = true
   try {
     await $fetch('/api/users/bulk', {
       method: 'PATCH',
       body: {
-        userIds: selectedUsers.value,
+        userIds: selectedRows.value.map(u => u.id),
         isActive
       }
     })
-    
-    // Actualizar usuarios localmente
+
     users.value.forEach(user => {
-      if (selectedUsers.value.includes(user.id)) {
+      if (selectedRows.value.find(u => u.id === user.id)) {
         user.isActive = isActive
       }
     })
-    
+
     toast.success('Éxito', {
-      description: `${selectedUsers.value.length} usuario(s) ${isActive ? 'activado(s)' : 'desactivado(s)'}`,
+      description: `${selectedRows.value.length} usuario(s) ${isActive ? 'activado(s)' : 'desactivado(s)'}`,
     })
     clearSelection()
   } catch (error) {
@@ -554,12 +447,6 @@ const bulkActivate = async (isActive: boolean) => {
     isApplyingBulk.value = false
   }
 }
-
-// Watch para búsqueda - resetear a página 1 cuando se busca
-watch(searchQuery, () => {
-  pagination.value.page = 1
-  refreshUsers()
-})
 
 // Cargar usuarios al montar
 onMounted(() => {

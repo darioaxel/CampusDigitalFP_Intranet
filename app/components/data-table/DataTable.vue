@@ -46,6 +46,7 @@ const emit = defineEmits<{
   'sorting-change': [state: SortingState]
   'filter-change': [state: ColumnFiltersState]
   'row-selection-change': [state: RowSelectionState]
+  'row-click': [row: TData]
 }>()
 
 const sorting = ref<SortingState>([])
@@ -140,7 +141,8 @@ defineExpose({ table })
             >
               <TableRow
                 :data-state="row.getIsSelected() ? 'selected' : undefined"
-                :class="row.getIsExpanded() && 'bg-muted/50'"
+                :class="[row.getIsExpanded() && 'bg-muted/50', 'cursor-pointer hover:bg-muted/30']"
+                @click="$emit('row-click', row.original)"
               >
                 <TableCell
                   v-for="cell in row.getVisibleCells()"

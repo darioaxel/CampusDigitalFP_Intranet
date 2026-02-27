@@ -28,23 +28,49 @@
         </button>
       </div>
 
-      <!-- Tabla de Solicitudes y Tareas -->
+      <!-- DataTable de Solicitudes y Tareas -->
       <Card>
         <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <ClipboardList class="h-5 w-5" />
-            Mis Solicitudes y Tareas
-          </CardTitle>
-          <CardDescription>
-            Listado de solicitudes y tareas en las que participas como creador, asignado o validador.
-          </CardDescription>
+          <div class="flex items-center justify-between">
+            <div>
+              <CardTitle class="flex items-center gap-2">
+                <ClipboardList class="h-5 w-5" />
+                Mis Solicitudes y Tareas
+              </CardTitle>
+              <CardDescription>
+                Listado de solicitudes y tareas en las que participas como creador, asignado o validador.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <!-- Filtros compactos -->
-          <div class="flex flex-wrap items-end gap-3 mb-4 py-2 px-3 bg-muted/50 rounded-lg">
+          <!-- Toolbar con filtros -->
+          <div class="flex flex-row flex-wrap items-end gap-3 mb-3">
+            <!-- Filtro por tipo (Solicitud/Tarea) -->
             <div class="flex flex-col gap-1">
-              <Label class="text-xs font-medium">Tipo</Label>
-              <Select v-model="filterType">
+              <Label class="text-xs font-medium">Categoría</Label>
+              <Select
+                :model-value="(table?.getColumn('type')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="handleTypeFilterChange"
+              >
+                <SelectTrigger class="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todas</SelectItem>
+                  <SelectItem value="Solicitud">Solicitudes</SelectItem>
+                  <SelectItem value="Tarea">Tareas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <!-- Filtro por subtipo -->
+            <div class="flex flex-col gap-1">
+              <Label class="text-xs font-medium">Tipo específico</Label>
+              <Select
+                :model-value="(table?.getColumn('subType')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="handleSubTypeFilterChange"
+              >
                 <SelectTrigger class="w-[160px] h-8 text-xs">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -54,7 +80,6 @@
                   <SelectItem value="MEDICAL_APPOINTMENT">Médica</SelectItem>
                   <SelectItem value="LEAVE">Permiso</SelectItem>
                   <SelectItem value="TRAINING">Formación</SelectItem>
-                  <SelectItem value="OTHER">Otro</SelectItem>
                   <SelectItem value="NEW_USER">Nuevo usuario</SelectItem>
                   <SelectItem value="SCHEDULE_VALIDATION">Validación horario</SelectItem>
                   <SelectItem value="SYLLABUS_CREATION">Programación</SelectItem>
@@ -64,22 +89,48 @@
                 </SelectContent>
               </Select>
             </div>
+
+            <!-- Filtro por estado -->
             <div class="flex flex-col gap-1">
-              <Label class="text-xs font-medium">Desde</Label>
-              <Input 
-                type="date" 
-                v-model="filterDateFrom" 
-                class="w-[130px] h-8 text-xs"
-              />
+              <Label class="text-xs font-medium">Estado</Label>
+              <Select
+                :model-value="(table?.getColumn('status')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="handleStatusFilterChange"
+              >
+                <SelectTrigger class="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="Pendiente">Pendiente</SelectItem>
+                  <SelectItem value="En progreso">En progreso</SelectItem>
+                  <SelectItem value="Aprobada">Aprobada</SelectItem>
+                  <SelectItem value="Completada">Completada</SelectItem>
+                  <SelectItem value="Rechazada">Rechazada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            <!-- Filtro por rol -->
             <div class="flex flex-col gap-1">
-              <Label class="text-xs font-medium">Hasta</Label>
-              <Input 
-                type="date" 
-                v-model="filterDateTo" 
-                class="w-[130px] h-8 text-xs"
-              />
+              <Label class="text-xs font-medium">Mi rol</Label>
+              <Select
+                :model-value="(table?.getColumn('role')?.getFilterValue() as string[]) ?? []"
+                @update:model-value="handleRoleFilterChange"
+              >
+                <SelectTrigger class="w-[130px] h-8 text-xs">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Todos</SelectItem>
+                  <SelectItem value="Creador">Creador</SelectItem>
+                  <SelectItem value="Asignado">Asignado</SelectItem>
+                  <SelectItem value="Validador">Validador</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            <!-- Botón limpiar filtros -->
             <Button 
               variant="ghost" 
               size="sm" 
@@ -90,13 +141,42 @@
               <X class="h-3 w-3 mr-1" />
               Limpiar
             </Button>
+
+            <!-- Selector de columnas -->
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="ml-auto hidden h-8 lg:flex"
+                >
+                  <Icon name="lucide:sliders-horizontal" class="mr-2 h-4 w-4" />
+                  Ver
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-[180px]">
+                <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  v-for="column in table?.getAllColumns().filter((col) => col.getCanHide())"
+                  :key="column.id"
+                  class="capitalize"
+                  :model-value="column.getIsVisible()"
+                  @update:model-value="(value) => column.toggleVisibility(!!value)"
+                >
+                  {{ columnNames[column.id] || column.id }}
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          <div v-if="pending" class="flex items-center justify-center py-8">
+          <!-- Loading -->
+          <div v-if="pending && !items.length" class="flex items-center justify-center py-8">
             <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
             <span class="ml-2 text-muted-foreground">Cargando...</span>
           </div>
 
+          <!-- Error -->
           <div v-else-if="error" class="text-center py-8">
             <div class="text-red-500 mb-2">
               <AlertCircle class="h-8 w-8 mx-auto mb-2" />
@@ -112,65 +192,38 @@
             </button>
           </div>
 
-          <div v-else-if="filteredItems.length === 0" class="text-center py-12">
-            <Inbox class="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 class="text-lg font-medium text-foreground mb-1">
-              {{ hasActiveFilters ? 'No se encontraron resultados' : 'No tienes solicitudes ni tareas' }}
-            </h3>
-            <p class="text-sm text-muted-foreground max-w-md mx-auto mb-4">
-              {{ hasActiveFilters 
-                ? 'No hay solicitudes ni tareas que coincidan con los filtros aplicados.' 
-                : 'Cuando crees una solicitud o te asignen una tarea, aparecerán aquí.' }}
-            </p>
-            <Button 
-              v-if="hasActiveFilters"
-              variant="outline" 
-              size="sm" 
-              @click="clearFilters"
-              class="mt-4"
-            >
-              <X class="h-4 w-4 mr-1" />
-              Limpiar filtros
-            </Button>
-          </div>
+          <!-- Contenido: Tabla o Empty State -->
+          <template v-else>
+            <DataTable
+              v-if="table?.getFilteredRowModel().rows.length > 0"
+              ref="dataTableRef"
+              :columns="columns"
+              :data="items"
+              @row-click="navigateToItem"
+            />
 
-          <Table v-else>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Creado por</TableHead>
-                <TableHead>Fecha creación</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Finalización</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="item in filteredItems" :key="`${item.type}-${item.id}`" class="cursor-pointer hover:bg-muted/50" @click="navigateToItem(item)">
-                <TableCell>
-                  <Badge :style="{ backgroundColor: getSubTypeColor(item.subType), color: '#fff' }" class="w-fit">
-                    {{ formatSubType(item.subType) }}
-                  </Badge>
-                </TableCell>
-                <TableCell class="font-medium max-w-[200px] truncate" :title="item.title">
-                  {{ item.title }}
-                </TableCell>
-                <TableCell class="text-sm">{{ item.createdBy }}</TableCell>
-                <TableCell class="text-sm text-muted-foreground">{{ item.createdAt }}</TableCell>
-                <TableCell>
-                  <Badge :variant="getStatusVariant(item.status)" class="w-fit">
-                    {{ item.status }}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <span v-if="item.completedAt !== '-'" class="text-sm text-green-600">
-                    {{ item.completedAt }}
-                  </span>
-                  <span v-else class="text-sm text-muted-foreground">-</span>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+            <!-- Empty state -->
+            <div v-else class="text-center py-10">
+              <Inbox class="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+              <h3 class="text-lg font-medium text-foreground mb-1">
+                {{ hasActiveFilters ? 'No se encontraron resultados' : 'No tienes solicitudes ni tareas' }}
+              </h3>
+              <p class="text-sm text-muted-foreground max-w-md mx-auto mb-4">
+                {{ hasActiveFilters 
+                  ? 'No hay solicitudes ni tareas que coincidan con los filtros aplicados.' 
+                  : 'Cuando crees una solicitud o te asignen una tarea, aparecerán aquí.' }}
+              </p>
+              <Button 
+                v-if="hasActiveFilters"
+                variant="outline" 
+                size="sm" 
+                @click="clearFilters"
+              >
+                <X class="h-4 w-4 mr-1" />
+                Limpiar filtros
+              </Button>
+            </div>
+          </template>
         </CardContent>
       </Card>
     </div>
@@ -180,26 +233,18 @@
 <script setup lang="ts">
 import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, X } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
+import type { Table } from '@tanstack/vue-table'
+import DataTable from '~/components/data-table/DataTable.vue'
+import { columns, columnNames, type WorkflowItem } from '~/components/workflow/columns'
 
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
 })
 
-// Filtros - usar 'ALL' en lugar de string vacío
-const filterType = ref('ALL')
-const filterDateFrom = ref('')
-const filterDateTo = ref('')
-
-const hasActiveFilters = computed(() => {
-  return filterType.value !== 'ALL' || filterDateFrom.value || filterDateTo.value
-})
-
-const clearFilters = () => {
-  filterType.value = 'ALL'
-  filterDateFrom.value = ''
-  filterDateTo.value = ''
-}
+// Estados
+const dataTableRef = ref<{ table: Table<WorkflowItem> } | null>(null)
+const table = computed(() => dataTableRef.value?.table)
 
 /* ----------  usuario  ---------- */
 const { user } = await useUserSession()
@@ -218,118 +263,67 @@ const { data: workflowData, pending, error, refresh } = await useFetch('/api/use
 const items = computed(() => workflowData.value?.data || [])
 const counts = computed(() => workflowData.value?.counts)
 
-// Items filtrados
-const filteredItems = computed(() => {
-  let result = items.value
-
-  // Filtrar por tipo
-  if (filterType.value && filterType.value !== 'ALL') {
-    result = result.filter(item => item.subType === filterType.value)
-  }
-
-  // Filtrar por fecha desde
-  if (filterDateFrom.value) {
-    const fromDate = new Date(filterDateFrom.value)
-    result = result.filter(item => {
-      const itemDate = parseDate(item.createdAt)
-      return itemDate >= fromDate
-    })
-  }
-
-  // Filtrar por fecha hasta
-  if (filterDateTo.value) {
-    const toDate = new Date(filterDateTo.value)
-    toDate.setHours(23, 59, 59, 999)
-    result = result.filter(item => {
-      const itemDate = parseDate(item.createdAt)
-      return itemDate <= toDate
-    })
-  }
-
-  return result
+// Computed para saber si hay filtros activos
+const hasActiveFilters = computed(() => {
+  if (!table.value) return false
+  return table.value.getState().columnFilters.length > 0
 })
+
+// Handlers de filtros
+function handleTypeFilterChange(value: string | string[]) {
+  if (value === 'ALL' || (Array.isArray(value) && value.length === 0)) {
+    table.value?.getColumn('type')?.setFilterValue(undefined)
+  } else if (Array.isArray(value)) {
+    table.value?.getColumn('type')?.setFilterValue(value)
+  } else {
+    table.value?.getColumn('type')?.setFilterValue([value])
+  }
+}
+
+function handleSubTypeFilterChange(value: string | string[]) {
+  if (value === 'ALL' || (Array.isArray(value) && value.length === 0)) {
+    table.value?.getColumn('subType')?.setFilterValue(undefined)
+  } else if (Array.isArray(value)) {
+    table.value?.getColumn('subType')?.setFilterValue(value)
+  } else {
+    table.value?.getColumn('subType')?.setFilterValue([value])
+  }
+}
+
+function handleStatusFilterChange(value: string | string[]) {
+  if (value === 'ALL' || (Array.isArray(value) && value.length === 0)) {
+    table.value?.getColumn('status')?.setFilterValue(undefined)
+  } else if (Array.isArray(value)) {
+    table.value?.getColumn('status')?.setFilterValue(value)
+  } else {
+    table.value?.getColumn('status')?.setFilterValue([value])
+  }
+}
+
+function handleRoleFilterChange(value: string | string[]) {
+  if (value === 'ALL' || (Array.isArray(value) && value.length === 0)) {
+    table.value?.getColumn('role')?.setFilterValue(undefined)
+  } else if (Array.isArray(value)) {
+    table.value?.getColumn('role')?.setFilterValue(value)
+  } else {
+    table.value?.getColumn('role')?.setFilterValue([value])
+  }
+}
+
+function clearFilters() {
+  table.value?.resetColumnFilters()
+}
 
 const refreshData = async () => {
   await refresh()
 }
 
-const navigateToItem = (item: any) => {
+const navigateToItem = (item: WorkflowItem) => {
   if (item.type === 'Solicitud') {
     navigateTo(`/admin/solicitudes/${item.id}`)
   } else {
+    // Tareas - verificar si existe la ruta
     navigateTo(`/admin/tareas/${item.id}`)
   }
-}
-
-/* ----------  helpers  ---------- */
-function parseDate(dateStr: string): Date {
-  // Parsear formato DD/MM/YYYY o similar
-  const parts = dateStr.split('/')
-  if (parts.length === 3) {
-    const [day, month, year] = parts.map(Number)
-    return new Date(year, month - 1, day)
-  }
-  // Fallback: intentar parseo directo
-  return new Date(dateStr)
-}
-
-function formatSubType(subType: string): string {
-  const types: Record<string, string> = {
-    // Request types
-    FREE_DAY: 'Día libre',
-    MEDICAL_APPOINTMENT: 'Médica',
-    LEAVE: 'Permiso',
-    TRAINING: 'Formación',
-    OTHER: 'Otro',
-    NEW_USER: 'Nuevo usuario',
-    SCHEDULE_VALIDATION: 'Validación horario',
-    // Task types
-    SYLLABUS_CREATION: 'Programación',
-    MEETING: 'Reunión',
-    VOTE: 'Votación',
-    REVIEW: 'Revisión',
-  }
-  return types[subType] || subType
-}
-
-function getSubTypeColor(subType: string): string {
-  const colors: Record<string, string> = {
-    // Request types - tonos azules/verdes
-    FREE_DAY: '#3b82f6',
-    MEDICAL_APPOINTMENT: '#06b6d4',
-    LEAVE: '#8b5cf6',
-    TRAINING: '#10b981',
-    OTHER: '#6b7280',
-    NEW_USER: '#f59e0b',
-    SCHEDULE_VALIDATION: '#ec4899',
-    // Task types - tonos naranjas/rojos
-    SYLLABUS_CREATION: '#ef4444',
-    MEETING: '#6366f1',
-    VOTE: '#14b8a6',
-    REVIEW: '#f97316',
-  }
-  return colors[subType] || '#6b7280'
-}
-
-function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    // Estados comunes de workflow
-    'Pendiente': 'secondary',
-    'Por hacer': 'secondary',
-    'En progreso': 'outline',
-    'En revisión': 'outline',
-    // Estados finales positivos
-    'Aprobado': 'default',
-    'Aprobada': 'default',
-    'Completada': 'default',
-    'Completado': 'default',
-    'Validada': 'default',
-    // Estados finales negativos
-    'Rechazado': 'destructive',
-    'Rechazada': 'destructive',
-    'Cancelado': 'destructive',
-    'Cancelada': 'destructive',
-  }
-  return variants[status] || 'outline'
 }
 </script>
