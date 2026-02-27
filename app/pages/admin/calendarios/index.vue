@@ -145,7 +145,7 @@
                   variant="ghost" 
                   size="sm"
                   class="text-destructive"
-                  @click="deleteCalendar(calendar)"
+                  @click="openDeleteModal(calendar)"
                   title="Eliminar calendario"
                 >
                   <Icon name="lucide:trash-2" class="h-4 w-4" />
@@ -448,6 +448,24 @@
         </form>
       </DialogContent>
     </Dialog>
+
+    <!-- Modal: Confirmar eliminar calendario -->
+    <ConfirmDialog
+      v-model:open="showDeleteModal"
+      title="Eliminar calendario"
+      icon="lucide:trash-2"
+      icon-class="text-destructive"
+      confirm-text="Eliminar"
+      confirm-variant="destructive"
+      :loading="saving"
+      @confirm="confirmDeleteCalendar"
+    >
+      <template #description>
+        ¿Estás seguro de que deseas eliminar el calendario <strong>"{{ calendarToDelete?.name }}"</strong>?
+        <br><br>
+        Esta acción eliminará también todos los eventos asociados y no se puede deshacer.
+      </template>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -455,6 +473,7 @@
 import { ref, computed, reactive, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import { useCalendarsList, useCalendarCrud, useCalendarTemplates } from '~/composables/useCalendarApi'
 
 definePageMeta({
   middleware: ['auth'],
@@ -465,9 +484,9 @@ definePageMeta({
 // Estado
 const showCreateModal = ref(false)
 const showTemplateModal = ref(false)
+const showDeleteModal = ref(false)
 const editingCalendar = ref<any>(null)
-const saving = ref(false)
-const cloning = ref(false)
+const calendarToDelete = ref<any>(null)
 const toggling = ref<string | null>(null)
 
 const filters = reactive({
@@ -502,6 +521,33 @@ const templateForm = reactive({
   maxEventsPerUser: null as number | null,
 })
 
+// Composables
+const { calendars, pending, refresh } = useCalendarsList({
+  type: toRef(filters, 'type'),
+  academicYear: toRef(filters, 'academicYear'),
+  isActive: toRef(filters, 'isActive')
+})
+
+const { 
+  createCalendar, 
+  updateCalendar, 
+  deleteCalendar: deleteCalendarApi, 
+  toggleCalendarActive,
+  isLoading: crudLoading 
+} = useCalendarCrud()
+
+const { 
+  templates, 
+  pending: templatesLoading, 
+  refresh: refreshTemplates, 
+  cloneTemplate,
+  isLoading: templateLoading 
+} = useCalendarTemplates()
+
+// Estados de carga computados
+const saving = computed(() => crudLoading.value)
+const cloning = computed(() => templateLoading.value)
+
 // Año académico actual
 const now = new Date()
 const currentYear = now.getFullYear()
@@ -517,25 +563,8 @@ const academicYears = computed(() => {
   return years
 })
 
-// Fetch calendarios
-const { data: response, pending, refresh } = useFetch(() => {
-  const params = new URLSearchParams()
-  if (filters.type) params.append('type', filters.type)
-  if (filters.academicYear) params.append('academicYear', filters.academicYear)
-  if (filters.isActive !== undefined) params.append('isActive', filters.isActive)
-  return `/api/calendars?${params.toString()}`
-}, {
-  watch: [filters],
-})
+// Templates computado
 
-// Fetch plantillas
-const { data: templatesResponse, pending: templatesLoading, refresh: refreshTemplates } = useFetch('/api/calendars/templates', {
-  immediate: false
-})
-
-// Extraer datos
-const calendars = computed(() => response.value?.data || [])
-const templates = computed(() => templatesResponse.value?.data || [])
 
 const selectedTemplate = computed(() => {
   return templates.value.find((t: any) => t.id === templateForm.templateId)
@@ -627,8 +656,6 @@ function cloneFromTemplate(template: any) {
 }
 
 async function saveCalendar() {
-  saving.value = true
-  
   try {
     const payload = {
       name: form.name,
@@ -648,32 +675,23 @@ async function saveCalendar() {
     }
     
     if (editingCalendar.value) {
-      await $fetch(`/api/calendars/${editingCalendar.value.id}`, {
-        method: 'PUT',
-        body: payload,
-      })
+      await updateCalendar(editingCalendar.value.id, payload)
+      toast.success('Calendario actualizado')
     } else {
-      await $fetch('/api/calendars', {
-        method: 'POST',
-        body: payload,
-      })
+      await createCalendar(payload)
+      toast.success('Calendario creado')
     }
     
     await refresh()
     showCreateModal.value = false
     editingCalendar.value = null
     resetForm()
-    toast.success(editingCalendar.value ? 'Calendario actualizado' : 'Calendario creado')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al guardar')
-  } finally {
-    saving.value = false
   }
 }
 
 async function saveFromTemplate() {
-  cloning.value = true
-  
   try {
     const payload = {
       name: templateForm.name,
@@ -687,10 +705,7 @@ async function saveFromTemplate() {
       maxEventsPerUser: templateForm.maxEventsPerUser,
     }
     
-    await $fetch(`/api/calendars/templates/${templateForm.templateId}/clone`, {
-      method: 'POST',
-      body: payload,
-    })
+    await cloneTemplate(templateForm.templateId, payload)
     
     await refresh()
     showTemplateModal.value = false
@@ -698,22 +713,26 @@ async function saveFromTemplate() {
     toast.success('Calendario creado desde plantilla')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al clonar la plantilla')
-  } finally {
-    cloning.value = false
   }
 }
 
-async function deleteCalendar(calendar: any) {
-  if (!confirm(`¿Eliminar el calendario "${calendar.name}"?`)) return
+function openDeleteModal(calendar: any) {
+  calendarToDelete.value = calendar
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteCalendar() {
+  if (!calendarToDelete.value) return
   
   try {
-    await $fetch(`/api/calendars/${calendar.id}`, {
-      method: 'DELETE',
-    })
+    await deleteCalendarApi(calendarToDelete.value.id)
     await refresh()
     toast.success('Calendario eliminado')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al eliminar')
+  } finally {
+    showDeleteModal.value = false
+    calendarToDelete.value = null
   }
 }
 
@@ -723,11 +742,7 @@ async function toggleActive(calendar: any) {
   toggling.value = calendar.id
   
   try {
-    await $fetch(`/api/calendars/${calendar.id}`, {
-      method: 'PUT',
-      body: { isActive: !calendar.isActive }
-    })
-    
+    await toggleCalendarActive(calendar.id, !calendar.isActive)
     await refresh()
     toast.success(calendar.isActive ? 'Calendario desactivado' : 'Calendario activado')
   } catch (error: any) {

@@ -303,6 +303,106 @@ El esquema está dividido en archivos modulares en `prisma/schema/`:
 
 ---
 
+## Componentes de Calendario
+
+Los componentes de calendario están ubicados en `app/components/calendar/`:
+
+### CalendarMonthCard
+Card individual que muestra un mes completo con eventos y selección de días.
+
+**Props principales:**
+- `year`, `month`: Año y mes a mostrar (mes 0-11)
+- `events`: Array de eventos (`CalendarMonthEvent[]`)
+- `selectedDays`: Días seleccionados (formato `YYYY-MM-DD`)
+- `selectable`: Permite seleccionar días (boolean)
+- `compact`: Modo compacto para grids (boolean)
+- `dayClass`: Función para clases CSS personalizadas
+
+**Emits:**
+- `day-click`, `day-mousedown`, `day-mouseenter`, `day-mouseup`
+
+### CalendarMonthGrid
+Grid de múltiples cards de meses para visualizar un rango de fechas completo.
+
+**Props principales:**
+- `startDate`, `endDate`: Rango de fechas a mostrar
+- `events`: Array de eventos
+- `columns`: Número de columnas en la grid (1-4, default: 3)
+- `selectable`: Permite selección de días
+
+**Métodos expuestos (vía ref):**
+- `clearSelection()`: Limpia la selección
+- `selectAll()`: Selecciona todos los días laborables
+- `getSelectedDays()`: Obtiene array de días seleccionados
+
+**Ejemplo de uso:**
+```vue
+<CalendarMonthGrid
+  ref="monthGrid"
+  start-date="2024-09-01"
+  end-date="2025-06-30"
+  :events="calendarEvents"
+  :selectable="true"
+  :columns="3"
+  @day-click="handleDayClick"
+/>
+```
+
+### SimpleCalendar
+Calendario mensual simple sin dependencias externas. Navegación por meses con eventos.
+
+### CalendarDnd
+Calendario con Schedule-X para funcionalidad drag-and-drop (asignación de días de libre disposición).
+
+### Componentes de Diálogo (`calendar/dialogs/`)
+
+Componentes reutilizables de modales:
+
+#### ConfirmDialog
+Modal de confirmación genérico para acciones destructivas.
+
+```vue
+<ConfirmDialog
+  v-model:open="showDeleteModal"
+  title="Eliminar elemento"
+  icon="lucide:trash-2"
+  icon-class="text-destructive"
+  confirm-variant="destructive"
+  :loading="isLoading"
+  @confirm="handleConfirm"
+>
+  <template #description>
+    ¿Estás seguro de que deseas eliminar este elemento?
+  </template>
+</ConfirmDialog>
+```
+
+#### EventFormDialog
+Formulario para crear/editar eventos de calendario.
+
+```vue
+<EventFormDialog
+  v-model:open="showModal"
+  :event="editingEvent"
+  :default-start-date="selectedDate"
+  @submit="handleSubmit"
+/>
+```
+
+#### ExamPeriodDialog
+Modal para marcar días como período de evaluación.
+
+```vue
+<ExamPeriodDialog
+  v-model:open="showExamModal"
+  :selected-days-count="selectedDays.length"
+  :selected-days-text="selectedDaysText"
+  @submit="handleExamSubmit"
+/>
+```
+
+---
+
 ## Convenciones de Código
 
 ### TypeScript / Vue

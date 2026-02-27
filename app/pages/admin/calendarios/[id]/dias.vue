@@ -29,7 +29,7 @@
         </Button>
         <Button 
           variant="secondary"
-          @click="clearDayFormat" 
+          @click="openClearFormatModal" 
           :disabled="selectedDays.length === 0"
         >
           <Icon name="lucide:eraser" class="h-4 w-4 mr-2" />
@@ -140,7 +140,7 @@
                     variant="ghost" 
                     size="icon"
                     class="h-5 w-5 -mr-1 text-destructive"
-                    @click="deleteEvent(event)"
+                    @click="openDeleteEventModal(event)"
                   >
                     <Icon name="lucide:trash-2" class="h-3 w-3" />
                   </Button>
@@ -151,242 +151,80 @@
         </CardContent>
       </Card>
 
-      <!-- Grid de meses (ancho completo) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-        <Card v-for="month in months" :key="month.key" class="overflow-hidden p-0 gap-0">
-          <div class="py-3 px-4 bg-muted/50">
-            <div class="text-base font-semibold capitalize text-center leading-none">{{ month.name }} {{ month.year }}</div>
-          </div>
-          <CardContent class="p-3">
-            <!-- Cabecera días de semana -->
-            <div class="grid grid-cols-7 gap-1 mb-1">
-              <div 
-                v-for="day in weekDays" 
-                :key="day"
-                class="text-center text-xs font-medium text-muted-foreground py-1"
-              >
-                {{ day }}
-              </div>
-            </div>
-            
-            <!-- Días del mes -->
-            <div class="grid grid-cols-7 gap-1">
-              <template v-for="(day, index) in month.days" :key="index">
-                <div
-                  v-if="day.empty"
-                  class="h-8"
-                />
-                <button
-                  v-else
-                  @click="toggleDay(day)"
-                  @mousedown="startDrag(day)"
-                  @mouseenter="dragOver(day)"
-                  @mouseup="endDrag"
-                  :class="[
-                    getDayClasses(day),
-                    selectedDays.includes(day.date) ? 'ring-2 ring-blue-600 ring-offset-1' : ''
-                  ]"
-                  :title="getDayTooltip(day)"
-                  class="h-8 text-xs rounded flex items-center justify-center transition-all cursor-pointer select-none relative"
-                >
-                  {{ day.day }}
-                  <!-- Indicador de eventos -->
-                  <div v-if="day.eventCount > 0" class="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                    <div 
-                      v-for="n in Math.min(day.eventCount, 3)" 
-                      :key="n"
-                      class="w-1 h-1 rounded-full bg-current opacity-60"
-                    />
-                  </div>
-                </button>
-              </template>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <!-- Grid de meses usando el componente CalendarMonthGrid -->
+      <CalendarMonthGrid
+        ref="monthGridRef"
+        :start-date="calendar?.startDate"
+        :end-date="calendar?.endDate"
+        :events="events"
+        :selectable="true"
+        :show-weekends="true"
+        :show-event-indicators="true"
+        :columns="4"
+        :day-class="getDayClass"
+        @day-click="handleDayClick"
+        @day-mousedown="handleDayMouseDown"
+        @day-mouseenter="handleDayMouseEnter"
+        @day-mouseup="handleDayMouseUp"
+      />
     </template>
 
     <!-- Modal: Marcar como exámenes -->
-    <Dialog v-model:open="showExamModal">
-      <DialogContent class="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Marcar como Periodo de Exámenes</DialogTitle>
-          <DialogDescription>
-            Se marcarán {{ selectedDays.length }} días como periodo de evaluación
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form @submit.prevent="markAsExams" class="space-y-4">
-          <div class="space-y-2">
-            <Label for="examType">Tipo de evaluación</Label>
-            <Input 
-              id="examType" 
-              v-model="examForm.type" 
-              placeholder="Ej: DAM/DAW, junio 1, extraordinarios..."
-              required
-            />
-            <p class="text-xs text-muted-foreground">
-              Este texto se mostrará en el título del evento
-            </p>
-          </div>
-          
-          <div class="space-y-2">
-            <Label for="examDescription">Descripción (opcional)</Label>
-            <Textarea 
-              id="examDescription" 
-              v-model="examForm.description" 
-              placeholder="Detalles adicionales..."
-              rows="2"
-            />
-          </div>
-          
-          <div class="bg-muted p-3 rounded text-sm">
-            <p class="font-medium mb-1">Días seleccionados:</p>
-            <p class="text-muted-foreground">
-              {{ selectedDaysText }}
-            </p>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" @click="showExamModal = false">
-              Cancelar
-            </Button>
-            <Button type="submit" :disabled="saving">
-              <Loader2 v-if="saving" class="h-4 w-4 mr-2 animate-spin" />
-              Marcar como exámenes
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ExamPeriodDialog
+      v-model:open="showExamModal"
+      :selected-days-count="selectedDays.length"
+      :selected-days-text="selectedDaysText"
+      :loading="isLoading"
+      @submit="handleExamSubmit"
+    />
 
     <!-- Modal: Crear/Editar Evento -->
-    <Dialog v-model:open="showEventModal">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{{ editingEvent ? 'Editar Evento' : 'Nuevo Evento' }}</DialogTitle>
-          <DialogDescription>
-            {{ editingEvent ? 'Modifica los datos del evento' : 'Añade un nuevo evento al calendario' }}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form @submit.prevent="saveEvent" class="space-y-4">
-          <div class="space-y-2">
-            <Label for="title">Título</Label>
-            <Input 
-              id="title" 
-              v-model="eventForm.title" 
-              placeholder="Día de libre disposición"
-              required
-            />
-          </div>
-          
-          <div class="space-y-2">
-            <Label for="eventDescription">Descripción</Label>
-            <Textarea 
-              id="eventDescription" 
-              v-model="eventForm.description" 
-              placeholder="Descripción del evento..."
-              rows="2"
-            />
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label for="eventType">Tipo</Label>
-              <Select v-model="eventForm.type">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HOLIDAY">Festivo / No lectivo</SelectItem>
-                  <SelectItem value="LECTIVE">Día lectivo</SelectItem>
-                  <SelectItem value="EVALUATION">Evaluación</SelectItem>
-                  <SelectItem value="FREE_DISPOSITION">Libre Disposición</SelectItem>
-                  <SelectItem value="MEETING">Reunión</SelectItem>
-                  <SelectItem value="DEADLINE">Fecha límite</SelectItem>
-                  <SelectItem value="OTHER">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div class="space-y-2">
-              <Label for="color">Color</Label>
-              <div class="flex gap-2">
-                <Input 
-                  id="color" 
-                  v-model="eventForm.color" 
-                  type="color"
-                  class="w-16 h-10 p-1"
-                />
-                <Input 
-                  v-model="eventForm.color" 
-                  placeholder="#3b82f6"
-                  class="flex-1"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label for="eventStartDate">Fecha inicio</Label>
-              <Input 
-                id="eventStartDate" 
-                v-model="eventForm.startDate" 
-                type="date"
-                required
-              />
-            </div>
-            
-            <div class="space-y-2">
-              <Label for="eventEndDate">Fecha fin (opcional)</Label>
-              <Input 
-                id="eventEndDate" 
-                v-model="eventForm.endDate" 
-                type="date"
-              />
-            </div>
-          </div>
-          
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-              <Switch id="isAllDay" v-model="eventForm.isAllDay" />
-              <Label for="isAllDay" class="cursor-pointer">Todo el día</Label>
-            </div>
-            
-            <div class="flex items-center gap-2">
-              <Switch id="eventIsActive" v-model="eventForm.isActive" />
-              <Label for="eventIsActive" class="cursor-pointer">Activo</Label>
-            </div>
-          </div>
-          
-          <div class="space-y-2">
-            <Label for="maxAssignments">Máximo de asignaciones (opcional)</Label>
-            <Input 
-              id="maxAssignments" 
-              v-model="eventForm.maxAssignments" 
-              type="number"
-              min="1"
-              placeholder="Sin límite"
-            />
-            <p class="text-xs text-muted-foreground">
-              Para eventos de libre disposición, límite de profesores que pueden seleccionar este día
-            </p>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" @click="showEventModal = false">
-              Cancelar
-            </Button>
-            <Button type="submit" :disabled="saving">
-              <Loader2 v-if="saving" class="h-4 w-4 mr-2 animate-spin" />
-              {{ editingEvent ? 'Guardar Cambios' : 'Crear Evento' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <EventFormDialog
+      v-model:open="showEventModal"
+      :event="editingEvent"
+      :default-start-date="selectedDays[0]"
+      :loading="isLoading"
+      @submit="handleEventSubmit"
+    />
+
+    <!-- Modal: Confirmar eliminar formato de días -->
+    <ConfirmDialog
+      v-model:open="showClearFormatModal"
+      title="Confirmar eliminación"
+      icon="lucide:alert-triangle"
+      icon-class="text-amber-500"
+      confirm-text="Eliminar formato"
+      confirm-variant="destructive"
+      :loading="isLoading"
+      @confirm="confirmClearDayFormat"
+    >
+      <template #description>
+        ¿Estás seguro de que deseas eliminar el formato de {{ selectedDays.length }} días seleccionados?
+        Esta acción eliminará todos los eventos asociados a estos días y no se puede deshacer.
+      </template>
+      <div class="bg-muted p-3 rounded-lg text-sm mt-4">
+        <p class="font-medium mb-1">Días afectados:</p>
+        <p class="text-muted-foreground">{{ selectedDaysText }}</p>
+      </div>
+    </ConfirmDialog>
+
+    <!-- Modal: Confirmar eliminar evento -->
+    <ConfirmDialog
+      v-model:open="showDeleteEventModal"
+      title="Eliminar evento"
+      description="¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer."
+      icon="lucide:trash-2"
+      icon-class="text-destructive"
+      confirm-text="Eliminar"
+      confirm-variant="destructive"
+      :loading="isLoading"
+      @confirm="confirmDeleteEvent"
+    >
+      <div class="bg-muted p-3 rounded-lg text-sm mt-4">
+        <p class="font-medium mb-1">Evento a eliminar:</p>
+        <p class="text-muted-foreground">{{ eventToDelete?.title }}</p>
+      </div>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -394,6 +232,7 @@
 import { ref, computed, reactive } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
+import type { CalendarDay } from '~/components/calendar/CalendarMonthCard.vue'
 
 definePageMeta({
   middleware: ['auth'],
@@ -411,32 +250,28 @@ const hasDragged = ref(false)
 const dragStartDay = ref<string | null>(null)
 const showExamModal = ref(false)
 const showEventModal = ref(false)
+const showClearFormatModal = ref(false)
+const showDeleteEventModal = ref(false)
 const editingEvent = ref<any>(null)
-const saving = ref(false)
+const eventToDelete = ref<any>(null)
+// Composables de API
+const { calendar, events, pending, refresh } = useCalendarData(calendarId)
+const { 
+  createHolidayEvents, 
+  createExamEvents, 
+  createEvent, 
+  updateEvent, 
+  deleteEvent,
+  isLoading 
+} = useCalendarApi(calendarId)
 
 const examForm = reactive({
   type: '',
   description: '',
 })
 
-const eventForm = reactive({
-  title: '',
-  description: '',
-  type: 'FREE_DISPOSITION',
-  startDate: '',
-  endDate: '',
-  isAllDay: true,
-  startTime: '',
-  endTime: '',
-  color: '#3b82f6',
-  maxAssignments: null as number | null,
-  isActive: true,
-})
-
-// Fetch calendario
-const { data: calendarData, pending, refresh } = useFetch(`/api/calendars/${calendarId}`)
-const calendar = computed(() => calendarData.value?.data)
-const events = computed(() => calendar.value?.events || [])
+// Referencia al componente CalendarMonthGrid
+const monthGridRef = ref<InstanceType<typeof CalendarMonthGrid> | null>(null)
 
 const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
@@ -459,73 +294,7 @@ const selectedDayEvents = computed(() => {
   })
 })
 
-// Generar meses del curso académico
-const months = computed(() => {
-  if (!calendar.value) return []
-  
-  const startDate = new Date(calendar.value.startDate)
-  const endDate = new Date(calendar.value.endDate)
-  
-  const monthsList = []
-  let current = new Date(startDate)
-  
-  while (current <= endDate) {
-    const year = current.getFullYear()
-    const month = current.getMonth()
-    const key = `${year}-${month}`
-    const name = current.toLocaleDateString('es-ES', { month: 'long' })
-    
-    // Generar días del mes
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    
-    // Ajustar para que empiece en lunes
-    let startDayOfWeek = firstDay.getDay() - 1
-    if (startDayOfWeek < 0) startDayOfWeek = 6
-    
-    const days = []
-    
-    // Días vacíos al inicio
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push({ empty: true })
-    }
-    
-    // Días del mes
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date = new Date(year, month, day)
-      const dateStr = date.toISOString().split('T')[0]
-      const dayOfWeek = date.getDay()
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-      
-      // Buscar eventos para este día
-      const dayEvents = events.value.filter((e: any) => {
-        const eventStart = e.startDate.split('T')[0]
-        const eventEnd = e.endDate ? e.endDate.split('T')[0] : eventStart
-        return dateStr >= eventStart && dateStr <= eventEnd
-      })
-      
-      const holidayEvent = dayEvents.find((e: any) => e.type === 'HOLIDAY')
-      const examEvent = dayEvents.find((e: any) => e.type === 'EVALUATION')
-      
-      days.push({
-        day,
-        date: dateStr,
-        isWeekend,
-        isHoliday: !!holidayEvent,
-        isExam: !!examEvent,
-        eventTitle: holidayEvent?.title || examEvent?.title || '',
-        eventCount: dayEvents.length,
-        empty: false
-      })
-    }
-    
-    monthsList.push({ key, name, year, days })
-    
-    current.setMonth(current.getMonth() + 1)
-  }
-  
-  return monthsList
-})
+
 
 const selectedDaysText = computed(() => {
   if (selectedDays.value.length === 0) return 'Ninguno'
@@ -535,8 +304,10 @@ const selectedDaysText = computed(() => {
     .join(', ')
 })
 
-// Helpers
-function getDayClasses(day: any) {
+
+
+// Helpers - Clase CSS personalizada para los días
+function getDayClass(day: CalendarDay): string {
   const isSelected = selectedDays.value.includes(day.date)
   
   if (isSelected) {
@@ -558,44 +329,48 @@ function getDayClasses(day: any) {
   return 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
 }
 
-function getDayTooltip(day: any) {
+function getDayTooltip(day: CalendarDay): string {
   if (day.isWeekend) return 'Fin de semana (no laborable)'
-  if (day.eventTitle) return day.eventTitle
-  if (day.eventCount > 0) return `${day.eventCount} evento(s)`
+  if (day.events.length > 0) {
+    const holiday = day.events.find((e: any) => e.type === 'HOLIDAY')
+    const exam = day.events.find((e: any) => e.type === 'EVALUATION')
+    return holiday?.title || exam?.title || `${day.events.length} evento(s)`
+  }
   return day.date
 }
 
-function toggleDay(day: any) {
+// Handlers para eventos del CalendarMonthGrid
+function handleDayClick(date: string, day: CalendarDay) {
   if (day.isWeekend) return
   
   if (hasDragged.value) return
   
-  const index = selectedDays.value.indexOf(day.date)
+  const index = selectedDays.value.indexOf(date)
   if (index === -1) {
-    selectedDays.value.push(day.date)
+    selectedDays.value.push(date)
   } else {
     selectedDays.value.splice(index, 1)
   }
 }
 
-function startDrag(day: any) {
+function handleDayMouseDown(date: string, day: CalendarDay) {
   if (day.isWeekend) return
   isDragging.value = true
   hasDragged.value = false
-  dragStartDay.value = day.date
+  dragStartDay.value = date
 }
 
-function dragOver(day: any) {
+function handleDayMouseEnter(date: string, day: CalendarDay) {
   if (!isDragging.value || day.isWeekend) return
   
   hasDragged.value = true
   
-  if (!selectedDays.value.includes(day.date)) {
-    selectedDays.value.push(day.date)
+  if (!selectedDays.value.includes(date)) {
+    selectedDays.value.push(date)
   }
 }
 
-function endDrag() {
+function handleDayMouseUp() {
   isDragging.value = false
   dragStartDay.value = null
   setTimeout(() => {
@@ -610,77 +385,42 @@ function clearSelection() {
 async function markAsHolidays() {
   if (selectedDays.value.length === 0) return
   
-  saving.value = true
   try {
     const ranges = groupConsecutiveDates(selectedDays.value.sort())
-    
-    for (const range of ranges) {
-      await $fetch(`/api/calendars/${calendarId}/events`, {
-        method: 'POST',
-        body: {
-          title: 'Festivo',
-          type: 'HOLIDAY',
-          startDate: range.start,
-          endDate: range.end,
-          isAllDay: true,
-          color: '#EF4444',
-          isActive: true
-        }
-      })
-    }
+    await createHolidayEvents(ranges)
     
     await refresh()
     selectedDays.value = []
     toast.success('Días marcados como festivos')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al guardar')
-  } finally {
-    saving.value = false
   }
 }
 
-async function markAsExams() {
+async function handleExamSubmit(data: { type: string; description: string }) {
   if (selectedDays.value.length === 0) return
   
-  saving.value = true
   try {
     const ranges = groupConsecutiveDates(selectedDays.value.sort())
-    
-    for (const range of ranges) {
-      await $fetch(`/api/calendars/${calendarId}/events`, {
-        method: 'POST',
-        body: {
-          title: `Evaluación: ${examForm.type}`,
-          description: examForm.description,
-          type: 'EVALUATION',
-          startDate: range.start,
-          endDate: range.end,
-          isAllDay: true,
-          color: '#F59E0B',
-          isActive: true
-        }
-      })
-    }
+    await createExamEvents(ranges, data.type, data.description)
     
     await refresh()
     selectedDays.value = []
-    examForm.type = ''
-    examForm.description = ''
     showExamModal.value = false
     toast.success('Días marcados como periodo de evaluación')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al guardar')
-  } finally {
-    saving.value = false
   }
 }
 
-async function clearDayFormat() {
+function openClearFormatModal() {
   if (selectedDays.value.length === 0) return
+  showClearFormatModal.value = true
+}
+
+async function confirmClearDayFormat() {
+  showClearFormatModal.value = false
   
-  if (!confirm(`¿Eliminar el formato de ${selectedDays.value.length} días seleccionados?`)) return
-  
-  saving.value = true
   try {
     const eventsToDelete = events.value.filter((event: any) => {
       const eventStart = event.startDate.split('T')[0]
@@ -692,9 +432,7 @@ async function clearDayFormat() {
     })
     
     for (const event of eventsToDelete) {
-      await $fetch(`/api/calendars/${calendarId}/events/${event.id}`, {
-        method: 'DELETE'
-      })
+      await deleteEvent(event.id)
     }
     
     await refresh()
@@ -702,93 +440,55 @@ async function clearDayFormat() {
     toast.success('Formato eliminado de los días seleccionados')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al eliminar el formato')
-  } finally {
-    saving.value = false
   }
 }
 
 // CRUD de eventos individuales
 function openCreateEventModal() {
   editingEvent.value = null
-  resetEventForm()
   showEventModal.value = true
-}
-
-function resetEventForm() {
-  eventForm.title = ''
-  eventForm.description = ''
-  eventForm.type = 'FREE_DISPOSITION'
-  eventForm.startDate = selectedDays.value[0] || ''
-  eventForm.endDate = ''
-  eventForm.isAllDay = true
-  eventForm.startTime = ''
-  eventForm.endTime = ''
-  eventForm.color = '#3b82f6'
-  eventForm.maxAssignments = null
-  eventForm.isActive = true
 }
 
 function editEvent(event: any) {
   editingEvent.value = event
-  eventForm.title = event.title
-  eventForm.description = event.description || ''
-  eventForm.type = event.type
-  eventForm.startDate = event.startDate.split('T')[0]
-  eventForm.endDate = event.endDate ? event.endDate.split('T')[0] : ''
-  eventForm.isAllDay = event.isAllDay
-  eventForm.startTime = event.startTime || ''
-  eventForm.endTime = event.endTime || ''
-  eventForm.color = event.color || '#3b82f6'
-  eventForm.maxAssignments = event.maxAssignments
-  eventForm.isActive = event.isActive
   showEventModal.value = true
 }
 
-async function saveEvent() {
-  saving.value = true
-  
+async function handleEventSubmit(payload: any) {
   try {
-    const payload = {
-      ...eventForm,
-      maxAssignments: eventForm.maxAssignments ? parseInt(eventForm.maxAssignments as any) : undefined,
-    }
-    
     if (editingEvent.value) {
-      await $fetch(`/api/calendars/${calendarId}/events/${editingEvent.value.id}`, {
-        method: 'PUT',
-        body: payload,
-      })
+      await updateEvent(editingEvent.value.id, payload)
       toast.success('Evento actualizado correctamente')
     } else {
-      await $fetch(`/api/calendars/${calendarId}/events`, {
-        method: 'POST',
-        body: payload,
-      })
+      await createEvent(payload)
       toast.success('Evento creado correctamente')
     }
     
     await refresh()
     showEventModal.value = false
     editingEvent.value = null
-    resetEventForm()
   } catch (error: any) {
     toast.error(error.data?.message || `Error al ${editingEvent.value ? 'actualizar' : 'crear'} el evento`)
-  } finally {
-    saving.value = false
   }
 }
 
-async function deleteEvent(event: any) {
-  if (!confirm(`¿Eliminar el evento "${event.title}"?`)) return
+function openDeleteEventModal(event: any) {
+  eventToDelete.value = event
+  showDeleteEventModal.value = true
+}
+
+async function confirmDeleteEvent() {
+  if (!eventToDelete.value) return
+  showDeleteEventModal.value = false
   
   try {
-    await $fetch(`/api/calendars/${calendarId}/events/${event.id}`, {
-      method: 'DELETE'
-    })
+    await deleteEvent(eventToDelete.value.id)
     await refresh()
     toast.success('Evento eliminado correctamente')
   } catch (error: any) {
     toast.error(error.data?.message || 'Error al eliminar el evento')
+  } finally {
+    eventToDelete.value = null
   }
 }
 
