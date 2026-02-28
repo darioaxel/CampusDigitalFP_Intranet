@@ -93,41 +93,7 @@
         </CardContent>
       </Card>
 
-      <!-- Lista de eventos -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-lg">Eventos ({{ events.length }})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div v-if="!events.length" class="text-center py-8 text-muted-foreground">
-            No hay eventos en este calendario
-          </div>
-          <div v-else class="space-y-3">
-            <div 
-              v-for="event in events" 
-              :key="event.id"
-              class="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-            >
-              <div 
-                class="w-4 h-4 rounded-full mt-0.5 shrink-0" 
-                :style="{ backgroundColor: event.color || '#3b82f6' }"
-              ></div>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium">{{ event.title }}</div>
-                <div class="text-sm text-muted-foreground">
-                  {{ formatEventDate(event) }}
-                </div>
-                <div v-if="event.description" class="text-sm text-muted-foreground mt-1">
-                  {{ event.description }}
-                </div>
-              </div>
-              <Badge :variant="getEventTypeVariant(event.type)" class="text-xs shrink-0">
-                {{ getEventTypeLabel(event.type) }}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
     </template>
   </div>
 </template>
@@ -188,32 +154,6 @@ const calendarEvents = computed(() => {
 })
 
 // Helpers
-function getEventTypeLabel(type: string) {
-  const labels: Record<string, string> = {
-    'HOLIDAY': 'Festivo',
-    'LECTIVE': 'Lectivo',
-    'EVALUATION': 'Evaluación',
-    'FREE_DISPOSITION': 'Libre Disp.',
-    'MEETING': 'Reunión',
-    'DEADLINE': 'Fecha límite',
-    'OTHER': 'Otro',
-  }
-  return labels[type] || type
-}
-
-function getEventTypeVariant(type: string): any {
-  const variants: Record<string, any> = {
-    'HOLIDAY': 'destructive',
-    'LECTIVE': 'default',
-    'EVALUATION': 'secondary',
-    'FREE_DISPOSITION': 'outline',
-    'MEETING': 'default',
-    'DEADLINE': 'secondary',
-    'OTHER': 'secondary',
-  }
-  return variants[type] || 'default'
-}
-
 function formatDateRange(start: string, end: string) {
   if (!start || !end) return ''
   const startDate = new Date(start)
