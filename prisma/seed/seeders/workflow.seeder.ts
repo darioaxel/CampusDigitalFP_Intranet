@@ -10,15 +10,110 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   for (const workflowData of allWorkflows) {
     // Verificar si el workflow ya existe
     const existingWorkflow = await prisma.workflowDefinition.findUnique({
-      where: { code: workflowData.code }
+      where: { code: workflowData.code },
+      include: { states: true, transitions: true }
     })
 
     if (existingWorkflow) {
-      console.log(`  ✓ Workflow ya existe: ${workflowData.name}`)
+      console.log(`  🔄 Actualizando workflow existente: ${workflowData.name}`)
+      
+      // Actualizar información básica del workflow
+      await prisma.workflowDefinition.update({
+        where: { id: existingWorkflow.id },
+        data: {
+          name: workflowData.name,
+          description: workflowData.description,
+          version: workflowData.version,
+          isActive: workflowData.isActive
+        }
+      })
+
+      // Sincronizar estados: crear nuevos que no existan
+      for (const stateData of workflowData.states) {
+        const existingState = existingWorkflow.states.find(s => s.code === stateData.code)
+        
+        if (!existingState) {
+          // Crear nuevo estado
+          await prisma.workflowState.create({
+            data: {
+              workflowId: existingWorkflow.id,
+              code: stateData.code,
+              name: stateData.name,
+              color: stateData.color,
+              order: stateData.order,
+              isInitial: stateData.isInitial || false,
+              isFinal: stateData.isFinal || false,
+              isTerminal: stateData.isTerminal || false
+            }
+          })
+          console.log(`    ✓ Nuevo estado creado: ${stateData.name}`)
+        } else {
+          // Actualizar estado existente
+          await prisma.workflowState.update({
+            where: { id: existingState.id },
+            data: {
+              name: stateData.name,
+              color: stateData.color,
+              order: stateData.order,
+              isInitial: stateData.isInitial || false,
+              isFinal: stateData.isFinal || false,
+              isTerminal: stateData.isTerminal || false
+            }
+          })
+        }
+      }
+
+      // Recargar estados para obtener los IDs actualizados
+      const updatedStates = await prisma.workflowState.findMany({
+        where: { workflowId: existingWorkflow.id }
+      })
+
+      // Sincronizar transiciones: crear nuevas que no existan
+      for (const transitionData of workflowData.transitions) {
+        const fromState = updatedStates.find(s => s.code === transitionData.fromCode)
+        const toState = updatedStates.find(s => s.code === transitionData.toCode)
+
+        if (!fromState || !toState) {
+          console.warn(`    ⚠️ Estados no encontrados para transición: ${transitionData.fromCode} -> ${transitionData.toCode}`)
+          continue
+        }
+
+        // Verificar si la transición ya existe
+        const existingTransition = existingWorkflow.transitions.find(
+          t => t.fromStateId === fromState.id && t.toStateId === toState.id
+        )
+
+        if (!existingTransition) {
+          // Crear nueva transición
+          await prisma.workflowTransition.create({
+            data: {
+              workflowId: existingWorkflow.id,
+              fromStateId: fromState.id,
+              toStateId: toState.id,
+              allowedRoles: JSON.stringify(transitionData.allowedRoles),
+              requiresComment: transitionData.requiresComment || false,
+              autoActions: transitionData.autoActions ? JSON.stringify(transitionData.autoActions) : null
+            }
+          })
+          console.log(`    ✓ Nueva transición creada: ${transitionData.fromCode} -> ${transitionData.toCode}`)
+        } else {
+          // Actualizar transición existente
+          await prisma.workflowTransition.update({
+            where: { id: existingTransition.id },
+            data: {
+              allowedRoles: JSON.stringify(transitionData.allowedRoles),
+              requiresComment: transitionData.requiresComment || false,
+              autoActions: transitionData.autoActions ? JSON.stringify(transitionData.autoActions) : null
+            }
+          })
+        }
+      }
+
+      console.log(`  ✓ Workflow actualizado: ${workflowData.name}`)
       continue
     }
 
-    // Crear el workflow con sus estados
+    // Crear el workflow con sus estados (código original para workflows nuevos)
     const workflow = await prisma.workflowDefinition.create({
       data: {
         code: workflowData.code,
@@ -68,5 +163,4 @@ export async function seedWorkflows(prisma: PrismaClient): Promise<void> {
   }
 
   console.log('✅ Workflows seedeados correctamente')
-  console.log('⚠️  NOTA: Solo se ha creado el workflow de solicitud NEW_USER. Otros workflows de solicitud están deshabilitados para pruebas.')
 }

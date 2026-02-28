@@ -10,7 +10,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Ban
+  Ban,
+  Trash2,
+  AlertTriangle
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
@@ -19,7 +21,7 @@ definePageMeta({
   layout: 'dashboard',
 })
 
-// Estado
+// Estado del calendario
 const currentDate = ref(new Date())
 const selectedDate = ref<string | null>(null)
 const selectedDayData = ref<any>(null)
@@ -27,12 +29,91 @@ const reason = ref('')
 const submitting = ref(false)
 const showConfirmModal = ref(false)
 
+// Estado para solicitudes y eliminación
+const cancellingRequestId = ref<string | null>(null)
+const showDeleteModal = ref(false)
+const requestToDelete = ref<any>(null)
+const deletingRequest = ref(false)
+
 // Cargar datos del calendario
-const { data: calendarData, pending, refresh } = await useFetch('/api/calendars/free-disposition')
+const { data: calendarData, pending, refresh: refreshCalendar } = await useFetch('/api/calendars/free-disposition')
+
+// Cargar solicitudes del usuario
+const { data: myRequestsData, refresh: refreshRequests } = await useFetch('/api/requests/my-requests?type=FREE_DAY&include=all')
 
 const calendar = computed(() => calendarData.value?.data?.calendar)
 const days = computed(() => calendarData.value?.data?.days || [])
 const myStats = computed(() => calendarData.value?.data?.myStats || { approved: 0, pending: 0, used: 0, remaining: 4, hasReachedLimit: false })
+
+// Solicitudes activas del usuario (pendientes o aprobadas)
+const myActiveRequests = computed(() => {
+  const requests = myRequestsData.value?.data || []
+  return requests
+    .filter((req: any) => {
+      const statusCode = req.currentState?.code
+      return statusCode === 'pending' || statusCode === 'approved'
+    })
+    .sort((a: any, b: any) => new Date(a.requestedDate).getTime() - new Date(b.requestedDate).getTime())
+})
+
+// Función para formatear fecha
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+// Función para obtener clase de color según estado
+const getStatusColorClass = (statusCode: string) => {
+  switch (statusCode) {
+    case 'approved':
+      return 'bg-green-100 text-green-700 border-green-300'
+    case 'pending':
+      return 'bg-amber-100 text-amber-700 border-amber-300'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-300'
+  }
+}
+
+// Abrir modal de confirmación de eliminación
+const openDeleteModal = (request: any) => {
+  requestToDelete.value = request
+  showDeleteModal.value = true
+}
+
+// Cancelar/eliminar solicitud
+const confirmDeleteRequest = async () => {
+  if (!requestToDelete.value) return
+  
+  deletingRequest.value = true
+  try {
+    await $fetch(`/api/requests/${requestToDelete.value.id}/cancel`, {
+      method: 'POST',
+      body: {
+        reason: 'Cancelada por el usuario desde el calendario'
+      }
+    })
+    
+    // Refrescar datos
+    await Promise.all([refreshCalendar(), refreshRequests()])
+    
+    showDeleteModal.value = false
+    requestToDelete.value = null
+    
+    toast.success('Solicitud cancelada', {
+      description: 'La solicitud ha sido cancelada correctamente.'
+    })
+  } catch (error: any) {
+    toast.error('Error', {
+      description: error.data?.message || 'No se pudo cancelar la solicitud'
+    })
+  } finally {
+    deletingRequest.value = false
+  }
+}
 
 // Calcular límites del curso académico
 const minDate = computed(() => {
@@ -185,7 +266,7 @@ const submitRequest = async () => {
       }
     })
     
-    await refresh()
+    await Promise.all([refreshCalendar(), refreshRequests()])
     showConfirmModal.value = false
     selectedDate.value = null
     selectedDayData.value = null
@@ -442,6 +523,48 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
         <!-- Panel lateral -->
         <div class="space-y-6">
+          <!-- Mis Solicitudes -->
+          <Card v-if="myActiveRequests.length > 0">
+            <CardHeader>
+              <CardTitle class="text-lg flex items-center gap-2">
+                <Calendar class="h-5 w-5" />
+                Mis Solicitudes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-3">
+                <div 
+                  v-for="request in myActiveRequests" 
+                  :key="request.id"
+                  class="flex items-center justify-between p-3 rounded-lg border"
+                  :class="getStatusColorClass(request.currentState?.code)"
+                >
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium text-sm">
+                      {{ formatDate(request.requestedDate) }}
+                    </p>
+                    <p class="text-xs opacity-75">
+                      {{ request.currentState?.name }}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    :disabled="deletingRequest && requestToDelete?.id === request.id"
+                    @click="openDeleteModal(request)"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p class="text-xs text-muted-foreground mt-3">
+                Haz clic en el icono de papelera para cancelar una solicitud.
+                Las solicitudes aprobadas se marcarán como "Eliminada por usuario".
+              </p>
+            </CardContent>
+          </Card>
+
           <!-- Información -->
           <Card>
             <CardHeader>
@@ -529,6 +652,58 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
             <Loader2 v-if="submitting" class="w-4 h-4 mr-2 animate-spin" />
             <CheckCircle v-else class="w-4 h-4 mr-2" />
             Confirmar solicitud
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Modal de confirmación de eliminación -->
+    <Dialog v-model:open="showDeleteModal">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2 text-destructive">
+            <AlertTriangle class="h-5 w-5" />
+            {{ requestToDelete?.currentState?.code === 'approved' ? 'Cancelar día aprobado' : 'Eliminar solicitud' }}
+          </DialogTitle>
+          <DialogDescription>
+            <template v-if="requestToDelete?.currentState?.code === 'approved'">
+              Estás a punto de cancelar un día que ya ha sido <strong>aprobado</strong>. 
+              Esta acción cambiará el estado a "Eliminada por usuario" y liberará el día.
+            </template>
+            <template v-else>
+              Estás a punto de eliminar una solicitud <strong>pendiente</strong>.
+              Esta acción eliminará completamente la solicitud del sistema.
+            </template>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="bg-muted p-3 rounded-md">
+          <p class="text-sm text-muted-foreground">Fecha de la solicitud:</p>
+          <p class="font-medium">
+            {{ requestToDelete ? formatDate(requestToDelete.requestedDate) : '' }}
+          </p>
+        </div>
+
+        <Alert v-if="requestToDelete?.currentState?.code === 'approved'" variant="destructive">
+          <AlertCircle class="h-4 w-4" />
+          <AlertTitle>Importante</AlertTitle>
+          <AlertDescription>
+            Al cancelar un día aprobado, se notificará a administración y el día volverá a estar disponible para otros profesores.
+          </AlertDescription>
+        </Alert>
+
+        <DialogFooter>
+          <Button variant="outline" @click="showDeleteModal = false" :disabled="deletingRequest">
+            Cancelar
+          </Button>
+          <Button 
+            variant="destructive" 
+            @click="confirmDeleteRequest" 
+            :disabled="deletingRequest"
+          >
+            <Loader2 v-if="deletingRequest" class="w-4 h-4 mr-2 animate-spin" />
+            <Trash2 v-else class="w-4 h-4 mr-2" />
+            {{ requestToDelete?.currentState?.code === 'approved' ? 'Cancelar día aprobado' : 'Eliminar solicitud' }}
           </Button>
         </DialogFooter>
       </DialogContent>

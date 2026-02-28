@@ -38,11 +38,14 @@ export const freeDayWorkflow = {
       states: [
           { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
           { code: 'approved', name: 'Aprobada', color: 'green', order: 2, isFinal: true },
-          { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true }
+          { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true },
+          { code: 'cancelled_by_user', name: 'Eliminada por usuario', color: 'gray', order: 4, isFinal: true, isTerminal: true }
       ],
       transitions: [
           { fromCode: 'pending', toCode: 'approved', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
-          { fromCode: 'pending', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] }
+          { fromCode: 'pending', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
+          { fromCode: 'pending', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification'] },
+          { fromCode: 'approved', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification', 'remove_calendar_event'] }
       ]      
   }
 

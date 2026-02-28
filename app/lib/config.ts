@@ -120,11 +120,12 @@ export const siteConfig = {
           ],
         },   
         {
-          title: "Gestión Calendarios",
+          title: "Gestión Calendarios y Horarios",
           url: "/admin/calendarios",
           icon: "lucide:calendar-days",
           items: [
             { title: "Gestionar Calendarios", url: "/admin/calendarios" },
+            { title: "Gestionar Horarios", url: "/admin/horarios" },
           ],
         }        
       ]

@@ -431,6 +431,10 @@ export class WorkflowEngine {
       case 'update_calendar':
         await this.updateCalendar(entity, context, tx)
         break
+
+      case 'remove_calendar_event':
+        await this.removeCalendarEvent(entity, context, tx)
+        break
         
       case 'notify_creator':
         await this.notifyCreator(entity, context, tx)
@@ -477,6 +481,27 @@ export class WorkflowEngine {
             date: new Date(ctx.requestedDate),
             type: 'FREE_DAY',
             title: 'Día de libre disposición'
+          }
+        })
+      }
+    }
+  }
+
+  private async removeCalendarEvent(
+    entity: any,
+    context: TransitionContext,
+    tx: any
+  ): Promise<void> {
+    // Solo para cancelaciones de días libres aprobados
+    if (entity.workflow?.code === 'request_free_day' && entity.currentState?.code === 'cancelled_by_user') {
+      // Parsear contexto para obtener fecha
+      const ctx = entity.context ? JSON.parse(entity.context) : {}
+      if (ctx.requestedDate) {
+        await tx.userCalendarEvent.deleteMany({
+          where: {
+            userId: entity.requesterId,
+            date: new Date(ctx.requestedDate),
+            type: 'FREE_DAY'
           }
         })
       }
