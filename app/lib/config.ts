@@ -83,7 +83,7 @@ export const siteConfig = {
           icon: "lucide:book-open",
           items: [
             { title: "Días Libre Disposición", url: "/usuario/solicitudes/libre-disposicion" },
-            { title: "Permisos y bajas", url: "/usuario/solicitudes/permisos-bajas" },
+            { title: "Permisos y bajas", url: "/usuario/solicitudes/comunicar-baja" },
           ],
         },              
         {
@@ -115,7 +115,8 @@ export const siteConfig = {
           url: "/admin/solicitudes/gestion",
           icon: "lucide:clipboard-list",
           items: [
-            { title: "Gestionar Solicitudes", url: "/admin/solicitudes/gestion" },
+            { title: "Workflows", url: "/admin/solicitudes/gestion" },
+            { title: "Gestión de Bajas", url: "/admin/solicitudes/bajas" },
           ],
         },   
         {

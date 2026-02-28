@@ -136,6 +136,39 @@
                 </div>
               </template>
 
+              <!-- Datos específicos SICK_LEAVE -->
+              <template v-if="requestType === 'SICK_LEAVE'">
+                <div class="border-t pt-4 mt-4">
+                  <h4 class="font-medium mb-3">Detalles de la Baja</h4>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="text-xs text-muted-foreground">Tipo de baja</label>
+                      <p class="font-medium">{{ formatSickLeaveSubType(requestContext.subType) }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs text-muted-foreground">Estado del workflow</label>
+                      <p class="font-medium">{{ request.currentState?.name }}</p>
+                    </div>
+                    <div v-if="request.startDate">
+                      <label class="text-xs text-muted-foreground">Fecha inicio</label>
+                      <p class="font-medium">{{ formatDate(request.startDate) }}</p>
+                    </div>
+                    <div v-if="request.endDate && request.endDate !== request.startDate">
+                      <label class="text-xs text-muted-foreground">Fecha fin</label>
+                      <p class="font-medium">{{ formatDate(request.endDate) }}</p>
+                    </div>
+                    <div v-if="requestContext.dates?.length > 0" class="col-span-2">
+                      <label class="text-xs text-muted-foreground">Días afectados</label>
+                      <div class="flex flex-wrap gap-2 mt-1">
+                        <Badge v-for="date in requestContext.dates" :key="date" variant="outline">
+                          {{ new Date(date).toLocaleDateString('es-ES') }}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
               <!-- Datos específicos MEDICAL -->
               <template v-if="requestType === 'MEDICAL_APPOINTMENT'">
                 <div class="border-t pt-4 mt-4">
@@ -522,9 +555,23 @@ const formatRequestType = (type: string) => {
     'TRAINING': 'Formación',
     'OTHER': 'Otro',
     'NEW_USER': 'Alta de nuevo usuario',
-    'SCHEDULE_VALIDATION': 'Validación de horario'
+    'SCHEDULE_VALIDATION': 'Validación de horario',
+    'SICK_LEAVE': 'Comunicación de baja'
   }
   return types[type] || type
+}
+
+// Formatear subtipo de baja
+const formatSickLeaveSubType = (subType: string) => {
+  const types: Record<string, string> = {
+    'BAJA_MEDICA': 'Baja Médica',
+    'BAJA_MATERNIDAD': 'Baja por Maternidad/Paternidad',
+    'BAJA_RIESGO_EMBARAZO': 'Baja por Riesgo en el Embarazo',
+    'BAJA_ACCIDENTE_TRABAJO': 'Accidente de Trabajo',
+    'PERMISO_FUERZA_MAYOR': 'Permiso por Fuerza Mayor',
+    'OTRA': 'Otra'
+  }
+  return types[subType] || subType
 }
 
 const getStatusVariant = (status?: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
@@ -570,7 +617,12 @@ const canValidateDocument = (doc: any) => {
 const getTransitionLabel = (code?: string) => {
   const labels: Record<string, string> = {
     'approved': 'Validar',
-    'rejected': 'Rechazar'
+    'rejected': 'Rechazar',
+    'notified': 'Aceptar Notificación',
+    'pending_docs': 'Solicitar Documentación',
+    'pending_validation': 'Enviar a Validación',
+    'validated': 'Validar Solicitud',
+    'pending_notification': 'Marcar como Pendiente'
   }
   return labels[code || ''] || code || 'Continuar'
 }

@@ -1,13 +1,13 @@
 // server/api/requests/[id]/documents.post.ts
-// Subir documento a una solicitud con versionado
+// Subir documento a una solicitud - soporta multipart/form-data y JSON
 
 import { z } from 'zod'
-import { canManageRequests } from '../../../utils/workflow/stateMachine'
 
-const documentSchema = z.object({
+// Schema para JSON (modo legacy)
+const jsonSchema = z.object({
   fileId: z.string().uuid(),
   notes: z.string().max(1000).optional(),
-  replaceDocumentId: z.string().uuid().optional(), // Para reemplazar un documento inválido
+  replaceDocumentId: z.string().uuid().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -30,34 +30,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Validar body
-  const body = await readBody(event)
-  const validation = documentSchema.safeParse(body)
-  
-  if (!validation.success) {
-    throw createError({
-      statusCode: 400,
-      message: 'Datos inválidos',
-      data: validation.error.flatten(),
-    })
-  }
-
-  const { fileId, notes, replaceDocumentId } = validation.data
-
   try {
     // Verificar que la solicitud existe
     const request = await prisma.request.findUnique({
       where: { id: requestId },
       include: {
         currentState: true,
-        documents: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            status: true,
-          },
-        },
       },
     })
 
@@ -70,9 +48,8 @@ export default defineEventHandler(async (event) => {
 
     // Verificar permisos
     const isRequester = request.requesterId === session.user.id
-    const isAdmin = canManageRequests(session.user.role)
+    const isAdmin = ['ADMIN', 'ROOT'].includes(session.user.role)
     
-    // Solo el requester puede subir documentos (o admin en casos especiales)
     if (!isRequester && !isAdmin) {
       throw createError({
         statusCode: 403,
@@ -80,8 +57,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verificar que la solicitud acepte documentos (usando currentState)
-    const allowedStateCodes = ['pending', 'communicated', 'rejected', 'docs_submitted', 'pending_docs']
+    // Verificar que la solicitud acepta documentos
+    const allowedStateCodes = ['pending', 'communicated', 'rejected', 'docs_submitted', 'pending_docs', 'notified']
     if (!allowedStateCodes.includes(request.currentState?.code || '')) {
       throw createError({
         statusCode: 400,
@@ -89,28 +66,109 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verificar que el archivo existe
-    const file = await prisma.file.findUnique({
-      where: { id: fileId },
-    })
+    // Determinar tipo de contenido
+    const contentType = getHeader(event, 'content-type') || ''
+    const isMultipart = contentType.includes('multipart/form-data')
 
-    if (!file) {
-      throw createError({
-        statusCode: 404,
-        message: 'Archivo no encontrado',
+    let fileId: string
+    let notes: string | undefined
+    let replaceDocumentId: string | undefined
+
+    if (isMultipart) {
+      // Modo multipart - subir archivo directamente
+      const formData = await readMultipartFormData(event)
+      
+      if (!formData || formData.length === 0) {
+        throw createError({
+          statusCode: 400,
+          message: 'No se encontró ningún archivo',
+        })
+      }
+
+      const fileField = formData.find(f => f.name === 'file')
+      const notesField = formData.find(f => f.name === 'notes')
+      const replaceField = formData.find(f => f.name === 'replaceDocumentId')
+
+      if (!fileField || !fileField.data) {
+        throw createError({
+          statusCode: 400,
+          message: 'Archivo requerido',
+        })
+      }
+
+      // Validar tipo de archivo (solo PDF)
+      const fileType = fileField.type || 'application/octet-stream'
+      if (fileType !== 'application/pdf') {
+        throw createError({
+          statusCode: 400,
+          message: 'Solo se permiten archivos PDF',
+        })
+      }
+
+      // Validar tamaño (máx 10MB)
+      const maxSize = 10 * 1024 * 1024
+      if (fileField.data.length > maxSize) {
+        throw createError({
+          statusCode: 400,
+          message: 'El archivo excede el tamaño máximo de 10MB',
+        })
+      }
+
+      notes = notesField?.data?.toString()
+      replaceDocumentId = replaceField?.data?.toString()
+
+      // Crear el registro de archivo
+      const fileRecord = await prisma.file.create({
+        data: {
+          name: fileField.filename || 'documento.pdf',
+          mime: 'application/pdf',
+          size: fileField.data.length,
+          data: fileField.data,
+          uploadedById: session.user.id,
+        },
       })
-    }
 
-    // Verificar que el archivo no esté ya asociado a otro documento
-    const existingDocWithFile = await prisma.requestDocument.findUnique({
-      where: { fileId },
-    })
+      fileId = fileRecord.id
+    } else {
+      // Modo JSON - usar fileId existente
+      const body = await readBody(event)
+      const validation = jsonSchema.safeParse(body)
+      
+      if (!validation.success) {
+        throw createError({
+          statusCode: 400,
+          message: 'Datos inválidos',
+          data: validation.error.flatten(),
+        })
+      }
 
-    if (existingDocWithFile) {
-      throw createError({
-        statusCode: 400,
-        message: 'Este archivo ya está asociado a otro documento',
+      fileId = validation.data.fileId
+      notes = validation.data.notes
+      replaceDocumentId = validation.data.replaceDocumentId
+
+      // Verificar que el archivo existe
+      const file = await prisma.file.findUnique({
+        where: { id: fileId },
       })
+
+      if (!file) {
+        throw createError({
+          statusCode: 404,
+          message: 'Archivo no encontrado',
+        })
+      }
+
+      // Verificar que el archivo no esté ya asociado
+      const existingDoc = await prisma.requestDocument.findUnique({
+        where: { fileId },
+      })
+
+      if (existingDoc) {
+        throw createError({
+          statusCode: 400,
+          message: 'Este archivo ya está asociado a otro documento',
+        })
+      }
     }
 
     // Si es un reemplazo, verificar el documento anterior
@@ -130,8 +188,7 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      // Solo se pueden reemplazar documentos inválidos o pendientes
-      if (docToReplace.status !== 'INVALID' && docToReplace.status !== 'PENDING') {
+      if (docToReplace.status !== 'INVALID' && docToReplace.status !== 'PENDING' && docToReplace.status !== 'SUBMITTED') {
         throw createError({
           statusCode: 400,
           message: `No se puede reemplazar un documento en estado ${docToReplace.status}`,
@@ -143,6 +200,18 @@ export default defineEventHandler(async (event) => {
 
     // Crear el documento en transacción
     const result = await prisma.$transaction(async (tx) => {
+      // Obtener info del archivo
+      const file = await tx.file.findUnique({
+        where: { id: fileId },
+      })
+
+      if (!file) {
+        throw createError({
+          statusCode: 404,
+          message: 'Archivo no encontrado',
+        })
+      }
+
       // Crear nuevo documento
       const newDocument = await tx.requestDocument.create({
         data: {
@@ -151,7 +220,6 @@ export default defineEventHandler(async (event) => {
           fileId,
           notes,
           status: 'SUBMITTED',
-          // Si hay reemplazo, establecer la relación
           ...(replacedDocId && {
             replaces: {
               connect: { id: replacedDocId }
@@ -187,7 +255,6 @@ export default defineEventHandler(async (event) => {
           },
         })
 
-        // Crear log del reemplazo
         await tx.activityLog.create({
           data: {
             actorId: session.user!.id,
@@ -229,10 +296,8 @@ export default defineEventHandler(async (event) => {
       success: true,
       data: result,
     }
-  } catch (error) {
-    if (error instanceof Error && 'statusCode' in error) {
-      throw error
-    }
+  } catch (error: any) {
+    if (error.statusCode) throw error
     
     console.error('Error uploading document:', error)
     throw createError({

@@ -41,6 +41,7 @@ export function formatSubType(subType: string): string {
     OTHER: 'Otro',
     NEW_USER: 'Nuevo usuario',
     SCHEDULE_VALIDATION: 'Validación horario',
+    SICK_LEAVE: 'Comunicación baja',
     // Task types
     SYLLABUS_CREATION: 'Programación',
     MEETING: 'Reunión',
@@ -60,6 +61,7 @@ export function getSubTypeColor(subType: string): string {
     OTHER: '#6b7280',
     NEW_USER: '#f59e0b',
     SCHEDULE_VALIDATION: '#ec4899',
+    SICK_LEAVE: '#dc2626',
     // Task types - tonos naranjas/rojos
     SYLLABUS_CREATION: '#ef4444',
     MEETING: '#6366f1',

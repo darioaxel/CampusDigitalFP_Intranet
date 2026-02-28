@@ -12,16 +12,19 @@ const REQUEST_TYPE_TO_WORKFLOW: Record<string, string> = {
   'TRAINING': 'request_standard',
   'OTHER': 'request_standard',
   'NEW_USER': 'request_new_user',
+  'SICK_LEAVE': 'request_sick_leave',
 }
 
 // Schema para solicitudes autenticadas
 const authenticatedRequestSchema = z.object({
-  type: z.enum(['FREE_DAY', 'MEDICAL_APPOINTMENT', 'LEAVE', 'TRAINING', 'OTHER']),
+  type: z.enum(['FREE_DAY', 'MEDICAL_APPOINTMENT', 'LEAVE', 'TRAINING', 'OTHER', 'SICK_LEAVE']),
   title: z.string().min(3).max(200),
   description: z.string().max(2000).optional(),
   requestedDate: z.string().datetime().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+  workflowCode: z.string().optional(), // Para usar workflow específico
+  context: z.record(z.any()).optional(), // Datos adicionales del contexto
 })
 
 // Schema para solicitud pública de nuevo usuario
@@ -217,7 +220,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Obtener el workflow correspondiente
-    const workflowCode = REQUEST_TYPE_TO_WORKFLOW[data.type]
+    const workflowCode = data.workflowCode || REQUEST_TYPE_TO_WORKFLOW[data.type]
     if (!workflowCode) {
       throw createError({
         statusCode: 400,
@@ -246,7 +249,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Preparar contexto según el tipo
-    const context: Record<string, any> = { type: data.type }
+    const context: Record<string, any> = { type: data.type, ...data.context }
 
     // Crear la solicitud
     const request = await prisma.request.create({

@@ -99,6 +99,7 @@
                 <SelectContent>
                   <SelectItem value="ALL">Todos</SelectItem>
                   <SelectItem value="FREE_DAY">Día libre</SelectItem>
+                  <SelectItem value="SICK_LEAVE">Comunicación baja</SelectItem>
                   <SelectItem value="MEDICAL_APPOINTMENT">Médica</SelectItem>
                   <SelectItem value="LEAVE">Permiso</SelectItem>
                   <SelectItem value="TRAINING">Formación</SelectItem>

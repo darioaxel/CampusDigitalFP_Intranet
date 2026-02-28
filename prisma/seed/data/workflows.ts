@@ -46,8 +46,44 @@ export const freeDayWorkflow = {
       ]      
   }
 
+// ========================================  
+// WORKFLOW: Comunicación de Bajas
+// ========================================
+// Flujo: Profesor → Admin → Profesor (docs) → Admin → Validado
+export const sickLeaveWorkflow = {
+  code: 'request_sick_leave',
+  name: 'Comunicación de Bajas',
+  description: 'Flujo para comunicar bajas laborales con justificación documental (Profesor → Admin)',
+  entityType: 'REQUEST',
+  version: 1,
+  isActive: true,
+  states: [
+    { code: 'pending_notification', name: 'Pendiente de Notificación', color: 'amber', order: 1, isInitial: true },
+    { code: 'notified', name: 'Notificado', color: 'blue', order: 2 },
+    { code: 'pending_docs', name: 'Esperando Documentación', color: 'amber', order: 3 },
+    { code: 'pending_validation', name: 'Esperando Validación', color: 'purple', order: 4 },
+    { code: 'validated', name: 'Validado', color: 'green', order: 5, isFinal: true },
+    { code: 'rejected', name: 'Rechazado', color: 'red', order: 6, isFinal: true, isTerminal: true }
+  ],
+  transitions: [
+    // Admin acepta la notificación inicial
+    { fromCode: 'pending_notification', toCode: 'notified', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification'] },
+    // El sistema (o profesor) pasa a esperar documentos
+    { fromCode: 'notified', toCode: 'pending_docs', allowedRoles: ['ADMIN', 'ROOT', 'PROFESOR'], requiresComment: false, autoActions: ['create_notification'] },
+    // Profesor solicita validación tras subir documentos
+    { fromCode: 'pending_docs', toCode: 'pending_validation', allowedRoles: ['PROFESOR'], requiresComment: false, autoActions: ['create_notification'] },
+    // Admin valida la solicitud
+    { fromCode: 'pending_validation', toCode: 'validated', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, validatorCode: 'check_documents', autoActions: ['create_notification'] },
+    // Admin devuelve para corregir documentación
+    { fromCode: 'pending_validation', toCode: 'pending_docs', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
+    // Admin rechaza la solicitud
+    { fromCode: 'pending_validation', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] }
+  ]
+}
+
 // Exportar todos los workflows
 export const allWorkflows = [
   freeDayWorkflow,
-  requestNewUserWorkflow
+  requestNewUserWorkflow,
+  sickLeaveWorkflow
 ]
