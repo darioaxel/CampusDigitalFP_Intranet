@@ -460,9 +460,122 @@ Las variables CSS están definidas en `app/assets/css/tailwind.css` usando `oklc
 
 ## Testing
 
-No hay framework de testing configurado actualmente. Si necesitas añadir tests:
-- Considera **Vitest** para tests unitarios
-- Considera **Playwright** para E2E
+El proyecto utiliza **Vitest** para tests unitarios y de integración.
+
+### Sistema de Testing de Workflows
+
+Ubicación: `tests/`
+
+```
+tests/
+├── setup.ts                    # Configuración global de Vitest
+├── vitest.config.ts            # Configuración de Vitest
+├── README.md                   # Documentación del sistema de testing
+├── mocks/
+│   └── prisma.mock.ts          # Mock del cliente Prisma
+├── factories/
+│   └── workflow.factory.ts     # Factories para crear datos de prueba
+├── fixtures/
+│   └── workflows.fixture.ts    # Fixtures de workflows reales del sistema
+├── unit/
+│   └── workflow.engine.test.ts # Tests unitarios del motor de workflows
+└── integration/
+    ├── request-new-user.workflow.test.ts  # Workflow: Alta de Nuevo Usuario
+    ├── free-day.workflow.test.ts          # Workflow: Día Libre Disposición
+    └── sick-leave.workflow.test.ts        # Workflow: Comunicación de Bajas
+```
+
+### Comandos de Testing
+
+```bash
+# Ejecutar todos los tests
+pnpm test
+
+# Ejecutar tests en modo watch
+pnpm test:watch
+
+# Ejecutar tests con UI interactiva
+pnpm test:ui
+
+# Generar reporte de cobertura
+pnpm test:coverage
+
+# Ejecutar solo tests de workflows (integración)
+pnpm test:workflows
+
+# Ejecutar solo tests unitarios
+pnpm test:workflows:unit
+```
+
+### Workflows Testeados
+
+| Workflow | Código | Estados | Transiciones | Tests |
+|----------|--------|---------|--------------|-------|
+| Alta de Nuevo Usuario | `request_new_user` | 3 | 2 | 17 |
+| Día Libre Disposición | `request_free_day` | 4 | 4 | 28 |
+| Comunicación de Bajas | `request_sick_leave` | 6 | 6 | 34 |
+
+### Tipos de Tests
+
+**Tests Unitarios (`tests/unit/`):**
+- Validación de estructura de workflows
+- Verificación de transiciones y estados
+- Validación de permisos por rol
+- Verificación de acciones automáticas
+
+**Tests de Integración (`tests/integration/`):**
+- Validación completa de cada workflow
+- Flujos de transición entre estados
+- Permisos por rol en cada transición
+- Validadores y acciones automáticas
+
+### Crear Nuevos Tests
+
+Para añadir tests de un nuevo workflow:
+
+1. Añadir el fixture en `tests/fixtures/workflows.fixture.ts`:
+```typescript
+export const myNewWorkflowFixture = () => {
+  const builder = new WorkflowBuilder('my_code', 'Nombre', 'REQUEST')
+  return builder
+    .addState('pending', 'Pendiente', { isInitial: true })
+    .addState('approved', 'Aprobado', { isFinal: true })
+    .addTransition('pending', 'approved', ['ADMIN'])
+    .build()
+}
+```
+
+2. Crear archivo de test en `tests/integration/my-workflow.test.ts`
+
+3. Ejecutar tests: `pnpm test`
+
+### Factories y Fixtures
+
+Las factories permiten crear datos de prueba consistentes:
+
+```typescript
+import { createUser, createRequest, WorkflowBuilder } from '../factories/workflow.factory'
+
+const admin = createUser({ role: 'ADMIN', firstName: 'Admin' })
+const request = createRequest({ requesterId: user.id, workflowId: workflow.id })
+```
+
+Los fixtures contienen los workflows reales del sistema para testing:
+
+```typescript
+import { requestNewUserWorkflowFixture, validateWorkflowStructure } from '../fixtures/workflows.fixture'
+
+const fixture = requestNewUserWorkflowFixture()
+const { workflow, states, transitions } = fixture
+const validation = validateWorkflowStructure(fixture)
+```
+
+### Consideraciones Adicionales
+
+Para tests E2E de la aplicación completa, considera añadir **Playwright**:
+```bash
+pnpm add -D @playwright/test
+```
 
 ---
 
