@@ -253,10 +253,10 @@ const onCancel = () => navigateTo('/usuario/horarios')
           <Card 
             v-for="template in templates" 
             :key="template.id"
-            class="cursor-pointer hover:border-primary transition-colors hover:shadow-md"
+            class="cursor-pointer hover:border-primary transition-colors hover:shadow-md !p-0 !gap-0 overflow-hidden"
             @click="selectTemplate(template)"
           >
-            <CardHeader class="pb-3">
+            <CardHeader class="py-3 px-4">
               <div class="flex items-center gap-2">
                 <div 
                   class="h-3 w-3 rounded-full" 
@@ -323,11 +323,11 @@ const onCancel = () => navigateTo('/usuario/horarios')
         <div class="grid gap-6 lg:grid-cols-4">
           <!-- Panel lateral configuración -->
           <div class="space-y-6 lg:col-span-1">
-            <Card>
-              <CardHeader>
+            <Card class="!p-0 !gap-0 overflow-hidden">
+              <CardHeader class="px-4 py-3">
                 <CardTitle class="text-sm font-medium">Configuración</CardTitle>
               </CardHeader>
-              <CardContent class="space-y-4">
+              <CardContent class="space-y-4 px-4 pb-4">
                 <div class="space-y-2">
                   <Label>Nombre</Label>
                   <Input v-model="form.name" />
@@ -374,11 +374,11 @@ const onCancel = () => navigateTo('/usuario/horarios')
             </Card>
 
             <!-- Progreso -->
-            <Card>
-              <CardHeader>
+            <Card class="!p-0 !gap-0 overflow-hidden">
+              <CardHeader class="px-4 py-3">
                 <CardTitle class="text-sm font-medium">Progreso</CardTitle>
               </CardHeader>
-              <CardContent class="space-y-3">
+              <CardContent class="space-y-3 px-4 pb-4">
                 <div class="flex justify-between text-sm">
                   <span class="text-muted-foreground">Asignaturas:</span>
                   <Badge variant="secondary">{{ filledBlocks }}/{{ totalBlocks }}</Badge>
@@ -401,11 +401,11 @@ const onCancel = () => navigateTo('/usuario/horarios')
             </Card>
 
             <!-- Validación -->
-            <Card>
-              <CardHeader>
+            <Card class="!p-0 !gap-0 overflow-hidden">
+              <CardHeader class="px-4 py-3">
                 <CardTitle class="text-sm font-medium">Validación</CardTitle>
               </CardHeader>
-              <CardContent class="space-y-4">
+              <CardContent class="space-y-4 px-4 pb-4">
                 <div class="flex items-center justify-between">
                   <div class="space-y-0.5">
                     <Label class="text-sm">Enviar a validación</Label>
@@ -430,10 +430,8 @@ const onCancel = () => navigateTo('/usuario/horarios')
 
           <!-- GRID DE HORARIO -->
           <div class="lg:col-span-3">
-            <Card class="overflow-hidden">
-              <!-- Reemplaza solo esta sección del CardHeader del grid -->
-
-<CardHeader class="border-b bg-muted/30 py-2 px-4">
+            <Card class="overflow-hidden !p-0 !gap-0">
+              <CardHeader class="border-b bg-muted/30 py-2 px-4 !pb-2">
   <div class="flex items-center justify-between">
     <p class="text-[11px] text-muted-foreground leading-tight">
       Haz clic en los slots para asignar

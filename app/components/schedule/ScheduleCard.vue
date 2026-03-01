@@ -80,8 +80,8 @@ const formatTime = (time: string) => time
 </script>
 
 <template>
-  <Card class="overflow-hidden border-border">
-    <CardHeader class="bg-muted/30 px-4 py-3">
+  <Card class="overflow-hidden border-border !p-0 !gap-0 !space-y-0">
+    <CardHeader class="bg-muted/30 px-4 py-3 !m-0">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div 

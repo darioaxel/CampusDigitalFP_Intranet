@@ -142,9 +142,9 @@ const getDayLabel = (day: string) => dayLabels[day] || day
             <Card 
               v-for="day in daysList" 
               :key="day"
-              class="overflow-hidden"
+              class="overflow-hidden !p-0 !gap-0 !space-y-0"
             >
-              <CardHeader class="py-3 bg-muted/50">
+              <CardHeader class="py-3 px-3 bg-muted/50">
                 <CardTitle class="text-sm font-medium">
                   {{ getDayLabel(day) }}
                 </CardTitle>
