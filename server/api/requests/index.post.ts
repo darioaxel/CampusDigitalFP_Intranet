@@ -21,8 +21,8 @@ const authenticatedRequestSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().max(2000).optional(),
   requestedDate: z.string().datetime().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().optional(), // Permite 'yyyy-MM-dd' o ISO datetime
+  endDate: z.string().optional(),
   workflowCode: z.string().optional(), // Para usar workflow específico
   context: z.record(z.any()).optional(), // Datos adicionales del contexto
 })

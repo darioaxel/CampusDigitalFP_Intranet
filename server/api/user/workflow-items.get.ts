@@ -117,6 +117,8 @@ export default defineEventHandler(async (event) => {
       return isFinal || isTerminal
     }
 
+
+
     const workflowItems = [
       // Mis solicitudes
       ...myRequests.map((req) => ({

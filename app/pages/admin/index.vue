@@ -59,8 +59,8 @@
                 <span class="flex items-center gap-2">
                   <Inbox class="h-4 w-4" />
                   Activas / Pendientes
-                  <Badge v-if="activeItems.length > 0" variant="secondary" class="ml-1">
-                    {{ activeItems.length }}
+                  <Badge v-if="currentItems.length > 0 && activeTab === 'active'" variant="secondary" class="ml-1">
+                    {{ table?.getFilteredRowModel().rows.length ?? currentItems.length }}
                   </Badge>
                 </span>
               </button>
@@ -76,8 +76,8 @@
                 <span class="flex items-center gap-2">
                   <History class="h-4 w-4" />
                   Mi Historial
-                  <Badge v-if="historyItems.length > 0" variant="outline" class="ml-1">
-                    {{ historyItems.length }}
+                  <Badge v-if="currentItems.length > 0 && activeTab === 'history'" variant="outline" class="ml-1">
+                    {{ table?.getFilteredRowModel().rows.length ?? currentItems.length }}
                   </Badge>
                 </span>
               </button>
@@ -219,8 +219,9 @@
           <!-- Contenido: Tabla o Empty State -->
           <template v-else>
             <DataTable
-              v-if="table?.getFilteredRowModel().rows.length > 0"
+              v-if="currentItems.length > 0"
               ref="dataTableRef"
+              :key="activeTab"
               :columns="columns"
               :data="currentItems"
               @row-click="navigateToItem"
@@ -260,7 +261,7 @@
 
 <script setup lang="ts">
 import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, History, X } from 'lucide-vue-next'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import type { Table } from '@tanstack/vue-table'
 import DataTable from '~/components/data-table/DataTable.vue'
 import { getAdminColumns, adminColumnNames, type WorkflowItem } from '~/components/workflow/adminColumns'
@@ -305,25 +306,41 @@ const uniqueCreators = computed(() => {
 
 // Filtrar items activos (pendientes/en proceso)
 const activeItems = computed(() => {
-  return items.value.filter(item => {
+  const result = items.value.filter(item => {
     // Estados que consideramos "activos" o pendientes
-    const activeStatuses = ['Pendiente', 'Por hacer', 'En progreso', 'En revisión', 'Pendiente de gestionar']
-    return activeStatuses.includes(item.status) || !item.completedAt
+    const activeStatuses = ['Pendiente', 'Por hacer', 'En progreso', 'En revisión', 'Pendiente de gestionar', 'Pendiente de Validación']
+    const isActive = activeStatuses.includes(item.status) || !item.completedAt
+    console.log(`[Admin] Filter active: ${item.title.substring(0, 20)} | status: ${item.status} | completedAt: ${item.completedAt} | isActive: ${isActive}`)
+    return isActive
   })
+  return result
 })
 
 // Filtrar items del historial (completados por el admin)
 const historyItems = computed(() => {
-  return items.value.filter(item => {
+  const result = items.value.filter(item => {
     // Estados finales completados
     const completedStatuses = ['Aprobado', 'Aprobada', 'Completada', 'Completado', 'Validada', 'Rechazado', 'Rechazada', 'Cancelado', 'Cancelada']
-    return completedStatuses.includes(item.status) || item.completedAt
+    const isHistory = completedStatuses.includes(item.status) || item.completedAt
+    console.log(`[Admin] Filter history: ${item.title.substring(0, 20)} | status: ${item.status} | completedAt: ${item.completedAt} | isHistory: ${isHistory}`)
+    return isHistory
   })
+  return result
 })
 
 // Items a mostrar según la pestaña activa
 const currentItems = computed(() => {
-  return activeTab.value === 'active' ? activeItems.value : historyItems.value
+  const items = activeTab.value === 'active' ? activeItems.value : historyItems.value
+  console.log(`[Admin] currentItems para ${activeTab.value}:`, items.length, 'items')
+  return items
+})
+
+// Limpiar filtros cuando la tabla se inicializa
+onMounted(() => {
+  nextTick(() => {
+    console.log('[Admin] Limpiando filtros al montar')
+    clearFilters()
+  })
 })
 
 // Computed para saber si hay filtros activos

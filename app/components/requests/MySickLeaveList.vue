@@ -11,10 +11,16 @@ interface Props {
   formatEstado: (code?: string) => string
   getEstadoColor: (code?: string) => string
   formatTipoBaja: (context?: string) => string
-  parseAPIDate: (dateStr?: string | null) => Date | null
+  parseAPIDate?: (dateStr?: string | null) => Date | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  parseAPIDate: (dateStr?: string | null) => {
+    if (!dateStr) return null
+    const date = new Date(dateStr)
+    return isNaN(date.getTime()) ? null : date
+  }
+})
 
 const emit = defineEmits<{
   'select': [request: SickLeaveRequest]
