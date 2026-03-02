@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppSidebar from '@/components/AppSidebar.vue'
+import RoleQuickLinks from '@/components/RoleQuickLinks.vue'
 import { Separator } from '@/components/ui/separator'
 import {
   SidebarInset,
@@ -23,6 +24,11 @@ import DynamicBreadCrumb from '@/components/layout/dashboard/DynamicBreadCrumb.v
           <DynamicBreadCrumb :url="useRoute().path" />
         </div>
         <div class="flex items-center gap-2 px-4">
+          <RoleQuickLinks />
+          <Separator
+            orientation="vertical"
+            class="mx-1 data-[orientation=vertical]:h-4"
+          />
           <ThemeToggle />
         </div>
       </header>
