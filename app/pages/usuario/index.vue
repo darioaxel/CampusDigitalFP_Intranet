@@ -232,10 +232,11 @@
 
 <script setup lang="ts">
 import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, X } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { ref, computed } from 'vue'
 import type { Table } from '@tanstack/vue-table'
 import DataTable from '~/components/data-table/DataTable.vue'
-import { columns, columnNames, type WorkflowItem } from '~/components/workflow/columns'
+import { getColumns, columnNames, type WorkflowItem } from '~/components/workflow/columns'
 
 definePageMeta({
   middleware: ['auth'],
@@ -262,6 +263,20 @@ const { data: workflowData, pending, error, refresh } = await useFetch('/api/use
 
 const items = computed(() => workflowData.value?.data || [])
 const counts = computed(() => workflowData.value?.counts)
+
+// Función para generar URLs de items (con links en el título)
+function getItemUrl(item: WorkflowItem): string | null {
+  if (item.type === 'Solicitud') {
+    return item.role === 'Creador' 
+      ? `/usuario/solicitudes/${item.id}`
+      : `/admin/solicitudes/${item.id}`
+  }
+  // Tareas - TODO: crear rutas
+  return null
+}
+
+// Columnas con links
+const columns = computed(() => getColumns(getItemUrl))
 
 // Computed para saber si hay filtros activos
 const hasActiveFilters = computed(() => {
@@ -318,12 +333,13 @@ const refreshData = async () => {
   await refresh()
 }
 
+// Fallback para navegación al hacer click en la fila (no en el link)
 const navigateToItem = (item: WorkflowItem) => {
-  if (item.type === 'Solicitud') {
-    navigateTo(`/admin/solicitudes/${item.id}`)
-  } else {
-    // Tareas - verificar si existe la ruta
-    navigateTo(`/admin/tareas/${item.id}`)
+  const url = getItemUrl(item)
+  if (url) {
+    navigateTo(url)
+  } else if (item.type === 'Tarea') {
+    toast.info('Detalle de tareas en desarrollo. ID: ' + item.id)
   }
 }
 </script>

@@ -261,6 +261,7 @@
 
 <script setup lang="ts">
 import { ClipboardList, Loader2, RefreshCw, AlertCircle, Inbox, History, X } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import type { Table } from '@tanstack/vue-table'
 import DataTable from '~/components/data-table/DataTable.vue'
@@ -278,8 +279,17 @@ const activeTab = ref<'active' | 'history'>('active')
 const dataTableRef = ref<{ table: Table<WorkflowItem> } | null>(null)
 const table = computed(() => dataTableRef.value?.table)
 
+// Función para generar URLs de items (con links en el título)
+function getItemUrl(item: WorkflowItem): string | null {
+  if (item.type === 'Solicitud') {
+    return `/admin/solicitudes/${item.id}`
+  }
+  // Tareas - TODO: crear rutas
+  return null
+}
+
 // Columnas según el tab activo
-const columns = computed(() => getAdminColumns(activeTab.value === 'history'))
+const columns = computed(() => getAdminColumns(activeTab.value === 'history', getItemUrl))
 
 /* ----------  usuario  ---------- */
 const { user } = await useUserSession()
@@ -396,10 +406,11 @@ const refreshData = async () => {
 }
 
 const navigateToItem = (item: WorkflowItem) => {
-  if (item.type === 'Solicitud') {
-    navigateTo(`/admin/solicitudes/${item.id}`)
-  } else {
-    navigateTo(`/admin/tareas/${item.id}`)
+  const url = getItemUrl(item)
+  if (url) {
+    navigateTo(url)
+  } else if (item.type === 'Tarea') {
+    toast.info('Detalle de tareas en desarrollo. ID: ' + item.id)
   }
 }
 </script>

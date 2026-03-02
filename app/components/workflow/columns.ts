@@ -18,6 +18,9 @@ export interface WorkflowItem {
   role: 'Creador' | 'Validador' | 'Asignado'
 }
 
+// Función para generar URL del item (inyectada desde el componente padre)
+export type GetItemUrlFn = (item: WorkflowItem) => string | null
+
 // Mapa de nombres de columnas
 export const columnNames: Record<string, string> = {
   'type': 'Tipo',
@@ -104,8 +107,11 @@ export function parseDate(dateStr: string): Date {
   return new Date(dateStr)
 }
 
-// Columnas de la tabla
-export const columns: ColumnDef<WorkflowItem>[] = [
+// Columnas de la tabla - versión con links
+export function getColumns(getItemUrl?: GetItemUrlFn): ColumnDef<WorkflowItem>[] {
+  const NuxtLink = resolveComponent('NuxtLink')
+  
+  return [
   // Tipo (Solicitud/Tarea)
   {
     accessorKey: 'type',
@@ -148,7 +154,7 @@ export const columns: ColumnDef<WorkflowItem>[] = [
     },
   },
 
-  // Título
+  // Título (con link si se proporciona getItemUrl)
   {
     accessorKey: 'title',
     header: ({ column }) => h(DataTableColumnHeader, {
@@ -157,6 +163,17 @@ export const columns: ColumnDef<WorkflowItem>[] = [
     }),
     cell: ({ row }) => {
       const title = row.getValue('title') as string
+      const item = row.original
+      const url = getItemUrl?.(item)
+      
+      if (url) {
+        return h(NuxtLink, { 
+          to: url,
+          class: 'font-medium max-w-[250px] truncate text-primary hover:underline block',
+          title: title
+        }, () => title)
+      }
+      
       return h('div', { 
         class: 'font-medium max-w-[250px] truncate',
         title: title
@@ -238,4 +255,8 @@ export const columns: ColumnDef<WorkflowItem>[] = [
       return h('span', { class: 'text-sm text-muted-foreground' }, '-')
     },
   },
-]
+  ]
+}
+
+// Columnas por defecto (sin links, para compatibilidad)
+export const columns = getColumns()

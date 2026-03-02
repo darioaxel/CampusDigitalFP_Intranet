@@ -1,8 +1,8 @@
 import type { ColumnDef } from '@tanstack/vue-table'
-import { h } from 'vue'
+import { h, resolveComponent } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import DataTableColumnHeader from '@/components/data-table/DataTableColumnHeader.vue'
-import type { WorkflowItem } from './columns'
+import type { WorkflowItem, GetItemUrlFn } from './columns'
 export { formatSubType, getSubTypeColor, getStatusVariant } from './columns'
 
 // Mapa de nombres de columnas para admin
@@ -17,7 +17,8 @@ export const adminColumnNames: Record<string, string> = {
 }
 
 // Columnas de la tabla para admin (con columna completedAt opcional)
-export function getAdminColumns(showCompletedAt: boolean = false): ColumnDef<WorkflowItem>[] {
+export function getAdminColumns(showCompletedAt: boolean = false, getItemUrl?: GetItemUrlFn): ColumnDef<WorkflowItem>[] {
+  const NuxtLink = resolveComponent('NuxtLink')
   const baseColumns: ColumnDef<WorkflowItem>[] = [
     // Tipo (Solicitud/Tarea)
     {
@@ -61,7 +62,7 @@ export function getAdminColumns(showCompletedAt: boolean = false): ColumnDef<Wor
       },
     },
 
-    // Título
+    // Título (con link si se proporciona getItemUrl)
     {
       accessorKey: 'title',
       header: ({ column }) => h(DataTableColumnHeader, {
@@ -70,6 +71,17 @@ export function getAdminColumns(showCompletedAt: boolean = false): ColumnDef<Wor
       }),
       cell: ({ row }) => {
         const title = row.getValue('title') as string
+        const item = row.original
+        const url = getItemUrl?.(item)
+        
+        if (url) {
+          return h(NuxtLink, { 
+            to: url,
+            class: 'font-medium max-w-[250px] truncate text-primary hover:underline block',
+            title: title
+          }, () => title)
+        }
+        
         return h('div', { 
           class: 'font-medium max-w-[250px] truncate',
           title: title
