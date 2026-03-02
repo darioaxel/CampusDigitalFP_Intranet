@@ -122,3 +122,4 @@ prisma/generated/
 
 .output/*
 uploads/*
+.data/*
