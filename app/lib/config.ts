@@ -70,7 +70,6 @@ export const siteConfig = {
           title: "Mis Horarios",
           url: "/profesor/horarios",
           icon: "lucide:receipt",
-          isActive: true,
           items: [
             { title: "Mi Horario", url: "/usuario/horarios" },
             { title: "Crear Horario", url: "/usuario/crear-horario" },
