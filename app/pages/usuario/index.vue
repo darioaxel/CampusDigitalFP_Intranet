@@ -195,7 +195,7 @@
           <!-- Contenido: Tabla o Empty State -->
           <template v-else>
             <DataTable
-              v-if="table?.getFilteredRowModel().rows.length > 0"
+              v-if="items.length > 0"
               ref="dataTableRef"
               :columns="columns"
               :data="items"
