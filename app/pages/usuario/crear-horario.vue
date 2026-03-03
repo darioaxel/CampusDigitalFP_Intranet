@@ -18,6 +18,17 @@ const selectedTemplate = ref<any>(null)
 const { data: templatesResponse, pending: loadingTemplates } = await useFetch('/api/schedules/templates')
 const templates = computed(() => templatesResponse.value?.data || [])
 
+// Cargar horarios existentes del usuario
+const { data: existingSchedulesResponse, pending: loadingExisting } = await useFetch('/api/schedules/me', {
+  key: 'my-schedules-existing'
+})
+const existingSchedules = computed(() => {
+  const response = existingSchedulesResponse.value
+  if (!response) return []
+  if (Array.isArray(response)) return response
+  return response.data || []
+})
+
 // Datos del horario
 const form = reactive({
   name: '',
@@ -61,6 +72,69 @@ const presetColors = [
   '#f97316', '#6366f1', '#14b8a6', '#a855f7'
 ]
 
+// Helper para convertir HH:MM a minutos
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Detectar conflictos con horarios existentes del MISMO TIPO
+// Esto permite tener horarios de diferente tipo (NORMAL, EXAMENES, etc.) sin conflictos
+const conflicts = computed(() => {
+  const result: Array<{
+    day: string
+    hour: string
+    existingSchedule: any
+    existingBlock: any
+    newBlock: any
+  }> = []
+
+  // Solo verificar si tenemos horarios existentes y bloques nuevos
+  if (!existingSchedules.value.length || !form.blocks.length) return result
+
+  // Filtrar solo horarios activos y validados o pendientes (no rechazados) del MISMO TIPO
+  const activeSchedules = existingSchedules.value.filter((s: any) => 
+    s.isActive && 
+    (s.validationStatus === 'VALIDADO' || s.validationStatus === 'PENDIENTE') &&
+    s.type === form.type // Solo comparar contra horarios del mismo tipo
+  )
+
+  for (const newBlock of form.blocks) {
+    if (newBlock.isBreak) continue // No verificar recreos
+
+    const newStart = timeToMinutes(newBlock.startTime)
+    const newEnd = timeToMinutes(newBlock.endTime)
+
+    for (const schedule of activeSchedules) {
+      for (const existingBlock of (schedule.blocks || [])) {
+        if (existingBlock.dayOfWeek !== newBlock.dayOfWeek) continue
+        if (existingBlock.isBreak) continue
+
+        const existingStart = timeToMinutes(existingBlock.startTime)
+        const existingEnd = timeToMinutes(existingBlock.endTime)
+
+        // Verificar solapamiento
+        if (newStart < existingEnd && newEnd > existingStart) {
+          result.push({
+            day: newBlock.dayOfWeek,
+            hour: newBlock.startTime,
+            existingSchedule: schedule,
+            existingBlock,
+            newBlock
+          })
+        }
+      }
+    }
+  }
+
+  return result
+})
+
+// Verificar si un slot específico tiene conflicto
+const getConflictForCell = (day: string, hour: string) => {
+  return conflicts.value.find(c => c.day === day && c.hour === hour)
+}
+
 // Seleccionar template
 const selectTemplate = (template: any) => {
   selectedTemplate.value = template
@@ -79,6 +153,14 @@ const selectTemplate = (template: any) => {
   }))
   
   step.value = 'fill-schedule'
+  
+  // Mostrar warning si hay conflictos detectados
+  if (conflicts.value.length > 0) {
+    toast.warning(`Detectados ${conflicts.value.length} conflictos con tus horarios existentes`, {
+      description: 'Revisa los slots marcados en rojo',
+      duration: 5000
+    })
+  }
 }
 
 // Obtener color efectivo de un bloque (el suyo propio o el del horario general)
@@ -187,6 +269,19 @@ const onSubmit = async () => {
     return
   }
 
+  // Verificar conflictos antes de enviar
+  if (conflicts.value.length > 0) {
+    const conflictDetails = conflicts.value.map(c => 
+      `${c.day} ${c.existingBlock.startTime}-${c.existingBlock.endTime} (${c.existingSchedule.name})`
+    ).join(', ')
+    
+    toast.error(`No se puede crear el horario: conflictos detectados`, {
+      description: conflictDetails,
+      duration: 8000
+    })
+    return
+  }
+
   submitting.value = true
   try {
     const payload = {
@@ -208,7 +303,14 @@ const onSubmit = async () => {
       body: payload
     })
 
-    if (error.value) throw error.value
+    if (error.value) {
+      // Mejorar mensaje de error si es de solapamiento
+      const errorMsg = error.value.message || ''
+      if (errorMsg.includes('Solapamiento')) {
+        throw new Error(`${errorMsg}. Ve a "Mis Horarios" para ver tus horarios existentes.`)
+      }
+      throw error.value
+    }
 
     if (requestValidation.value && newSchedule.value?.scheduleId) {
       await useFetch(`/api/schedules/${newSchedule.value.scheduleId}/request-validation`, {
@@ -229,6 +331,27 @@ const onSubmit = async () => {
 }
 
 const onCancel = () => navigateTo('/usuario/horarios')
+
+// Helpers para mostrar horarios existentes
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'BORRADOR': 'bg-gray-100 text-gray-800',
+    'PENDIENTE': 'bg-yellow-100 text-yellow-800',
+    'VALIDADO': 'bg-green-100 text-green-800',
+    'RECHAZADO': 'bg-red-100 text-red-800'
+  }
+  return colors[status] || 'bg-gray-100'
+}
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    'BORRADOR': 'Borrador',
+    'PENDIENTE': 'Pendiente',
+    'VALIDADO': 'Validado',
+    'RECHAZADO': 'Rechazado'
+  }
+  return labels[status] || status
+}
 </script>
 
 <template>
@@ -245,41 +368,85 @@ const onCancel = () => navigateTo('/usuario/horarios')
           </p>
         </div>
 
-        <div v-if="loadingTemplates" class="flex items-center justify-center py-12">
-          <Icon name="lucide:loader-2" class="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-
-        <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card 
-            v-for="template in templates" 
-            :key="template.id"
-            class="cursor-pointer hover:border-primary transition-colors hover:shadow-md !p-0 !gap-0 overflow-hidden"
-            @click="selectTemplate(template)"
-          >
-            <CardHeader class="py-3 px-4">
-              <div class="flex items-center gap-2">
-                <div 
-                  class="h-3 w-3 rounded-full" 
-                  :style="{ backgroundColor: template.color || '#3b82f6' }"
-                />
-                <CardTitle class="text-base">{{ template.name }}</CardTitle>
+        <!-- Horarios existentes del MISMO TIPO -->
+        <Card v-if="existingSchedules.filter((s: any) => s.type === form.type).length > 0 && !loadingExisting" class="mb-6 border-amber-200 dark:border-amber-800">
+          <CardHeader class="bg-amber-50 dark:bg-amber-950/30">
+            <div class="flex items-center gap-2">
+              <Icon name="lucide:alert-triangle" class="h-5 w-5 text-amber-600" />
+              <CardTitle class="text-sm font-medium text-amber-900 dark:text-amber-100">
+                Ya tienes {{ existingSchedules.filter((s: any) => s.type === form.type).length }} horario(s) de tipo "{{ getTypeLabel(form.type) }}"
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="p-4">
+            <p class="text-sm text-muted-foreground mb-3">
+              <strong>No puedes tener dos horarios del mismo tipo que se solapen.</strong> Puedes crear horarios de <strong>otro tipo</strong> (Exámenes, Guardias, etc.) sin problemas.
+            </p>
+            <div class="space-y-2">
+              <div 
+                v-for="schedule in existingSchedules.filter((s: any) => s.type === form.type)" 
+                :key="schedule.id"
+                class="flex items-center justify-between p-2 rounded-md bg-muted/50"
+              >
+                <div class="flex items-center gap-2">
+                  <div 
+                    class="h-3 w-3 rounded-full" 
+                    :style="{ backgroundColor: schedule.color || '#3b82f6' }"
+                  />
+                  <span class="text-sm font-medium">{{ schedule.name }}</span>
+                  <Badge :class="getStatusColor(schedule.validationStatus)" class="text-xs">
+                    {{ getStatusLabel(schedule.validationStatus) }}
+                  </Badge>
+                </div>
+                <span class="text-xs text-muted-foreground">
+                  {{ schedule.blocks?.length || 0 }} bloques
+                </span>
               </div>
-              <CardDescription class="text-xs">
-                {{ template.blocks?.length || 0 }} slots predefinidos
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent class="pt-0">
-              <p v-if="template.description" class="text-xs text-muted-foreground line-clamp-2">
-                {{ template.description }}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div v-if="!loadingTemplates && templates.length === 0" class="flex flex-col items-center justify-center py-12">
-          <Icon name="lucide:layout-template" class="h-12 w-12 text-muted-foreground opacity-50" />
-          <p class="mt-4 text-muted-foreground">No hay plantillas disponibles</p>
+        <!-- Sección de Plantillas -->
+        <div class="mt-6">
+          <h2 class="text-lg font-medium mb-4">Plantillas disponibles</h2>
+          
+          <div v-if="loadingTemplates" class="flex items-center justify-center py-12">
+            <Icon name="lucide:loader-2" class="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+
+          <div v-else-if="templates.length === 0" class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted rounded-lg">
+            <Icon name="lucide:layout-template" class="h-12 w-12 text-muted-foreground opacity-50" />
+            <p class="mt-4 text-muted-foreground">No hay plantillas disponibles</p>
+            <p class="text-sm text-muted-foreground mt-1">Contacta con administración para que creen plantillas.</p>
+          </div>
+
+          <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card 
+              v-for="template in templates" 
+              :key="template.id"
+              class="cursor-pointer hover:border-primary transition-colors hover:shadow-md !p-0 !gap-0 overflow-hidden"
+              @click="selectTemplate(template)"
+            >
+              <CardHeader class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                  <div 
+                    class="h-3 w-3 rounded-full" 
+                    :style="{ backgroundColor: template.color || '#3b82f6' }"
+                  />
+                  <CardTitle class="text-base">{{ template.name }}</CardTitle>
+                </div>
+                <CardDescription class="text-xs">
+                  {{ template.blocks?.length || 0 }} slots predefinidos
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent class="pt-0">
+                <p v-if="template.description" class="text-xs text-muted-foreground line-clamp-2">
+                  {{ template.description }}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <div class="mt-6">
@@ -311,12 +478,46 @@ const onCancel = () => navigateTo('/usuario/horarios')
             </Button>
             <Button 
               @click="onSubmit" 
-              :disabled="submitting || pendingBlocks > 0"
+              :disabled="submitting || pendingBlocks > 0 || conflicts.length > 0"
             >
               <Icon v-if="submitting" name="lucide:loader-2" class="mr-2 h-4 w-4 animate-spin" />
               <Icon v-else name="lucide:save" class="mr-2 h-4 w-4" />
               Guardar
             </Button>
+          </div>
+        </div>
+
+        <!-- Alerta de conflictos detectados -->
+        <div 
+          v-if="conflicts.length > 0" 
+          class="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4"
+        >
+          <div class="flex items-start gap-3">
+            <div class="bg-red-100 dark:bg-red-900 p-2 rounded-full">
+              <Icon name="lucide:alert-octagon" class="h-5 w-5 text-red-700 dark:text-red-300" />
+            </div>
+            <div class="flex-1">
+              <h3 class="font-medium text-red-900 dark:text-red-100">
+                Conflicto con tu horario de "{{ getTypeLabel(form.type) }}"
+              </h3>
+              <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                Ya tienes un horario de tipo "{{ getTypeLabel(form.type) }}" que se solapa con este. 
+                <strong>Cambia el tipo de horario</strong> (a Exámenes, Guardias, etc.) o selecciona otra plantilla.
+              </p>
+              <div class="mt-2 space-y-1">
+                <div 
+                  v-for="(conflict, idx) in conflicts.slice(0, 3)" 
+                  :key="idx"
+                  class="text-xs text-red-600 dark:text-red-400"
+                >
+                  • {{ conflict.day }} {{ conflict.existingBlock.startTime }}-{{ conflict.existingBlock.endTime }} 
+                  (en "{{ conflict.existingSchedule.name }}")
+                </div>
+                <div v-if="conflicts.length > 3" class="text-xs text-red-600 dark:text-red-400">
+                  ... y {{ conflicts.length - 3 }} más
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -391,7 +592,7 @@ const onCancel = () => navigateTo('/usuario/horarios')
                   </div>
                 </div>
                 
-                <div v-else class="pt-2">
+                <div v-else-if="conflicts.length === 0" class="pt-2">
                   <div class="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-950/30 p-2 rounded-md border border-green-200 dark:border-green-800">
                     <Icon name="lucide:check-circle" class="h-4 w-4 shrink-0" />
                     <span>Todo completado</span>
@@ -426,6 +627,35 @@ const onCancel = () => navigateTo('/usuario/horarios')
                 </div>
               </CardContent>
             </Card>
+
+            <!-- Horarios existentes del MISMO TIPO -->
+            <Card v-if="existingSchedules.filter((s: any) => s.type === form.type).length > 0" class="!p-0 !gap-0 overflow-hidden border-amber-200">
+              <CardHeader class="px-4 py-3 bg-amber-50/50">
+                <CardTitle class="text-sm font-medium text-amber-900">Mismo tipo ({{ getTypeLabel(form.type) }})</CardTitle>
+              </CardHeader>
+              <CardContent class="space-y-2 px-4 pb-4">
+                <div 
+                  v-for="schedule in existingSchedules.filter((s: any) => s.type === form.type).slice(0, 3)" 
+                  :key="schedule.id"
+                  class="flex items-center gap-2 text-xs"
+                >
+                  <div 
+                    class="h-2 w-2 rounded-full" 
+                    :style="{ backgroundColor: schedule.color || '#3b82f6' }"
+                  />
+                  <span class="truncate flex-1">{{ schedule.name }}</span>
+                  <Badge :class="getStatusColor(schedule.validationStatus)" class="text-[10px]">
+                    {{ getStatusLabel(schedule.validationStatus) }}
+                  </Badge>
+                </div>
+                <div v-if="existingSchedules.filter((s: any) => s.type === form.type).length > 3" class="text-xs text-muted-foreground text-center">
+                  +{{ existingSchedules.filter((s: any) => s.type === form.type).length - 3 }} más
+                </div>
+                <p class="text-[10px] text-muted-foreground mt-2">
+                  Solo puedes tener un horario de cada tipo.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           <!-- GRID DE HORARIO -->
@@ -446,8 +676,8 @@ const onCancel = () => navigateTo('/usuario/horarios')
         <span class="text-muted-foreground">Asignado</span>
       </div>
       <div class="flex items-center gap-1">
-        <div class="w-2 h-2 rounded-sm bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600"></div>
-        <span class="text-muted-foreground">Recreo</span>
+        <div class="w-2 h-2 rounded-sm bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-600"></div>
+        <span class="text-red-600 dark:text-red-400 font-medium">Conflicto</span>
       </div>
     </div>
   </div>
@@ -489,29 +719,37 @@ const onCancel = () => navigateTo('/usuario/horarios')
                           class="relative border-r border-border last:border-r-0 p-1"
                           :class="[
                             hasTemplateSlot(day, hour) 
-                              ? 'bg-white dark:bg-background cursor-pointer hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors' 
+                              ? getConflictForCell(day, hour)
+                                ? 'bg-red-50 dark:bg-red-950/30 cursor-not-allowed' 
+                                : 'bg-white dark:bg-background cursor-pointer hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors'
                               : 'bg-slate-50/50 dark:bg-muted/10'
                           ]"
-                          @click="hasTemplateSlot(day, hour) && openBlockDialog(day, hour)"
+                          @click="!getConflictForCell(day, hour) && hasTemplateSlot(day, hour) && openBlockDialog(day, hour)"
                         >
                           <template v-if="hasTemplateSlot(day, hour)">
                             <div 
                               class="rounded-md p-2 text-xs h-full flex flex-col justify-center gap-1 border-2 transition-all h-[62px]"
                               :class="[
-                                getBlockForCell(day, hour)?.isBreak 
-                                  ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed' 
-                                  : getBlockForCell(day, hour)?.subject 
-                                    ? 'shadow-sm' 
-                                    : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/50 border-dashed text-amber-700 dark:text-amber-400 hover:border-amber-400 dark:hover:border-amber-600'
+                                getConflictForCell(day, hour)
+                                  ? 'bg-red-100 dark:bg-red-900/50 border-red-400 dark:border-red-600 text-red-800 dark:text-red-200'
+                                  : getBlockForCell(day, hour)?.isBreak 
+                                    ? 'bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed' 
+                                    : getBlockForCell(day, hour)?.subject 
+                                      ? 'shadow-sm' 
+                                      : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/50 border-dashed text-amber-700 dark:text-amber-400 hover:border-amber-400 dark:hover:border-amber-600'
                               ]"
-                              :style="getBlockForCell(day, hour)?.subject && !getBlockForCell(day, hour)?.isBreak ? {
+                              :style="(!getConflictForCell(day, hour) && getBlockForCell(day, hour)?.subject && !getBlockForCell(day, hour)?.isBreak) ? {
                                 backgroundColor: `${getBlockColor(getBlockForCell(day, hour))}15`,
                                 borderColor: `${getBlockColor(getBlockForCell(day, hour))}40`,
                                 color: getBlockColor(getBlockForCell(day, hour))
                               } : {}"
                             >
                               <div class="font-semibold truncate flex items-center gap-1.5">
-                                <template v-if="getBlockForCell(day, hour)?.isBreak">
+                                <template v-if="getConflictForCell(day, hour)">
+                                  <Icon name="lucide:alert-octagon" class="h-3.5 w-3.5" />
+                                  <span>Conflicto</span>
+                                </template>
+                                <template v-else-if="getBlockForCell(day, hour)?.isBreak">
                                   <Icon name="lucide:coffee" class="h-3.5 w-3.5" />
                                   <span>Recreo</span>
                                 </template>
@@ -526,7 +764,14 @@ const onCancel = () => navigateTo('/usuario/horarios')
                               </div>
                               
                               <div 
-                                v-if="getBlockForCell(day, hour)?.room && !getBlockForCell(day, hour)?.isBreak" 
+                                v-if="getConflictForCell(day, hour)" 
+                                class="text-[10px] opacity-75 truncate"
+                              >
+                                {{ getConflictForCell(day, hour)?.existingSchedule.name }}
+                              </div>
+                              
+                              <div 
+                                v-else-if="getBlockForCell(day, hour)?.room && !getBlockForCell(day, hour)?.isBreak" 
                                 class="text-[10px] opacity-75 truncate flex items-center gap-1"
                               >
                                 <Icon name="lucide:map-pin" class="h-3 w-3 shrink-0" />

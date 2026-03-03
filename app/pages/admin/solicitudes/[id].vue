@@ -211,6 +211,44 @@
                 </div>
               </template>
 
+              <!-- Datos específicos SCHEDULE_VALIDATION -->
+              <template v-if="requestType === 'SCHEDULE_VALIDATION'">
+                <div class="border-t pt-4 mt-4">
+                  <h4 class="font-medium mb-3 flex items-center gap-2">
+                    <Icon name="lucide:calendar" class="h-4 w-4" />
+                    Horario a Validar
+                  </h4>
+                  <div class="bg-muted/50 p-4 rounded-lg space-y-3">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <label class="text-xs text-muted-foreground">Horario del profesor</label>
+                        <p class="font-medium">{{ request.schedule?.name || 'Horario #' + requestContext.scheduleId?.slice(-6) }}</p>
+                      </div>
+                      <NuxtLink 
+                        :to="`/usuario/horarios?view=${requestContext.scheduleId}`"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                      >
+                        <Icon name="lucide:eye" class="h-4 w-4" />
+                        Ver Horario
+                      </NuxtLink>
+                    </div>
+                    <div v-if="request.schedule" class="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span class="text-xs text-muted-foreground">Bloques configurados:</span>
+                        <span class="ml-1 font-medium">{{ request.schedule.blocks?.length || 0 }}</span>
+                      </div>
+                      <div>
+                        <span class="text-xs text-muted-foreground">Tipo:</span>
+                        <span class="ml-1 font-medium">{{ request.schedule.type }}</span>
+                      </div>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                      Revisa el horario completo antes de validar o rechazar la solicitud.
+                    </p>
+                  </div>
+                </div>
+              </template>
+
               <!-- Notas del admin -->
               <div v-if="request.adminNotes" class="border-t pt-4 mt-4">
                 <label class="text-xs text-muted-foreground">Notas de gestión</label>

@@ -1,6 +1,5 @@
 import { defineEventHandler, createError, getRouterParam, readBody } from 'h3'
 import { prisma } from '../../../utils/db'
-import { workflowEngine } from '../../../utils/workflow/engine'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -34,29 +33,26 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Obtener workflows configurables
-    const requestWorkflow = await prisma.workflowDefinition.findUnique({
-      where: { code: 'request_standard' },
-      include: { states: true }
-    })
-    
-    const taskWorkflow = await prisma.workflowDefinition.findUnique({
-      where: { code: 'task_validation' },
+    // Obtener workflow de validación de horarios
+    const workflow = await prisma.workflowDefinition.findUnique({
+      where: { code: 'request_schedule_validation' },
       include: { states: true }
     })
 
-    if (!requestWorkflow || !taskWorkflow) {
-      throw createError({ statusCode: 500, message: 'Workflows no configurados' })
+    if (!workflow) {
+      throw createError({ statusCode: 500, message: 'Workflow de validación de horarios no configurado' })
     }
 
-    const requestInitialState = requestWorkflow.states.find(s => s.isInitial)!
-    const taskInitialState = taskWorkflow.states.find(s => s.isInitial)!
+    const initialState = workflow.states.find(s => s.isInitial)
+    if (!initialState) {
+      throw createError({ statusCode: 500, message: 'Estado inicial del workflow no encontrado' })
+    }
 
-    // Crear solicitud de workflow usando el motor configurable
+    // Crear solicitud de validación
     const request = await prisma.request.create({
       data: {
-        workflowId: requestWorkflow.id,
-        currentStateId: requestInitialState.id,
+        workflowId: workflow.id,
+        currentStateId: initialState.id,
         title: `Validar horario: ${schedule.name}`,
         description: `El profesor ${schedule.user.firstName} ${schedule.user.lastName} solicita validación de su horario "${schedule.name}".
         
@@ -65,28 +61,6 @@ ${notes ? `
 Notas del profesor: ${notes}` : ''}`,
         requesterId: session.user.id,
         context: JSON.stringify({ type: 'SCHEDULE_VALIDATION', scheduleId: schedule.id })
-      }
-    })
-
-    // Crear tarea para todos los admins/roots
-    const admins = await prisma.user.findMany({
-      where: { role: { in: ['ADMIN', 'ROOT'] } },
-      select: { id: true }
-    })
-
-    await prisma.task.create({
-      data: {
-        workflowId: taskWorkflow.id,
-        currentStateId: taskInitialState.id,
-        title: `Revisar horario: ${schedule.name}`,
-        description: `Validar horario de ${schedule.user.firstName} ${schedule.user.lastName}. Verificar bloques y asignaciones.`,
-        creatorId: session.user.id,
-        context: JSON.stringify({ type: 'REVIEW', scheduleId: schedule.id, requestId: request.id }),
-        assignments: {
-          create: admins.map(admin => ({
-            assigneeId: admin.id
-          }))
-        }
       }
     })
 
@@ -99,13 +73,36 @@ Notas del profesor: ${notes}` : ''}`,
       }
     })
 
+    // Crear notificaciones para los admins
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'ROOT'] } },
+        select: { id: true }
+      })
+      
+      await prisma.workflowNotification.createMany({
+        data: admins.map(admin => ({
+          userId: admin.id,
+          title: 'Nuevo horario pendiente de validación',
+          message: `${schedule.user.firstName} ${schedule.user.lastName} ha solicitado la validación de su horario "${schedule.name}".`,
+          type: 'warning',
+          requestId: request.id,
+          actionUrl: `/admin/solicitudes/${request.id}`,
+          actionLabel: 'Revisar'
+        }))
+      })
+    } catch (notifError) {
+      console.error('Error creando notificaciones:', notifError)
+    }
+
     return {
       success: true,
       message: 'Horario enviado para validación',
-      schedule: updatedSchedule
+      schedule: updatedSchedule,
+      requestId: request.id
     }
   } catch (error: any) {
     console.error('Error requesting validation:', error)
-    throw createError({ statusCode: 500, message: 'Error al enviar solicitud' })
+    throw createError({ statusCode: 500, message: error.message || 'Error al enviar solicitud' })
   }
 })

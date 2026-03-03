@@ -43,7 +43,9 @@ const scheduleSchema = z.object({
     z.string().length(0), // String vacío
     z.undefined()
   ]).optional().transform(val => val || undefined),
-  blocks: z.array(blockSchema).min(1, 'Al menos un bloque requerido')
+  blocks: z.array(blockSchema).min(1, 'Al menos un bloque requerido'),
+  // Nuevo campo: si es true y es admin, crea el horario ya validado
+  autoValidate: z.boolean().optional().default(false)
 })
 
 export default defineEventHandler(async (event) => {
@@ -81,7 +83,7 @@ export default defineEventHandler(async (event) => {
   // Verificar rol del usuario actual
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true }
+    select: { role: true, firstName: true, lastName: true, email: true }
   })
 
   if (!currentUser) {
@@ -97,13 +99,14 @@ export default defineEventHandler(async (event) => {
 
   // Determinar userId objetivo
   let targetUserId = session.user.id
+  let targetUserName = `${currentUser.firstName} ${currentUser.lastName}`
   
   if (data.userId) {
     if (isAdminOrRoot) {
       // Verificar que el usuario objetivo existe
       const targetUser = await prisma.user.findUnique({ 
         where: { id: data.userId },
-        select: { id: true, role: true }
+        select: { id: true, role: true, firstName: true, lastName: true }
       })
       if (!targetUser) {
         throw createError({ statusCode: 404, message: 'Usuario objetivo no encontrado' })
@@ -113,6 +116,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 403, message: 'No puedes crear horarios para usuarios ROOT' })
       }
       targetUserId = data.userId
+      targetUserName = `${targetUser.firstName} ${targetUser.lastName}`
     } else {
       // Usuario normal intentando asignar a otro
       if (data.userId !== session.user.id) {
@@ -123,7 +127,58 @@ export default defineEventHandler(async (event) => {
 
   // Crear horario + bloques en transacción
   try {
-    const schedule = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      // Determinar el estado de validación inicial
+      let initialValidationStatus = 'BORRADOR'
+      let requestId: string | null = null
+      
+      // Si es template, no necesita validación
+      if (data.isTemplate) {
+        initialValidationStatus = 'VALIDADO' // Los templates no requieren validación
+      }
+      // Si es admin/root con autoValidate, crea validado directamente
+      else if (isAdminOrRoot && data.autoValidate) {
+        initialValidationStatus = 'VALIDADO'
+      }
+      // Si no es admin/root, debe pasar por validación
+      else if (!isAdminOrRoot) {
+        initialValidationStatus = 'PENDIENTE'
+        
+        // Obtener el workflow de validación de horarios
+        const workflow = await tx.workflowDefinition.findUnique({
+          where: { code: 'request_schedule_validation' },
+          include: { states: true }
+        })
+        
+        if (!workflow) {
+          throw new Error('Workflow de validación de horarios no configurado')
+        }
+        
+        const initialState = workflow.states.find(s => s.isInitial)
+        if (!initialState) {
+          throw new Error('Estado inicial del workflow no encontrado')
+        }
+        
+        // Crear la solicitud de validación automáticamente
+        const request = await tx.request.create({
+          data: {
+            workflowId: workflow.id,
+            currentStateId: initialState.id,
+            title: `Validar horario: ${data.name}`,
+            description: `El profesor ${targetUserName} ha creado un nuevo horario "${data.name}" que requiere validación administrativa.
+            
+Tipo de horario: ${data.type}
+Bloques configurados: ${data.blocks.length} días
+${data.description ? `Descripción: ${data.description}` : ''}`,
+            requesterId: targetUserId,
+            context: JSON.stringify({ type: 'SCHEDULE_VALIDATION', scheduleId: null }) // Se actualizará después
+          }
+        })
+        
+        requestId = request.id
+      }
+      // Si es admin/root sin autoValidate, queda en BORRADOR para revisión manual
+      
       // 1. Crear el horario
       const newSchedule = await tx.schedule.create({
         data: {
@@ -136,26 +191,45 @@ export default defineEventHandler(async (event) => {
           userId: targetUserId,
           validFrom: data.validFrom ? new Date(data.validFrom + 'T00:00:00') : null,
           validUntil: data.validUntil ? new Date(data.validUntil + 'T23:59:59') : null,
+          validationStatus: initialValidationStatus,
+          requestId: requestId
         }
       })
+      
+      // Si hay solicitud, actualizar el contexto con el scheduleId
+      if (requestId) {
+        await tx.request.update({
+          where: { id: requestId },
+          data: {
+            context: JSON.stringify({ type: 'SCHEDULE_VALIDATION', scheduleId: newSchedule.id })
+          }
+        })
+      }
 
       // 2. Crear bloques con validación de solapamiento
       for (const block of data.blocks) {
         const startMinutes = timeToMinutes(block.startTime)
         const endMinutes = timeToMinutes(block.endTime)
 
-        // Verificar solapamiento contra bloques existentes del usuario
+        // Verificar solapamiento contra bloques existentes del usuario del MISMO TIPO
+        // Esto permite tener horarios de diferente tipo (NORMAL, EXAMENES, etc.) sin conflictos
         const existingBlocks = await tx.scheduleBlock.findMany({
           where: {
             schedule: {
               userId: targetUserId,
-              isActive: true
+              isActive: true,
+              type: data.type // Solo verificar contra horarios del mismo tipo
             },
             dayOfWeek: block.dayOfWeek
           },
           select: {
             startTime: true,
-            endTime: true
+            endTime: true,
+            schedule: {
+              select: {
+                name: true
+              }
+            }
           }
         })
 
@@ -166,7 +240,8 @@ export default defineEventHandler(async (event) => {
         })
 
         if (hasOverlap) {
-          throw new Error(`Solapamiento detectado el ${block.dayOfWeek} a las ${block.startTime}`)
+          const conflictingSchedule = existingBlocks[0]?.schedule?.name || 'horario existente'
+          throw new Error(`Solapamiento detectado el ${block.dayOfWeek} a las ${block.startTime} con "${conflictingSchedule}". No puedes tener dos horarios del mismo tipo (${data.type}) que se solapen.`)
         }
 
         await tx.scheduleBlock.create({
@@ -182,16 +257,55 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      return await tx.schedule.findUnique({
+      const schedule = await tx.schedule.findUnique({
         where: { id: newSchedule.id },
-        include: { blocks: true }
+        include: { blocks: true, request: true }
       })
+      
+      return { schedule, requestId }
     })
+    
+    // Crear notificación para los admins si hay solicitud pendiente
+    if (result.requestId) {
+      try {
+        const admins = await prisma.user.findMany({
+          where: { role: { in: ['ADMIN', 'ROOT'] } },
+          select: { id: true }
+        })
+        
+        await prisma.workflowNotification.createMany({
+          data: admins.map(admin => ({
+            userId: admin.id,
+            title: 'Nuevo horario pendiente de validación',
+            message: `${targetUserName} ha creado un horario "${data.name}" que requiere tu revisión.`,
+            type: 'warning',
+            requestId: result.requestId,
+            actionUrl: `/admin/solicitudes/${result.requestId}`,
+            actionLabel: 'Revisar'
+          }))
+        })
+      } catch (notifError) {
+        console.error('Error creando notificaciones:', notifError)
+        // No fallar si las notificaciones fallan
+      }
+    }
+
+    // Construir mensaje de respuesta
+    let message = 'Horario creado correctamente'
+    if (data.isTemplate) {
+      message = 'Template creado correctamente'
+    } else if (isAdminOrRoot && data.autoValidate) {
+      message = 'Horario creado y validado correctamente'
+    } else if (!isAdminOrRoot) {
+      message = 'Horario creado y enviado para validación. Un administrador lo revisará pronto.'
+    }
 
     return { 
       success: true, 
-      scheduleId: schedule?.id,
-      message: data.isTemplate ? 'Template creado correctamente' : 'Horario creado correctamente'
+      scheduleId: result.schedule?.id,
+      requestId: result.requestId,
+      validationStatus: result.schedule?.validationStatus,
+      message
     }
     
   } catch (error: any) {

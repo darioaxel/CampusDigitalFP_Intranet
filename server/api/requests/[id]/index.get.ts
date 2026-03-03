@@ -74,6 +74,11 @@ export default defineEventHandler(async (event) => {
             toState: true
           },
           orderBy: { createdAt: 'desc' }
+        },
+        schedule: {
+          include: {
+            blocks: true
+          }
         }
       }
     })
@@ -114,6 +119,14 @@ export default defineEventHandler(async (event) => {
           specialty: context.specialty,
           experience: context.experience,
         }
+      }
+    }
+    
+    // Para solicitudes SCHEDULE_VALIDATION, asegurar que el scheduleId está disponible en el contexto
+    if (context.type === 'SCHEDULE_VALIDATION' && request.schedule) {
+      enrichedData = {
+        ...request,
+        schedule: request.schedule
       }
     }
 

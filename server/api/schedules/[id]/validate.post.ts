@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   // Verificar que es admin/root
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true }
+    select: { role: true, firstName: true, lastName: true }
   })
 
   if (!['ADMIN', 'ROOT'].includes(currentUser?.role || '')) {
@@ -30,24 +30,25 @@ export default defineEventHandler(async (event) => {
 
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId },
-    include: { request: true }
+    include: { 
+      request: true,
+      user: { select: { firstName: true, lastName: true, email: true } }
+    }
   })
 
   if (!schedule) throw createError({ statusCode: 404, message: 'Horario no encontrado' })
+  
+  // Solo se puede validar si está en PENDIENTE
+  if (schedule.validationStatus !== 'PENDIENTE') {
+    throw createError({ statusCode: 400, message: 'El horario no está pendiente de validación' })
+  }
 
   const newStatus = action === 'VALIDAR' ? 'VALIDADO' : 'RECHAZADO'
+  const toStateCode = action === 'VALIDAR' ? 'approved' : 'rejected'
 
   try {
-    // Actualizar horario
-    const updated = await prisma.schedule.update({
-      where: { id: scheduleId },
-      data: { validationStatus: newStatus }
-    })
-
     // Si tiene solicitud asociada, usar el workflow engine para transicionar
     if (schedule.request) {
-      const toStateCode = action === 'VALIDAR' ? 'approved' : 'rejected'
-      
       // Ejecutar transición usando el workflow engine
       await workflowEngine.executeTransition({
         entityId: schedule.request.id,
@@ -55,11 +56,11 @@ export default defineEventHandler(async (event) => {
         toStateCode: toStateCode,
         actorId: session.user.id,
         actorRole: currentUser!.role,
-        comment: notes || `Horario ${action === 'VALIDAR' ? 'validado' : 'rechazado'}`,
+        comment: notes || `Horario ${action === 'VALIDAR' ? 'validado' : 'rechazado'} por ${currentUser?.firstName} ${currentUser?.lastName}`,
         metadata: { scheduleId: schedule.id, action }
       })
 
-      // Actualizar adminId y notas manualmente (si es necesario)
+      // Actualizar adminId y notas manualmente
       await prisma.request.update({
         where: { id: schedule.request.id },
         data: {
@@ -67,46 +68,46 @@ export default defineEventHandler(async (event) => {
           adminNotes: notes || null
         }
       })
+    }
 
-      // Completar todas las tareas asociadas (usando el workflow engine)
-      const relatedTasks = await prisma.task.findMany({
-        where: { 
-          context: {
-            contains: `"requestId":"${schedule.request.id}"`
-          }
-        }
-      })
-
-      for (const task of relatedTasks) {
-        try {
-          await workflowEngine.executeTransition({
-            entityId: task.id,
-            entityType: 'TASK',
-            toStateCode: 'done',
-            actorId: session.user.id,
-            actorRole: currentUser!.role,
-            comment: `Completada por ${action === 'VALIDAR' ? 'validación' : 'rechazo'} de horario`
-          })
-        } catch (e) {
-          // Si la transición falla, simplemente marcar como completada
-          await prisma.task.update({
-            where: { id: task.id },
-            data: { completedAt: new Date() }
-          })
-        }
+    // Actualizar horario
+    const updated = await prisma.schedule.update({
+      where: { id: scheduleId },
+      data: { 
+        validationStatus: newStatus,
+        isActive: action === 'VALIDAR' // Solo activo si está validado
       }
+    })
 
-      // Crear log de actividad
-      await prisma.activityLog.create({
+    // Crear log de actividad
+    await prisma.activityLog.create({
+      data: {
+        actorId: session.user.id,
+        action: action === 'VALIDAR' ? 'SCHEDULE_VALIDATED' : 'SCHEDULE_REJECTED',
+        description: `Horario "${schedule.name}" ${action === 'VALIDAR' ? 'validado' : 'rechazado'} por ${currentUser?.firstName} ${currentUser?.lastName}`,
+        entityType: 'SCHEDULE',
+        entityId: schedule.id,
+        requestId: schedule.request?.id || null
+      }
+    })
+    
+    // Crear notificación para el profesor
+    try {
+      await prisma.workflowNotification.create({
         data: {
-          actorId: session.user.id,
-          action: action === 'VALIDAR' ? 'SCHEDULE_VALIDATED' : 'SCHEDULE_REJECTED',
-          description: `Horario "${schedule.name}" ${action === 'VALIDAR' ? 'validado' : 'rechazado'} por administración`,
-          entityType: 'SCHEDULE',
-          entityId: schedule.id,
-          requestId: schedule.request.id
+          userId: schedule.userId,
+          title: action === 'VALIDAR' ? 'Horario validado' : 'Horario rechazado',
+          message: action === 'VALIDAR' 
+            ? `Tu horario "${schedule.name}" ha sido validado correctamente.`
+            : `Tu horario "${schedule.name}" ha sido rechazado. ${notes ? `Motivo: ${notes}` : 'Contacta con administración para más detalles.'}`,
+          type: action === 'VALIDAR' ? 'success' : 'error',
+          requestId: schedule.request?.id || null,
+          actionUrl: `/usuario/horarios`,
+          actionLabel: 'Ver horarios'
         }
       })
+    } catch (notifError) {
+      console.error('Error creando notificación:', notifError)
     }
 
     return {
@@ -116,6 +117,6 @@ export default defineEventHandler(async (event) => {
     }
   } catch (error: any) {
     console.error('Error validating schedule:', error)
-    throw createError({ statusCode: 500, message: 'Error al procesar validación' })
+    throw createError({ statusCode: 500, message: error.message || 'Error al procesar validación' })
   }
 })

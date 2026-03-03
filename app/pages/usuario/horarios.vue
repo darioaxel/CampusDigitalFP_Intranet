@@ -62,6 +62,16 @@ const schedules = computed(() => {
   return mySchedules.value || []
 })
 
+// Verificar si hay horarios pendientes de validación
+const hasPendingSchedules = computed(() => {
+  return schedules.value.some((s: any) => s.validationStatus === 'PENDIENTE')
+})
+
+// Verificar si hay horarios rechazados
+const hasRejectedSchedules = computed(() => {
+  return schedules.value.some((s: any) => s.validationStatus === 'RECHAZADO')
+})
+
 const loading = computed(() => isReviewMode.value ? reviewPending.value : pending.value)
 
 // Validar/Rechazar horario
@@ -196,6 +206,59 @@ if (error.value) {
               <Icon name="lucide:x" class="mr-1 h-4 w-4" />
               Rechazar
             </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner informativo: Horarios pendientes de validación -->
+      <div 
+        v-if="!isReviewMode && hasPendingSchedules" 
+        class="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4"
+      >
+        <div class="flex items-start gap-3">
+          <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-full">
+            <Icon name="lucide:clock" class="h-5 w-5 text-yellow-700 dark:text-yellow-300" />
+          </div>
+          <div>
+            <h3 class="font-medium text-yellow-900 dark:text-yellow-100">Horario pendiente de validación</h3>
+            <p class="text-sm text-yellow-700 dark:text-yellow-300">
+              Tienes al menos un horario pendiente de validación por parte de la administración. 
+              Hasta que no sea validado, el horario no estará activo.
+            </p>
+            <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+              Recibirás una notificación cuando tu horario sea revisado.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner informativo: Horarios rechazados -->
+      <div 
+        v-if="!isReviewMode && hasRejectedSchedules" 
+        class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4"
+      >
+        <div class="flex items-start gap-3">
+          <div class="bg-red-100 dark:bg-red-900 p-2 rounded-full">
+            <Icon name="lucide:alert-circle" class="h-5 w-5 text-red-700 dark:text-red-300" />
+          </div>
+          <div>
+            <h3 class="font-medium text-red-900 dark:text-red-100">Horario rechazado</h3>
+            <p class="text-sm text-red-700 dark:text-red-300">
+              Uno de tus horarios ha sido rechazado. Revisa los comentarios del administrador, 
+              modifica el horario si es necesario y vuelve a enviarlo para validación.
+            </p>
+            <div class="mt-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                class="border-red-300 text-red-700 hover:bg-red-100"
+                as-child
+              >
+                <NuxtLink to="/usuario/solicitudes">
+                  Ver solicitudes
+                </NuxtLink>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

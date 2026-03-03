@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/vue-table'
-import { h } from 'vue'
+import { h, resolveComponent } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import DataTableColumnHeader from '@/components/data-table/DataTableColumnHeader.vue'
 

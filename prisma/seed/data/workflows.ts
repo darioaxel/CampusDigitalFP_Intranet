@@ -84,9 +84,32 @@ export const sickLeaveWorkflow = {
   ]
 }
 
+// ========================================  
+// WORKFLOW: Validación de Horarios
+// ========================================
+// Flujo: Profesor crea horario → Admin valida/rechaza
+export const scheduleValidationWorkflow = {
+  code: 'request_schedule_validation',
+  name: 'Validación de Horario',
+  description: 'Flujo para validar horarios de profesores antes de su aprobación final',
+  entityType: 'REQUEST',
+  version: 1,
+  isActive: true,
+  states: [
+    { code: 'pending', name: 'Pendiente de Validación', color: 'amber', order: 1, isInitial: true },
+    { code: 'approved', name: 'Validado', color: 'green', order: 2, isFinal: true },
+    { code: 'rejected', name: 'Rechazado', color: 'red', order: 3, isFinal: true, isTerminal: true }
+  ],
+  transitions: [
+    { fromCode: 'pending', toCode: 'approved', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
+    { fromCode: 'pending', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] }
+  ]
+}
+
 // Exportar todos los workflows
 export const allWorkflows = [
   freeDayWorkflow,
   requestNewUserWorkflow,
-  sickLeaveWorkflow
+  sickLeaveWorkflow,
+  scheduleValidationWorkflow
 ]
