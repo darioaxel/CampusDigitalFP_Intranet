@@ -106,7 +106,8 @@ export const siteConfig = {
           icon: "lucide:user-check",
           items: [
             { title: "Lista de usuarios", url: "/admin/usuarios/listado" },
-            { title: "Horarios Profesores", url: "/admin/profesores/horario" },            
+            { title: "Ausencias de usuarios", url: "/admin/usuarios/ausencias" },
+            { title: "Horarios usuarios", url: "/admin/profesores/horario" },            
           ],
         },
         {
