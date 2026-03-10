@@ -39,12 +39,13 @@ export const freeDayWorkflow = {
           { code: 'pending', name: 'Pendiente', color: 'amber', order: 1, isInitial: true },
           { code: 'approved', name: 'Aprobada', color: 'green', order: 2, isFinal: true },
           { code: 'rejected', name: 'Rechazada', color: 'red', order: 3, isFinal: true, isTerminal: true },
-          { code: 'cancelled_by_user', name: 'Eliminada por usuario', color: 'gray', order: 4, isFinal: true, isTerminal: true }
+          { code: 'cancelled_by_user', name: 'Cancelada', color: 'gray', order: 4, isFinal: true, isTerminal: true }
       ],
       transitions: [
           { fromCode: 'pending', toCode: 'approved', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
           { fromCode: 'pending', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
-          { fromCode: 'pending', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification'] },
+          // Solo el usuario puede cancelar su propia solicitud (no el admin)
+          { fromCode: 'pending', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT'], requiresComment: false, autoActions: ['create_notification'] },
           { fromCode: 'approved', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification', 'remove_calendar_event'] }
       ]      
   }
@@ -61,11 +62,11 @@ export const sickLeaveWorkflow = {
   version: 1,
   isActive: true,
   states: [
-    { code: 'pending_notification', name: 'Pendiente de Notificación', color: 'amber', order: 1, isInitial: true },
-    { code: 'notified', name: 'Notificado', color: 'blue', order: 2 },
-    { code: 'pending_docs', name: 'Esperando Documentación', color: 'amber', order: 3 },
-    { code: 'pending_validation', name: 'Esperando Validación', color: 'purple', order: 4 },
-    { code: 'validated', name: 'Validado', color: 'green', order: 5, isFinal: true },
+    { code: 'pending_notification', name: 'Pendiente de Notificación', color: 'amber', order: 1, isInitial: true, isFinal: false, isTerminal: false },
+    { code: 'notified', name: 'Notificado', color: 'blue', order: 2, isFinal: false, isTerminal: false },
+    { code: 'pending_docs', name: 'Esperando Documentación', color: 'amber', order: 3, isFinal: false, isTerminal: false },
+    { code: 'pending_validation', name: 'Esperando Validación', color: 'purple', order: 4, isFinal: false, isTerminal: false },
+    { code: 'validated', name: 'Validado', color: 'green', order: 5, isFinal: true, isTerminal: false },
     { code: 'rejected', name: 'Rechazado', color: 'red', order: 6, isFinal: true, isTerminal: true }
   ],
   transitions: [

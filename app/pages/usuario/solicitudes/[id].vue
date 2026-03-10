@@ -477,6 +477,8 @@ const requesterName = computed(() => {
 
 const canUploadDocuments = computed(() => {
   if (!request.value) return false
+  // Solo las solicitudes de baja médica permiten subir documentación
+  if (requestType.value !== 'SICK_LEAVE') return false
   const allowedStates = ['pending', 'communicated', 'pending_docs']
   return request.value.requesterId === user.value?.id && 
          allowedStates.includes(request.value.currentState?.code)

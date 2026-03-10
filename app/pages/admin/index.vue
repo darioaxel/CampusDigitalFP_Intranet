@@ -318,7 +318,7 @@ const uniqueCreators = computed(() => {
 const activeItems = computed(() => {
   const result = items.value.filter(item => {
     // Estados que consideramos "activos" o pendientes
-    const activeStatuses = ['Pendiente', 'Por hacer', 'En progreso', 'En revisión', 'Pendiente de gestionar', 'Pendiente de Validación']
+    const activeStatuses = ['Pendiente', 'Por hacer', 'En progreso', 'En revisión', 'Pendiente de gestionar', 'Pendiente de Validación', 'Pendiente de Notificación', 'Esperando Documentación', 'Esperando Validación', 'Notificado']
     const isActive = activeStatuses.includes(item.status) || !item.completedAt
     console.log(`[Admin] Filter active: ${item.title.substring(0, 20)} | status: ${item.status} | completedAt: ${item.completedAt} | isActive: ${isActive}`)
     return isActive
@@ -330,7 +330,7 @@ const activeItems = computed(() => {
 const historyItems = computed(() => {
   const result = items.value.filter(item => {
     // Estados finales completados
-    const completedStatuses = ['Aprobado', 'Aprobada', 'Completada', 'Completado', 'Validada', 'Rechazado', 'Rechazada', 'Cancelado', 'Cancelada']
+    const completedStatuses = ['Aprobado', 'Aprobada', 'Completada', 'Completado', 'Validado', 'Validada', 'Rechazado', 'Rechazada', 'Cancelado', 'Cancelada']
     const isHistory = completedStatuses.includes(item.status) || item.completedAt
     console.log(`[Admin] Filter history: ${item.title.substring(0, 20)} | status: ${item.status} | completedAt: ${item.completedAt} | isHistory: ${isHistory}`)
     return isHistory

@@ -193,7 +193,8 @@ export default defineEventHandler(async (event) => {
       data: workflowItems.map((item) => ({
         ...item,
         createdAt: formatDate(item.createdAt),
-        completedAt: formatDate(item.completedAt),
+        // No formatear completedAt como '-' para que el frontend pueda evaluarlo correctamente
+        completedAt: item.completedAt ? formatDate(item.completedAt) : null,
       })),
       counts: {
         total: workflowItems.length,
