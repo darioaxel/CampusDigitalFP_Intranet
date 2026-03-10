@@ -219,12 +219,15 @@ export class WorkflowEngine {
       }
 
       // Actualizar estado de la entidad
-      const updatedEntity = await this.updateEntityState(
+      await this.updateEntityState(
         tx, 
         entityId, 
         entityType, 
         targetState.id
       )
+
+      // Recargar entidad con el nuevo estado para las acciones automáticas
+      const updatedEntity = await this.getEntityWithWorkflowTx(tx, entityId, entityType)
 
       // Registrar historial
       await tx.stateHistory.create({
@@ -238,11 +241,11 @@ export class WorkflowEngine {
         }
       })
 
-      // Ejecutar acciones automáticas
+      // Ejecutar acciones automáticas (usando la entidad actualizada)
       if (transition?.autoActions) {
         const actions = JSON.parse(transition.autoActions)
         for (const action of actions) {
-          await this.executeAction(action, entity, context, tx)
+          await this.executeAction(action, updatedEntity!, context, tx)
         }
       }
 

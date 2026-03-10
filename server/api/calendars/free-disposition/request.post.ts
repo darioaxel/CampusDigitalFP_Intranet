@@ -152,7 +152,7 @@ export default defineEventHandler(async (event) => {
         requesterId: session.user.id,
         workflowId: freeDayWorkflow.id,
         currentStateId: initialState.id,
-        context: JSON.stringify({ type: 'FREE_DAY', date: date })
+        context: JSON.stringify({ type: 'FREE_DAY', requestedDate: date })
       }
     })
 

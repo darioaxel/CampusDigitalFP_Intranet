@@ -65,6 +65,11 @@ const scheduleTypes = [
   { value: 'REFUERZO', label: 'Refuerzo' }
 ]
 
+// Helper para obtener el label del tipo de horario
+const getTypeLabel = (type: string): string => {
+  return scheduleTypes.find(t => t.value === type)?.label || type
+}
+
 // Paleta de colores para bloques (misma que usa el horario general)
 const presetColors = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
@@ -74,7 +79,7 @@ const presetColors = [
 
 // Helper para convertir HH:MM a minutos
 const timeToMinutes = (time: string): number => {
-  const [hours, minutes] = time.split(':').map(Number)
+  const [hours = 0, minutes = 0] = time.split(':').map(Number)
   return hours * 60 + minutes
 }
 
