@@ -18,21 +18,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Archivo no encontrado' })
   }
 
-  // Detectar tipo de upload (receipts, blog, o post-content)
-  const typeField = formData.find(f => f.name === 'type')
-  const uploadType = typeField?.data?.toString() || 'receipt'
-  
-  // Post ID opcional (para relacionar imagen con post)
-  const postIdField = formData.find(f => f.name === 'postId')
-  const postId = postIdField?.data?.toString()
-  
-  // Configurar según tipo
-  const isBlogImage = uploadType === 'blog' || uploadType === 'post-content'
-  const allowedTypes = isBlogImage 
-    ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-  const maxSize = isBlogImage ? 10 * 1024 * 1024 : 5 * 1024 * 1024
-  const uploadDirName = isBlogImage ? 'blog' : 'receipts'
+  // Tipos permitidos: imágenes y PDFs
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+  const maxSize = 10 * 1024 * 1024 // 10MB
+  const uploadDirName = 'documents'
 
   // Validar tipo
   if (!allowedTypes.includes(file.type || '')) {
@@ -73,16 +62,6 @@ export default defineEventHandler(async (event) => {
       checksum: hash,
     },
   })
-
-  // Si se proporcionó postId, crear la relación
-  if (postId && uploadType === 'post-content') {
-    await prisma.postImage.create({
-      data: {
-        postId: Number(postId),
-        fileId: fileRecord.id,
-      }
-    })
-  }
 
   return {
     id: fileRecord.id,

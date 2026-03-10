@@ -4,7 +4,8 @@ model File {
   name      String
   mime      String
   size      Int
-  path      String   @unique
+  path      String?   @unique  // Opcional: para archivos guardados en disco
+  data      Bytes?            // Opcional: para archivos guardados en BD (documentos)
   checksum  String
   createdAt DateTime @default(now())
   
