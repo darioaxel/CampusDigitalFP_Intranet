@@ -92,7 +92,103 @@
 │   ├── api.ts
 │   └── temporal-polyfill.client.ts
 ├── public/                       # Assets estáticos
-└── dev_docus/                    # Documentación de desarrollo
+├── dev_docus/                    # Documentación de desarrollo
+└── docs/                         # Proyecto de documentación (Nuxt 4 + Content v3)
+    ├── app/                      # Código fuente (srcDir Nuxt 4)
+    │   ├── components/
+    │   │   └── DocsNavigation.vue  # Navegación lateral
+    │   ├── content/              # Contenido Markdown
+    │   │   ├── index.md         # Landing page
+    │   │   ├── introduccion.md  # Introducción
+    │   │   ├── instalacion.md   # Guía de instalación
+    │   │   ├── arquitectura.md  # Arquitectura
+    │   │   ├── api.md           # Referencia API
+    │   │   └── workflows.md     # Sistema de workflows
+    │   ├── layouts/
+    │   │   └── default.vue      # Layout con sidebar
+    │   ├── pages/
+    │   │   ├── index.vue        # Home
+    │   │   └── [...slug].vue    # Página de contenido
+    │   ├── app.config.ts        # Configuración UI
+    │   ├── app.vue              # Entry point
+    │   └── assets/css/          # Estilos + Prose
+    ├── nuxt.config.ts           # Configuración Nuxt 4
+    ├── package.json             # Dependencias (@nuxt/ui, Content v3)
+    └── README.md                # Documentación del proyecto docs
+```
+
+---
+
+## Proyecto de Documentación
+
+El proyecto tiene un **sistema de documentación independiente** ubicado en `/docs` usando **Nuxt 4 + Content v3 + @nuxt/ui**:
+
+### Características
+- **Framework:** Nuxt 4 con estructura moderna (srcDir: 'app/')
+- **Content:** @nuxt/content v3 para contenido Markdown
+- **UI:** @nuxt/ui con componentes propios
+- **Puerto:** 3001 (independiente de la app principal en 3000)
+
+### Comandos
+```bash
+cd docs
+pnpm install
+pnpm dev          # http://localhost:3001
+pnpm build        # Build para producción
+pnpm generate     # Generar sitio estático
+```
+
+### Desde la raíz
+```bash
+pnpm dev:docs     # Solo documentación
+pnpm dev:all      # App + Docs simultáneamente
+```
+
+### Estructura de contenido
+```
+docs/app/content/
+├── index.md              # Landing page
+├── introduccion.md       # Introducción al proyecto
+├── instalacion.md        # Guía de instalación
+├── arquitectura.md       # Arquitectura del sistema
+├── api.md               # Referencia API
+├── workflows.md         # Sistema de workflows
+└── _dir.yml             # Configuración de navegación
+```
+
+### Características del layout
+- **Sidebar responsivo** con navegación automática
+- **Breadcrumbs** en páginas de contenido
+- **Prev/Next navigation** entre páginas
+- **Dark mode** integrado
+- **Prose styles** para contenido markdown
+- **Syntax highlighting** en bloques de código
+
+### Configuración
+- `app/layouts/default.vue` - Layout con sidebar
+- `app/components/DocsNavigation.vue` - Componente de navegación
+- `nuxt.config.ts` - Configuración de Nuxt
+- Usa frontmatter para metadatos: `title`, `icon`, `description`
+
+### Ejemplo de página
+```markdown
+---
+title: 'Título de página'
+icon: 'i-lucide-icon-name'
+description: 'Descripción para SEO'
+---
+
+# Contenido
+
+Texto normal con **negrita** y *cursiva*.
+
+```typescript
+const ejemplo = "código"
+```
+
+| Tabla | Columna |
+|-------|---------|
+| Dato  | Valor   |
 ```
 
 ---
