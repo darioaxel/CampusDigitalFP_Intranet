@@ -1,0 +1,21 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  deploy-hetzner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hetzner Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_PORT || '22' }}
+          script: |
+            /apps/intranet/deploy-github.sh

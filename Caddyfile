@@ -1,0 +1,59 @@
+# =============================================================================
+# Caddyfile - Configuración para intranet.darioaxel.dev
+# =============================================================================
+# Ubicación en servidor: /apps/caddy/Caddyfile o /etc/caddy/Caddyfile
+
+intranet.darioaxel.dev {
+    # Habilitar HTTPS automático con Let's Encrypt
+    tls admin@darioaxel.dev
+    
+    # Headers de seguridad
+    header {
+        # Prevenir clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # Prevenir MIME sniffing
+        X-Content-Type-Options "nosniff"
+        # XSS Protection
+        X-XSS-Protection "1; mode=block"
+        # Política de referencia
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Política de permisos
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        # HSTS (descomentar después de verificar HTTPS funciona)
+        # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+    
+    # Proxy inverso a la aplicación Nuxt en localhost:3000
+    reverse_proxy localhost:3000 {
+        # Headers importantes para que Nuxt/Nitro funcione correctamente
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        
+        # Timeouts
+        transport http {
+            read_timeout 30s
+            write_timeout 30s
+        }
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/intranet.access.log {
+            roll_size 10MB
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json
+    }
+    
+    # Compresión
+    encode gzip zstd
+    
+    # Ruta para health check (si no está en la API)
+    handle /health {
+        reverse_proxy localhost:3000
+    }
+}

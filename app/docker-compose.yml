@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  app3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app3
+    restart: unless-stopped
+    # Cuando migres a Nuxt, descomenta lo siguiente:
+    # environment:
+    #   - NODE_ENV=production
+    #   - PORT=80
+    #   - HOST=0.0.0.0
+    #   - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@app1-db:5432/${POSTGRES_DB}
+    #   - POSTGRES_HOST=app1-db
+    #   - POSTGRES_PORT=5432
+    #   - POSTGRES_DB=${POSTGRES_DB}
+    #   - POSTGRES_USER=${POSTGRES_USER}
+    #   - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    # depends_on:
+    #   app1-db:
+    #     condition: service_healthy
+    networks:
+      - caddy-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Descomenta para usar PostgreSQL con Nuxt:
+  # app1-db:
+  #   image: postgres:16-alpine
+  #   container_name: app1-db
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - PGDATA=/var/lib/postgresql/data/pgdata
+  #   volumes:
+  #     - app1-db-data:/var/lib/postgresql/data
+  #   networks:
+  #     - app1-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+# volumes:
+#   app1-db-data:
+#     driver: local
+
+networks:
+  caddy-network:
+    external: true
+  # app1-network:
+  #   driver: bridge
+  #   internal: true
