@@ -19,8 +19,8 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <Badge :variant="getStatusVariant(request?.currentState?.name)">
-              {{ request?.currentState?.name || 'Desconocido' }}
+            <Badge :variant="getStatusVariant(formatEstado(request?.currentState?.code))">
+              {{ formatEstado(request?.currentState?.code) }}
             </Badge>
           </div>
         </div>
@@ -117,7 +117,7 @@
                     </div>
                     <div>
                       <label class="text-xs text-muted-foreground">Estado del workflow</label>
-                      <p class="font-medium">{{ request.currentState?.name }}</p>
+                      <p class="font-medium">{{ formatEstado(request.currentState?.code) }}</p>
                     </div>
                     <div v-if="request.startDate">
                       <label class="text-xs text-muted-foreground">Fecha inicio</label>
@@ -302,7 +302,7 @@
                   </div>
                   <div class="pb-4">
                     <p class="font-medium text-sm">
-                      Cambió a <Badge variant="outline">{{ entry.toState?.name }}</Badge>
+                      Cambió a <Badge variant="outline">{{ formatEstado(entry.toState?.code) }}</Badge>
                     </p>
                     <p class="text-xs text-muted-foreground">
                       {{ formatDate(entry.createdAt) }}
@@ -327,7 +327,7 @@
             <CardContent>
               <p class="text-sm text-muted-foreground">
                 Tu solicitud está actualmente en estado 
-                <strong>{{ request.currentState?.name }}</strong>.
+                <strong>{{ formatEstado(request.currentState?.code) }}</strong>.
               </p>
               <p v-if="request.adminNotes" class="text-sm mt-3 p-3 bg-muted rounded-lg">
                 <strong>Notas del gestor:</strong><br />
@@ -526,6 +526,25 @@ const formatSickLeaveSubType = (subType: string) => {
     'OTRA': 'Otra'
   }
   return types[subType] || subType
+}
+
+// Formatear código de estado a nombre legible
+const formatEstado = (code?: string): string => {
+  const estados: Record<string, string> = {
+    // Estados de workflow de bajas médicas (request_sick_leave)
+    'pending_notification': 'Pendiente de Notificación',
+    'notified': 'Notificado',
+    'pending_docs': 'Esperando Documentación',
+    'pending_validation': 'Esperando Validación',
+    'validated': 'Validado',
+    // Estados compartidos
+    'rejected': 'Rechazado',
+    // Estados de workflow de días libres (request_free_day)
+    'pending': 'Pendiente',
+    'approved': 'Aprobada',
+    'cancelled_by_user': 'Cancelada'
+  }
+  return estados[code || ''] || code || 'Desconocido'
 }
 
 const getStatusVariant = (status?: string): 'default' | 'secondary' | 'destructive' | 'outline' => {

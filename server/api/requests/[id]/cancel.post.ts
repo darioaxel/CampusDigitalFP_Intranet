@@ -126,15 +126,34 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      // Eliminar el UserCalendarEvent asociado (la acción automática puede hacer esto, pero por si acaso)
+      // Eliminar el UserCalendarEvent asociado (la acción automática del workflow ya debería hacer esto,
+      // pero lo hacemos aquí también por si acaso o si el workflow no tiene la acción configurada)
       if (context.requestedDate) {
-        await prisma.userCalendarEvent.deleteMany({
+        const requestedDate = new Date(context.requestedDate)
+        const startOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 0, 0, 0)
+        const endOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 23, 59, 59)
+        
+        // Buscar el CalendarEvent correspondiente
+        const calendarEvent = await prisma.calendarEvent.findFirst({
           where: {
-            userId: session.user.id,
-            date: new Date(context.requestedDate),
-            type: 'FREE_DAY'
+            type: 'FREE_DISPOSITION',
+            startDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            },
+            isActive: true
           }
         })
+        
+        if (calendarEvent) {
+          // Eliminar la asignación del usuario
+          await prisma.userCalendarEvent.deleteMany({
+            where: {
+              userId: session.user.id,
+              eventId: calendarEvent.id
+            }
+          })
+        }
       }
 
       return {

@@ -478,14 +478,43 @@ export class WorkflowEngine {
       // Parsear contexto para obtener fecha
       const ctx = entity.context ? JSON.parse(entity.context) : {}
       if (ctx.requestedDate) {
-        await tx.userCalendarEvent.create({
-          data: {
-            userId: entity.requesterId,
-            date: new Date(ctx.requestedDate),
-            type: 'FREE_DAY',
-            title: 'Día de libre disposición'
+        // Buscar el CalendarEvent correspondiente a la fecha solicitada
+        const requestedDate = new Date(ctx.requestedDate)
+        const startOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 0, 0, 0)
+        const endOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 23, 59, 59)
+        
+        const calendarEvent = await tx.calendarEvent.findFirst({
+          where: {
+            type: 'FREE_DISPOSITION',
+            startDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            },
+            isActive: true
           }
         })
+        
+        if (calendarEvent) {
+          // Verificar si ya existe una asignación para este usuario y evento
+          const existingAssignment = await tx.userCalendarEvent.findFirst({
+            where: {
+              userId: entity.requesterId,
+              eventId: calendarEvent.id
+            }
+          })
+          
+          if (!existingAssignment) {
+            // Crear la asignación
+            await tx.userCalendarEvent.create({
+              data: {
+                userId: entity.requesterId,
+                eventId: calendarEvent.id,
+                status: 'CONFIRMED',
+                notes: 'Asignado automáticamente por aprobación de solicitud'
+              }
+            })
+          }
+        }
       }
     }
   }
@@ -500,13 +529,31 @@ export class WorkflowEngine {
       // Parsear contexto para obtener fecha
       const ctx = entity.context ? JSON.parse(entity.context) : {}
       if (ctx.requestedDate) {
-        await tx.userCalendarEvent.deleteMany({
+        // Buscar el CalendarEvent correspondiente a la fecha solicitada
+        const requestedDate = new Date(ctx.requestedDate)
+        const startOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 0, 0, 0)
+        const endOfDay = new Date(requestedDate.getFullYear(), requestedDate.getMonth(), requestedDate.getDate(), 23, 59, 59)
+        
+        const calendarEvent = await tx.calendarEvent.findFirst({
           where: {
-            userId: entity.requesterId,
-            date: new Date(ctx.requestedDate),
-            type: 'FREE_DAY'
+            type: 'FREE_DISPOSITION',
+            startDate: {
+              gte: startOfDay,
+              lte: endOfDay
+            },
+            isActive: true
           }
         })
+        
+        if (calendarEvent) {
+          // Eliminar la asignación del usuario para este evento
+          await tx.userCalendarEvent.deleteMany({
+            where: {
+              userId: entity.requesterId,
+              eventId: calendarEvent.id
+            }
+          })
+        }
       }
     }
   }

@@ -78,6 +78,18 @@ const getStatusColorClass = (statusCode: string) => {
   }
 }
 
+// Formatear código de estado a nombre legible
+const formatEstado = (code?: string): string => {
+  const estados: Record<string, string> = {
+    // Estados de workflow de días libres (request_free_day)
+    'pending': 'Pendiente',
+    'approved': 'Aprobada',
+    'rejected': 'Rechazada',
+    'cancelled_by_user': 'Cancelada'
+  }
+  return estados[code || ''] || code || 'Desconocido'
+}
+
 // Abrir modal de confirmación de eliminación
 const openDeleteModal = (request: any) => {
   requestToDelete.value = request
@@ -544,7 +556,7 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                       {{ formatDate(request.requestedDate) }}
                     </p>
                     <p class="text-xs opacity-75">
-                      {{ request.currentState?.name }}
+                      {{ formatEstado(request.currentState?.code) }}
                     </p>
                   </div>
                   <Button

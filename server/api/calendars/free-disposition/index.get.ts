@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const approvedState = freeDayWorkflow.states.find(s => s.code === 'approved')
+    const pendingState = freeDayWorkflow.states.find(s => s.code === 'pending')
 
     // Buscar calendario de libre disposición activo
     const calendar = await prisma.calendar.findFirst({
@@ -84,13 +85,13 @@ export default defineEventHandler(async (event) => {
     })
 
     // Verificar si el usuario tiene solicitudes pendientes (para calcular canRequest)
+    // Solo contamos estados que realmente ocupan un slot: pending (aún no aprobada/rechazada)
+    // No contamos: cancelled_by_user (cancelada por usuario), rejected (rechazada)
     const myPendingCount = await prisma.request.count({
       where: {
         requesterId: session.user.id,
         workflowId: freeDayWorkflow.id,
-        currentStateId: {
-          not: approvedState?.id
-        }
+        currentStateId: pendingState?.id
       }
     })
 

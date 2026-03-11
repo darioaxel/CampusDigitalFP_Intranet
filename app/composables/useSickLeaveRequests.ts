@@ -202,24 +202,36 @@ export function useSickLeaveRequests() {
 
   const formatEstado = (code?: string): string => {
     const estados: Record<string, string> = {
+      // Estados de workflow de bajas médicas (request_sick_leave)
       'pending_notification': 'Pendiente de Notificación',
       'notified': 'Notificado',
       'pending_docs': 'Esperando Documentación',
       'pending_validation': 'Esperando Validación',
       'validated': 'Validado',
-      'rejected': 'Rechazado'
+      // Estados compartidos
+      'rejected': 'Rechazado',
+      // Estados de workflow de días libres (request_free_day)
+      'pending': 'Pendiente',
+      'approved': 'Aprobada',
+      'cancelled_by_user': 'Cancelada'
     }
     return estados[code || ''] || code || 'Desconocido'
   }
 
   const getEstadoColor = (code?: string): string => {
     const colores: Record<string, string> = {
+      // Estados de workflow de bajas médicas (request_sick_leave)
       'pending_notification': 'text-amber-600 bg-amber-100',
       'notified': 'text-blue-600 bg-blue-100',
       'pending_docs': 'text-amber-600 bg-amber-100',
       'pending_validation': 'text-purple-600 bg-purple-100',
       'validated': 'text-green-600 bg-green-100',
-      'rejected': 'text-red-600 bg-red-100'
+      // Estados compartidos
+      'rejected': 'text-red-600 bg-red-100',
+      // Estados de workflow de días libres (request_free_day)
+      'pending': 'text-amber-600 bg-amber-100',
+      'approved': 'text-green-600 bg-green-100',
+      'cancelled_by_user': 'text-gray-600 bg-gray-100'
     }
     return colores[code || ''] || 'text-gray-600 bg-gray-100'
   }
