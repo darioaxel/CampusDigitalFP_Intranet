@@ -46,7 +46,9 @@ export const freeDayWorkflow = {
           { fromCode: 'pending', toCode: 'rejected', allowedRoles: ['ADMIN', 'ROOT'], requiresComment: true, autoActions: ['create_notification'] },
           // Solo el usuario puede cancelar su propia solicitud (no el admin)
           { fromCode: 'pending', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT'], requiresComment: false, autoActions: ['create_notification'] },
-          { fromCode: 'approved', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT', 'ADMIN', 'ROOT'], requiresComment: false, autoActions: ['create_notification', 'remove_calendar_event'] }
+          // Nota: Los roles ADMIN/ROOT pueden cancelar desde el panel de admin si es necesario
+          // pero por defecto solo el usuario puede cancelar sus propias solicitudes aprobadas
+          { fromCode: 'approved', toCode: 'cancelled_by_user', allowedRoles: ['PROFESOR', 'EXPERTO', 'JEFE_DEPT'], requiresComment: false, autoActions: ['create_notification', 'remove_calendar_event'] }
       ]      
   }
 

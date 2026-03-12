@@ -122,4 +122,4 @@ prisma/generated/
 
 .output/*
 uploads/*
-.data/*
+.data/content/contents.sqlite
