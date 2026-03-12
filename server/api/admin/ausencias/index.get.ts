@@ -1,5 +1,5 @@
 // server/api/admin/ausencias/index.get.ts
-// Obtener todas las ausencias (bajas validadas + días libres aprobados) para el calendario
+// Obtener todas las ausencias (bajas notificadas/en proceso/validadas + días libres aprobados) para el calendario
 
 import { prisma } from '../../../utils/db'
 
@@ -58,15 +58,19 @@ export default defineEventHandler(async (event) => {
 
   const absences: Absence[] = []
 
-  // 1. Obtener bajas validadas
+  // 1. Obtener bajas notificadas (incluye: notificado, esperando docs, pendiente validación y validado)
   if (sickLeaveWorkflow) {
-    const validatedState = sickLeaveWorkflow.states.find(s => s.code === 'validated')
+    // Estados que deben mostrarse en el calendario de ausencias
+    const visibleStates = ['notified', 'pending_docs', 'pending_validation', 'validated']
+    const visibleStateIds = sickLeaveWorkflow.states
+      .filter(s => visibleStates.includes(s.code))
+      .map(s => s.id)
     
-    if (validatedState) {
+    if (visibleStateIds.length > 0) {
       const sickLeaveRequests = await prisma.request.findMany({
         where: {
           workflowId: sickLeaveWorkflow.id,
-          currentStateId: validatedState.id,
+          currentStateId: { in: visibleStateIds },
           OR: [
             // Solicitudes que intersectan con el rango de fechas
             {
