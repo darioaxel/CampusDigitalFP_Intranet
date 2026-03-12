@@ -57,6 +57,9 @@ export default defineNuxtConfig({
 
   vite: {
      plugins: [tailwindcss()],
+     build: {
+       sourcemap: false, // Desactivar sourcemaps para evitar warnings de Tailwind
+     },
   },
   
   devtools: { enabled: true },
