@@ -12,7 +12,9 @@ import {
   Loader2,
   Ban,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  ExternalLink
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 
@@ -639,6 +641,21 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                 <div>
                   <p class="font-medium">Fechas válidas</p>
                   <p class="text-muted-foreground">Solo se pueden solicitar días de libre disposición para fechas futuras</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <FileText class="w-4 h-4 mt-0.5 text-primary" />
+                <div>
+                  <p class="font-medium">Normativa</p>
+                  <a 
+                    href="https://drive.google.com/file/d/1_lL0U74BLtVF1lQB0E0vNqp9CJLHdwXU/view" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    Ver normativa de libre disposición
+                    <ExternalLink class="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             </CardContent>
