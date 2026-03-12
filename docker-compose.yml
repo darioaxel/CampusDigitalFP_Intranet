@@ -1,33 +1,11 @@
 # =============================================================================
 # Docker Compose - Campus Digital FP Intranet
 # =============================================================================
-# Este archivo define los servicios para producción en el servidor Hetzner
+# Usa PostgreSQL compartido (shared-postgres) en lugar de instancia propia
 
 version: '3.8'
 
 services:
-  # ---------------------------------------------------------------------------
-  # Base de datos PostgreSQL
-  # ---------------------------------------------------------------------------
-  postgres:
-    image: postgres:16-alpine
-    container_name: intranet-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-intranet}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
-      POSTGRES_DB: ${POSTGRES_DB:-campus_intranet}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d:ro
-    networks:
-      - intranet-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-intranet} -d ${POSTGRES_DB:-campus_intranet}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ---------------------------------------------------------------------------
   # Aplicación Nuxt (Intranet)
   # ---------------------------------------------------------------------------
@@ -38,11 +16,11 @@ services:
     container_name: intranet-app
     restart: unless-stopped
     environment:
-      # Base de datos LOCAL en producción (Docker)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-intranet}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
-      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-intranet}:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
+      # Base de datos: usar shared-postgres (postgres compartido)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-intranet_app}:${POSTGRES_PASSWORD}@shared-postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
+      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-intranet_app}:${POSTGRES_PASSWORD}@shared-postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
       
-      # Seguridad (debe configurarse en el servidor)
+      # Seguridad
       NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
       
       # OAuth (opcional)
@@ -53,12 +31,10 @@ services:
       NODE_ENV: production
       NITRO_PORT: 3000
     ports:
-      - "127.0.0.1:3000:3000"  # Solo accesible vía localhost (Caddy/nginx proxy)
+      - "127.0.0.1:3000:3000"  # Solo accesible vía localhost (Caddy proxy)
     networks:
       - intranet-network
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres-network  # Red externa al shared-postgres
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -66,10 +42,8 @@ services:
       retries: 3
       start_period: 40s
 
-volumes:
-  postgres_data:
-    driver: local
-
 networks:
   intranet-network:
     driver: bridge
+  postgres-network:
+    external: true  # Red externa donde está shared-postgres
