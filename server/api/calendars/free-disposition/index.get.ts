@@ -139,17 +139,25 @@ export default defineEventHandler(async (event) => {
       }
     })
 
+    // Obtener fecha actual (sin hora) para comparación
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     // Calcular canRequest para cada día
     daysMap.forEach(day => {
+      const dayDate = new Date(day.date + 'T00:00:00')
+      
       // Puede solicitar si:
       // 1. El día está disponible
       // 2. El día no está lleno (menos de 3 aprobados)
       // 3. El usuario no tiene solicitud previa para este día
       // 4. El usuario no ha alcanzado el límite de 4 días
+      // 5. La fecha es futura (posterior al día actual)
       day.canRequest = day.isAvailable && 
                        !day.isFull && 
                        !day.myStatus && 
-                       !hasReachedLimit
+                       !hasReachedLimit &&
+                       dayDate > today
     })
 
     return {

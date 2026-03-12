@@ -245,6 +245,11 @@ const selectDate = (day: any) => {
       toast.error('No disponible', {
         description: 'Este día no está disponible (festivo o fin de semana).'
       })
+    } else {
+      // Si no es ninguna de las anteriores, es fecha pasada o actual
+      toast.error('Fecha no válida', {
+        description: 'Los días de libre disposición solo pueden solicitarse para fechas futuras.'
+      })
     }
     return
   }
@@ -306,6 +311,12 @@ const getCellClasses = (day: any) => {
     return `${baseClasses} bg-gray-50 text-gray-300 cursor-not-allowed`
   }
   
+  // Verificar si es fecha pasada o actual (no disponible para solicitar)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dayDate = new Date(day.date + 'T00:00:00')
+  const isPastOrToday = dayDate <= today
+  
   if (!day.isAvailable) {
     return `${baseClasses} bg-gray-100 text-gray-400 cursor-not-allowed`
   }
@@ -321,6 +332,11 @@ const getCellClasses = (day: any) => {
   // Lleno (3 solicitudes) o límite alcanzado
   if (day.isFull || myStats.value.hasReachedLimit) {
     return `${baseClasses} bg-red-50 border-red-200 cursor-not-allowed`
+  }
+  
+  // Fecha pasada o actual (no se puede solicitar)
+  if (isPastOrToday) {
+    return `${baseClasses} bg-gray-100 text-gray-400 cursor-not-allowed`
   }
   
   // Disponible para solicitar
@@ -527,6 +543,10 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
               <span>Completo o límite alcanzado</span>
             </div>
             <div class="flex items-center gap-2">
+              <div class="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
+              <span>Fecha pasada o no disponible</span>
+            </div>
+            <div class="flex items-center gap-2">
               <div class="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
               <span>Fuera de período</span>
             </div>
@@ -612,6 +632,13 @@ const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
                 <div>
                   <p class="font-medium">Aprobación</p>
                   <p class="text-muted-foreground">Las solicitudes deben ser aprobadas por administración</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <AlertCircle class="w-4 h-4 mt-0.5 text-amber-500" />
+                <div>
+                  <p class="font-medium">Fechas válidas</p>
+                  <p class="text-muted-foreground">Solo se pueden solicitar días de libre disposición para fechas futuras</p>
                 </div>
               </div>
             </CardContent>

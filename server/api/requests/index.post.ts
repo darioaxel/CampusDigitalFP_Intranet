@@ -218,6 +218,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Validación especial para días de libre disposición: solo fechas futuras
+  if (data.type === 'FREE_DAY' && data.requestedDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const requested = new Date(data.requestedDate)
+    requested.setHours(0, 0, 0, 0)
+    
+    if (requested <= today) {
+      throw createError({
+        statusCode: 400,
+        message: 'Los días de libre disposición solo pueden solicitarse para fechas futuras',
+      })
+    }
+  }
+
   try {
     // Obtener el workflow correspondiente
     const workflowCode = data.workflowCode || REQUEST_TYPE_TO_WORKFLOW[data.type]

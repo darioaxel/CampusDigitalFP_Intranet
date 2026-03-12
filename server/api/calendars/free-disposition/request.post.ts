@@ -22,6 +22,18 @@ export default defineEventHandler(async (event) => {
     const [year, month, day] = date.split('-').map(Number)
     const requestedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
 
+    // Validar que la fecha sea posterior al día actual
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const requestedDateOnly = new Date(Date.UTC(year, month - 1, day))
+    
+    if (requestedDateOnly <= today) {
+      throw createError({ 
+        statusCode: 400, 
+        message: 'Los días de libre disposición solo pueden solicitarse para fechas futuras' 
+      })
+    }
+
     // Buscar calendario activo
     const calendar = await prisma.calendar.findFirst({
       where: {
