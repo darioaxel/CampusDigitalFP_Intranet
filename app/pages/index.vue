@@ -1,12 +1,7 @@
 <!-- pages/index.vue (landing) -->
 <template>
   <div class="flex flex-col items-center justify-center">
-    <div class="relative w-full">
-      <!-- Fondo difuminado -->
-      <div
-        class="absolute inset-0 bg-cover bg-center blur-[2px]"
-        style="background-image: url('/images/old-page/fondo-1.png')"
-      />
+    <div class="relative w-full">      
       <!-- Capa oscura semitransparente para mejorar legibilidad -->
       <div class="absolute inset-0 bg-black/40" />
       <PageHeader class="relative z-10">
