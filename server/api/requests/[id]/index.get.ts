@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Para solicitudes NEW_USER, enriquecer la respuesta con datos del contexto
-    let enrichedData = { ...request }
+    let enrichedData: any = { ...request }
     
     if (isNewUserRequest) {
       enrichedData = {
@@ -127,6 +127,56 @@ export default defineEventHandler(async (event) => {
       enrichedData = {
         ...request,
         schedule: request.schedule
+      }
+    }
+
+    // Para solicitudes FREE_DAY, calcular estadísticas de días aprobados del profesor
+    if (context.type === 'FREE_DAY' && isAdmin) {
+      const freeDayWorkflow = await prisma.workflowDefinition.findUnique({
+        where: { code: 'request_free_day' },
+        include: { states: true }
+      })
+
+      if (freeDayWorkflow) {
+        const approvedState = freeDayWorkflow.states.find(s => s.code === 'approved')
+        const pendingState = freeDayWorkflow.states.find(s => s.code === 'pending')
+
+        // Contar solicitudes aprobadas del profesor
+        const teacherApproved = await prisma.request.count({
+          where: {
+            requesterId: request.requesterId,
+            workflowId: freeDayWorkflow.id,
+            currentStateId: approvedState?.id,
+            id: { not: request.id } // Excluir la solicitud actual
+          }
+        })
+
+        // Contar solicitudes pendientes del profesor
+        const teacherPending = await prisma.request.count({
+          where: {
+            requesterId: request.requesterId,
+            workflowId: freeDayWorkflow.id,
+            currentStateId: pendingState?.id,
+            id: { not: request.id } // Excluir la solicitud actual
+          }
+        })
+
+        // Contar profesores que tienen aprobado el mismo día
+        const sameDayApproved = request.requestedDate ? await prisma.request.count({
+          where: {
+            workflowId: freeDayWorkflow.id,
+            currentStateId: approvedState?.id,
+            requestedDate: request.requestedDate,
+            requesterId: { not: request.requesterId }
+          }
+        }) : 0
+
+        enrichedData.requesterStats = {
+          approved: teacherApproved,
+          pending: teacherPending,
+          total: teacherApproved + teacherPending,
+          sameDayApproved: sameDayApproved
+        }
       }
     }
 

@@ -126,6 +126,40 @@
                       <p class="font-medium">{{ requestContext.motivo || 'No especificado' }}</p>
                     </div>
                   </div>
+                  
+                  <!-- Estadísticas del profesor (solo para admin) -->
+                  <div v-if="isAdmin && request.requesterStats" class="mt-4 p-4 bg-muted/50 rounded-lg">
+                    <h5 class="text-sm font-medium mb-3 flex items-center gap-2">
+                      <Icon name="lucide:bar-chart-3" class="h-4 w-4" />
+                      Estadísticas del Profesor
+                    </h5>
+                    <div class="grid grid-cols-3 gap-4">
+                      <div class="text-center p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                        <p class="text-2xl font-bold text-green-700 dark:text-green-400">
+                          {{ request.requesterStats.approved }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">Aprobados</p>
+                      </div>
+                      <div class="text-center p-3 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                        <p class="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                          {{ request.requesterStats.pending }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">Pendientes</p>
+                      </div>
+                      <div class="text-center p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                          {{ request.requesterStats.total }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">Total</p>
+                      </div>
+                    </div>
+                    <div v-if="request.requesterStats.sameDayApproved > 0" class="mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm">
+                      <Icon name="lucide:alert-triangle" class="h-4 w-4 inline mr-1 text-red-600" />
+                      <span class="text-red-700 dark:text-red-400">
+                        <strong>Atención:</strong> {{ request.requesterStats.sameDayApproved }} profesor(es) ya tienen aprobado este mismo día.
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </template>
 
