@@ -8,7 +8,7 @@
         <PageHeaderHeading class="max-w-4xl text-white">
           Campus Virtual FP - Intranet
         </PageHeaderHeading>
-        <PageHeaderDescription class="text-white/90">Aplicación para la gestión de tareas, horarios, etc.</PageHeaderDescription>
+        <PageHeaderDescription class="text-white/90">Aplicación para la gestión de solicitudes, bajas, horarios, etc.</PageHeaderDescription>
         <PageActions>
           <Button as-child size="sm">
             <a target="_blank" href="https://campusdigitalfp.com"> Web </a>
