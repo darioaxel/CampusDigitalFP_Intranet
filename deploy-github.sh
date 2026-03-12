@@ -53,8 +53,9 @@ mkdir -p "$DB_BACKUP_DIR"
 
 DB_BACKUP_FILE="$DB_BACKUP_DIR/intranet-db-$(date +%Y%m%d-%H%M%S).sql"
 
-if docker ps -q -f name=intranet-postgres | grep -q .; then
-    docker exec intranet-postgres pg_dump -U intranet campus_intranet > "$DB_BACKUP_FILE" 2>/dev/null || true
+# Usar PostgreSQL compartido (shared-postgres)
+if docker ps -q -f name=shared-postgres | grep -q .; then
+    docker exec shared-postgres pg_dump -U intranet_app campus_intranet > "$DB_BACKUP_FILE" 2>/dev/null || true
     if [ -f "$DB_BACKUP_FILE" ] && [ -s "$DB_BACKUP_FILE" ]; then
         log_success "Backup de BD creado: $DB_BACKUP_FILE"
         gzip "$DB_BACKUP_FILE" 2>/dev/null || true
@@ -63,7 +64,7 @@ if docker ps -q -f name=intranet-postgres | grep -q .; then
         rm -f "$DB_BACKUP_FILE"
     fi
 else
-    log_warning "Contenedor de PostgreSQL no está corriendo"
+    log_warning "Contenedor de PostgreSQL compartido no está corriendo"
 fi
 
 # Limpiar backups antiguos (mantener últimos 10)
@@ -146,12 +147,10 @@ log_info "Verificando despliegue..."
 sleep 10
 
 # Verificar que los contenedores están corriendo
-if docker ps | grep -q intranet-postgres; then
-    log_success "Contenedor PostgreSQL está corriendo"
+if docker ps | grep -q shared-postgres; then
+    log_success "PostgreSQL compartido está corriendo"
 else
-    log_error "El contenedor PostgreSQL no se inició"
-    docker logs intranet-postgres --tail 20
-    exit 1
+    log_warning "PostgreSQL compartido no está corriendo en este compose (es externo)"
 fi
 
 if docker ps | grep -q intranet-app; then
@@ -195,8 +194,8 @@ echo "   • Producción: https://intranet.darioaxel.dev"
 echo ""
 echo "📋 Comandos útiles:"
 echo "   • Ver logs app:     docker logs -f intranet-app"
-echo "   • Ver logs BD:      docker logs -f intranet-postgres"
-echo "   • Acceder a BD:     docker exec -it intranet-postgres psql -U intranet -d campus_intranet"
+echo "   • Ver logs BD:      docker logs -f shared-postgres"
+echo "   • Acceder a BD:     docker exec -it shared-postgres psql -U intranet_app -d campus_intranet"
 echo "   • Migraciones:      docker exec intranet-app npx prisma migrate deploy"
 echo "   • Reiniciar:        docker compose restart"
 echo ""
