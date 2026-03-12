@@ -14,6 +14,7 @@ WORKDIR /app
 
 # Copiar archivos de configuración de dependencias
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
 # Instalar dependencias (incluye generación de Prisma)
