@@ -17,8 +17,9 @@ services:
     restart: unless-stopped
     environment:
       # Base de datos: usar shared-postgres (postgres compartido)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-intranet_app}:${POSTGRES_PASSWORD}@shared-postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
-      DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-intranet_app}:${POSTGRES_PASSWORD}@shared-postgres:5432/${POSTGRES_DB:-campus_intranet}?schema=public
+      # Usar variables DB_* del archivo .env
+      DATABASE_URL: postgresql://${DB_USER:-intranet_app}:${DB_PASSWORD}@shared-postgres:5432/${DB_NAME:-campus_intranet}?schema=public
+      DIRECT_DATABASE_URL: postgresql://${DB_USER:-intranet_app}:${DB_PASSWORD}@shared-postgres:5432/${DB_NAME:-campus_intranet}?schema=public
       
       # Seguridad
       NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
