@@ -1,6 +1,12 @@
 import tailwindcss from "@tailwindcss/vite"; 
 
 export default defineNuxtConfig({
+  hooks: {
+    // Desactivar completamente el prerender para evitar que Nitro ejecute código de DB durante build
+    'prerender:routes'({ routes }) {
+      routes.clear()
+    }
+  },
   app: {
     head: {
       title: 'Campus Digital FP',
