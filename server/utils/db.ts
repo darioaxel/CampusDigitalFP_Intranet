@@ -1,19 +1,35 @@
 import type { PrismaClient } from '@prisma/client'
 
-// Declaración global
+// Declaración global para singleton
 declare global {
   // eslint-disable-next-line no-var
-  var __prismaClient: PrismaClient | undefined
+  var __prisma: PrismaClient | undefined
 }
 
-// Stub para build/prerender - no hace nada pero tiene la misma forma
-const buildStub = new Proxy({} as PrismaClient, {
-  get() {
-    return () => {
-      throw new Error('Prisma not initialized - this should not happen in runtime')
-    }
+// Factory: crea el cliente apropiado según la URL
+async function createPrismaClient(): Promise<PrismaClient> {
+  const { PrismaClient } = await import('@prisma/client')
+  
+  // Detectar si es Neon por el dominio en la URL
+  const isNeon = process.env.DATABASE_URL?.includes('neon.tech')
+  
+  if (isNeon) {
+    // Local/DEV con Neon: usar adapter con WebSockets
+    const { PrismaNeon } = await import('@prisma/adapter-neon')
+    const pool = new PrismaNeon({ connectionString: process.env.DATABASE_URL })
+    return new PrismaClient({ adapter: pool })
   }
-})
+  
+  // Producción (Docker) o PostgreSQL estándar: sin adapter
+  return new PrismaClient()
+}
 
-// Exportar el cliente real o el stub
-export const prisma = (globalThis.__prismaClient ?? buildStub) as PrismaClient
+// Inicializar en runtime (no durante build/prerender)
+if (!globalThis.__prisma && process.env.NITRO_ENV === 'production') {
+  createPrismaClient().then(client => {
+    globalThis.__prisma = client
+  })
+}
+
+// Export síncrono - en runtime tendrá el cliente, en build será undefined
+export const prisma = globalThis.__prisma as PrismaClient
