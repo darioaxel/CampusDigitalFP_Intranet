@@ -1,28 +1,38 @@
 import type { PrismaClient } from '@prisma/client'
+import { PrismaClient as PrismaClientClass } from '@prisma/client'
 
-let prismaInstance: PrismaClient | undefined
-
-// Función que crea el cliente solo cuando se necesita
-function getPrismaClient(): PrismaClient {
-  if (!prismaInstance) {
-    // Dynamic import para evitar que se bundlee inmediatamente
-    const { PrismaClient } = require('@prisma/client')
-    prismaInstance = new PrismaClient()
-  }
-  return prismaInstance
+// Declaración global
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined
 }
 
-// Exportar proxy que inicializa LAZY al acceder a cualquier propiedad
-// Esto evita que se instancie durante el build de Nitro
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_, prop: string | symbol) {
-    // Solo inicializar cuando se accede a propiedades de modelo (no métodos internos)
-    const client = getPrismaClient()
-    return (client as any)[prop]
-  }
-})
+// Detectar si DATABASE_URL es válida (no placeholder)
+const hasValidDatabaseUrl = !!process.env.DATABASE_URL && 
+  !process.env.DATABASE_URL.includes('placeholder')
 
-// Helper para casos donde se necesita el cliente directamente
-export function getPrisma(): PrismaClient {
-  return getPrismaClient()
+// Crear cliente solo si tenemos URL válida
+let prisma: PrismaClient
+
+if (hasValidDatabaseUrl) {
+  // Runtime: crear cliente real
+  prisma = globalThis.__prisma ?? new PrismaClientClass()
+  
+  if (process.env.NODE_ENV !== 'production') {
+    globalThis.__prisma = prisma
+  }
+} else {
+  // Build time: crear stub que lanza error si se usa
+  prisma = new Proxy({} as PrismaClient, {
+    get(target, prop) {
+      if (prop === 'then' || prop === 'catch') {
+        return undefined
+      }
+      throw new Error(
+        `Prisma not available during build. DATABASE_URL is: ${process.env.DATABASE_URL ? 'placeholder' : 'missing'}`
+      )
+    }
+  })
 }
+
+export { prisma }
