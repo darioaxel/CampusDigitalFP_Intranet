@@ -10,9 +10,6 @@ const loginSchema = z.object({
 export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, loginSchema.parse)
   
-  // Inicializar Prisma
-  const prisma = await getPrisma()
-  
   console.log('=== 🔐 INICIO LOGIN ===')
   console.log('📧 Email recibido:', body.email)
   console.log('🔑 Password recibida:', body.password)
