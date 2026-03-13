@@ -1,25 +1,28 @@
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 
-// Detectar si estamos en build time (placeholder) o runtime real
-const isBuildTime = !process.env.DATABASE_URL || 
-  process.env.DATABASE_URL.includes('placeholder') ||
-  process.env.DATABASE_URL === 'postgresql://user:pass@localhost:5432/db'
+let prismaInstance: PrismaClient | undefined
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+// Función que crea el cliente solo cuando se necesita
+function getPrismaClient(): PrismaClient {
+  if (!prismaInstance) {
+    // Dynamic import para evitar que se bundlee inmediatamente
+    const { PrismaClient } = require('@prisma/client')
+    prismaInstance = new PrismaClient()
+  }
+  return prismaInstance
 }
 
-// Función para crear el cliente (solo en runtime)
-function createPrismaClient(): PrismaClient {
-  return new PrismaClient()
-}
+// Exportar proxy que inicializa LAZY al acceder a cualquier propiedad
+// Esto evita que se instancie durante el build de Nitro
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_, prop: string | symbol) {
+    // Solo inicializar cuando se accede a propiedades de modelo (no métodos internos)
+    const client = getPrismaClient()
+    return (client as any)[prop]
+  }
+})
 
-// Exportar: stub durante build, cliente real en runtime
-export const prisma = isBuildTime
-  ? ({} as PrismaClient) // Stub vacío - no se usará en build
-  : (globalForPrisma.prisma ?? createPrismaClient())
-
-// Guardar en global para hot reload (solo en runtime)
-if (!isBuildTime && process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma as PrismaClient
+// Helper para casos donde se necesita el cliente directamente
+export function getPrisma(): PrismaClient {
+  return getPrismaClient()
 }
