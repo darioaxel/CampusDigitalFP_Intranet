@@ -39,6 +39,8 @@ COPY . .
 # Variables de entorno para el build
 ENV NODE_ENV=production
 ENV NUXT_TELEMETRY_DISABLED=1
+# Placeholder para que el build no falle - se reemplaza en runtime
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Generar cliente Prisma (por si acaso)
 RUN pnpm prisma generate
