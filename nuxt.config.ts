@@ -79,12 +79,7 @@ export default defineNuxtConfig({
   },
   nitro: {
     externals: {
-      external: ['@prisma/client', '.prisma/client', '@prisma/adapter-neon']
-    },
-    prerender: {
-      autoSubfolderIndex: false,
-      routes: [],
-      crawlLinks: false
+      external: ['@prisma/client', '.prisma/client']
     },
     publicAssets: [
       {
