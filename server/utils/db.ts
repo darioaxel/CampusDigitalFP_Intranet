@@ -4,6 +4,8 @@ import type { PrismaClient } from '@prisma/client'
 declare global {
   // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined
+  // eslint-disable-next-line no-var
+  var __prismaInitPromise: Promise<PrismaClient> | undefined
 }
 
 // Factory: crea el cliente apropiado según la URL
@@ -24,12 +26,38 @@ async function createPrismaClient(): Promise<PrismaClient> {
   return new PrismaClient()
 }
 
-// Inicializar en runtime (no durante build/prerender)
-if (!globalThis.__prisma && process.env.NITRO_ENV === 'production') {
-  createPrismaClient().then(client => {
+// Función para obtener el cliente (siempre usar esta en API routes)
+export async function getPrisma(): Promise<PrismaClient> {
+  // Si ya está inicializado, retornarlo
+  if (globalThis.__prisma) {
+    return globalThis.__prisma
+  }
+  
+  // Si hay una inicialización en progreso, esperarla
+  if (globalThis.__prismaInitPromise) {
+    return globalThis.__prismaInitPromise
+  }
+  
+  // Iniciar nueva inicialización
+  globalThis.__prismaInitPromise = createPrismaClient().then(client => {
     globalThis.__prisma = client
+    return client
   })
+  
+  return globalThis.__prismaInitPromise
 }
 
-// Export síncrono - en runtime tendrá el cliente, en build será undefined
-export const prisma = globalThis.__prisma as PrismaClient
+// Export síncrono para compatibilidad (las rutas DEBEN usar getPrisma() en su lugar)
+// Esto está aquí para no romper imports existentes, pero no usar directamente
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_, prop: string | symbol) {
+    return async (...args: unknown[]) => {
+      const client = await getPrisma()
+      const method = (client as Record<string | symbol, (...args: unknown[]) => unknown>)[prop]
+      if (typeof method !== 'function') {
+        throw new Error(`Prisma method ${String(prop)} is not a function`)
+      }
+      return method.apply(client, args)
+    }
+  }
+})
