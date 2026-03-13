@@ -43,9 +43,9 @@ export const siteConfig = {
       requiresAuth: false,
     },
     {
-      href: '/',
-      label: 'Documentación',
-      icon: 'lucide:book-open',
+      href: '/documentacion/workflows-y-procesos',
+      label: 'Workflows',
+      icon: 'lucide:git-branch',
       requiresAuth: false,
     }
   ] as NavItem[],
@@ -90,7 +90,7 @@ export const siteConfig = {
           url: "#",
           icon: "lucide:book-open",
           items: [
-            { title: "Calidad", url: "#" },
+            { title: "Workflows y procesos", url: "/documentacion/workflows-y-procesos" },
             { title: "Otros", url: "#" },
           ],
         },
