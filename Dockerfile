@@ -65,6 +65,7 @@ COPY --from=builder --chown=nuxt:nodejs /app/.output ./.output
 COPY --from=builder --chown=nuxt:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nuxt:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nuxt:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nuxt:nodejs /app/prisma.config.ts ./prisma.config.ts
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production
