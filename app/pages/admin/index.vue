@@ -2,7 +2,7 @@
 <template>
   <div class="min-h-screen">
     <!-- Header compacto -->
-    <div class="relative bg-cover bg-center bg-no-repeat py-2 px-6" style="background-image: url('/images/old-page/socios.jpg');">
+    <div class="relative bg-cover bg-center bg-no-repeat py-2 px-6 bg-gradient-to-r from-tyto-primary/80 to-tyto-primary">
       <div class="absolute inset-0 bg-black/40"></div>
       <div class="relative z-10 flex items-center gap-2 text-sm">
         <span class="font-semibold text-white drop-shadow-lg">¡Hola {{ userName }}! 👋</span>

@@ -112,7 +112,7 @@ const handleSubmit = async () => {
           Bienvenido de nuevo
         </CardTitle>
         <CardDescription>
-          Inicia sesión con tu cuenta de socio o mediante Google
+          Inicia sesión con tu cuenta o mediante Google
         </CardDescription>
       </CardHeader>
       <CardContent>

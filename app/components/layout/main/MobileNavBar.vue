@@ -40,7 +40,7 @@
             <span class="font-medium">{{ item.label }}</span>
           </NuxtLink>
 
-          <!-- Items with children (Socios dropdown) -->
+          <!-- Items with children (dropdown menu) -->
           <template v-else-if="item.children?.length && !item.type">
             <Separator class="my-2" />
 
@@ -65,12 +65,12 @@
         <!-- Auth section separator -->
         <Separator class="my-4" />
 
-        <!-- Authentication buttons (si no están en la lista principal) -->
+        <!-- Authentication buttons -->
         <template v-if="!loggedIn">
           <NuxtLink to="/signup">
             <Button variant="outline" class="w-full">
               <Icon name="lucide:user-plus" class="mr-2 h-4 w-4" />
-              Hazte Socio
+              Crear cuenta
             </Button>
           </NuxtLink>
 
@@ -95,6 +95,12 @@
             Cerrar Sesión
           </Button>
         </template>
+
+        <!-- Theme Toggle -->
+        <Separator class="my-2" />
+        <div class="flex justify-center py-2">
+          <ThemeToggle />
+        </div>
       </nav>
     </SheetContent>
   </Sheet>
@@ -112,6 +118,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Icon } from '#components'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 interface Props {
   navItems: any[]

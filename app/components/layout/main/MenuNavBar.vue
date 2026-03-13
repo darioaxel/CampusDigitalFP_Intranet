@@ -3,7 +3,7 @@
     <NavigationMenu>
       <NavigationMenuList class="gap-6">
         <template v-for="item in navItems" :key="item.href">
-          <!-- Dropdown items (Socios) -->
+          <!-- Dropdown items -->
           <NavigationMenuItem v-if="item.children?.length">
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
