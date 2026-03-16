@@ -4,10 +4,11 @@ import { UserSeeder } from './seeders/user.seeder.js'
 import { CalendarSeeder } from './seeders/calendar.seeder.js'
 import { allCalendars } from './data/calendars.js'
 import { seedWorkflows } from './seeders/workflow.seeder.js'
+import { seedAcademicYears } from './seeders/academic-years.seeder.js'
 // Los siguientes imports están comentados temporalmente para pruebas del workflow NEW_USER
 // import { ScheduleSeeder } from './seeders/schedules.seeder.js'
 // import { seedStudies } from './seeders/studies.seeder.js'
-// import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
+import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
 // import { seedFreeDispositionCalendar } from './seeders/calendars-free-disposition.seeder.js'
 // import { seedTasks } from './seeders/task.seeder.js'
 // import { seedRequests } from './seeders/request.seeder.js'
@@ -46,6 +47,8 @@ async function main() {
     await prisma.calendar.deleteMany()
     await prisma.scheduleBlock.deleteMany()
     await prisma.schedule.deleteMany()
+    await prisma.scheduleTemplateRole.deleteMany()
+    await prisma.academicYear.deleteMany()
 
     // ========================================
     // DATOS ESENCIALES PARA PRUEBAS
@@ -55,12 +58,18 @@ async function main() {
     const userSeeder = new UserSeeder(prisma)
     const createdUsers = await userSeeder.run(rawUsers)
 
-    // 2. Calendarios escolares (template y libre disposición)
+    // 2. Cursos académicos
+    await seedAcademicYears()
+
+    // 3. Calendarios escolares (template y libre disposición)
     const calendarSeeder = new CalendarSeeder(prisma)
     await calendarSeeder.run(allCalendars)
 
-    // 3. Workflows configurables (incluye el workflow de NEW_USER)
+    // 4. Workflows configurables (incluye el workflow de NEW_USER)
     await seedWorkflows(prisma)
+
+    // 5. Horarios de profesores para el curso 2025-2026
+    await seedSchedules2025_2026()
 
     // ========================================
     // DATOS NO ESENCIALES (comentados para pruebas del workflow NEW_USER)

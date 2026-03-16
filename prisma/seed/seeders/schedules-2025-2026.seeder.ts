@@ -68,6 +68,18 @@ export async function seedSchedules2025_2026() {
     // 2. Crear horarios de profesores
     console.log('👨‍🏫 Creando horarios de profesores...')
 
+    // Buscar curso académico 2025-2026
+    const academicYear = await prisma.academicYear.findUnique({
+      where: { name: '2025-2026' }
+    })
+
+    if (!academicYear) {
+      console.warn('⚠️ No se encontró el curso académico 2025-2026')
+      return
+    }
+
+    console.log(`  📚 Curso académico: ${academicYear.name}`)
+
     for (const scheduleData of profesorSchedules2025_2026) {
       // Buscar usuario por email
       const user = await prisma.user.findUnique({
@@ -102,6 +114,7 @@ export async function seedSchedules2025_2026() {
           isTemplate: false,
           isActive: true,
           userId: user.id,
+          academicYearId: academicYear.id, // Asignar al curso académico
           validFrom: scheduleData.validFrom ? new Date(scheduleData.validFrom) : null,
           validUntil: scheduleData.validUntil ? new Date(scheduleData.validUntil) : null,
           validationStatus: scheduleData.validationStatus,

@@ -268,11 +268,8 @@ const onSubmit = async () => {
     return
   }
   
-  const emptyBlocks = form.blocks.filter(b => !b.isBreak && !b.subject.trim())
-  if (emptyBlocks.length > 0) {
-    toast.error(`Faltan ${emptyBlocks.length} asignatura(s) por asignar`)
-    return
-  }
+  // Permitir huecos vacíos - los bloques sin asignatura se guardan como 'Sin asignar'
+  // El profesor puede rellenar solo los huecos que necesite
 
   // Verificar conflictos antes de enviar
   if (conflicts.value.length > 0) {
@@ -297,9 +294,10 @@ const onSubmit = async () => {
       userId: user.value?.id,
       validFrom: undefined,
       validUntil: undefined,
+      // Permitir bloques vacíos - se guardan con subject vacío o el valor ingresado
       blocks: form.blocks.map(b => ({
         ...b,
-        subject: b.subject || 'Sin asignatura'
+        subject: b.subject?.trim() || '' // Permitir vacío
       }))
     }
 
@@ -375,7 +373,7 @@ const getStatusLabel = (status: string) => {
 
         <!-- Horarios existentes del MISMO TIPO -->
         <Card v-if="existingSchedules.filter((s: any) => s.type === form.type).length > 0 && !loadingExisting" class="mb-6 border-amber-200 dark:border-amber-800">
-          <CardHeader class="bg-amber-50 dark:bg-amber-950/30">
+          <CardHeader class="bg-amber-50 dark:bg-amber-950/30 !pb-0">
             <div class="flex items-center gap-2">
               <Icon name="lucide:alert-triangle" class="h-5 w-5 text-amber-600" />
               <CardTitle class="text-sm font-medium text-amber-900 dark:text-amber-100">
@@ -483,7 +481,7 @@ const getStatusLabel = (status: string) => {
             </Button>
             <Button 
               @click="onSubmit" 
-              :disabled="submitting || pendingBlocks > 0 || conflicts.length > 0"
+              :disabled="submitting || conflicts.length > 0"
             >
               <Icon v-if="submitting" name="lucide:loader-2" class="mr-2 h-4 w-4 animate-spin" />
               <Icon v-else name="lucide:save" class="mr-2 h-4 w-4" />
@@ -590,17 +588,22 @@ const getStatusLabel = (status: string) => {
                   <Badge variant="secondary">{{ filledBlocks }}/{{ totalBlocks }}</Badge>
                 </div>
                 
-                <div v-if="pendingBlocks > 0" class="pt-2">
-                  <div class="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-md border border-amber-200 dark:border-amber-800">
-                    <Icon name="lucide:alert-circle" class="h-4 w-4 shrink-0" />
-                    <span>Faltan {{ pendingBlocks }} por completar</span>
-                  </div>
-                </div>
-                
-                <div v-else-if="conflicts.length === 0" class="pt-2">
-                  <div class="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-950/30 p-2 rounded-md border border-green-200 dark:border-green-800">
-                    <Icon name="lucide:check-circle" class="h-4 w-4 shrink-0" />
-                    <span>Todo completado</span>
+                <div v-if="conflicts.length === 0" class="pt-2">
+                  <div 
+                    class="flex items-center gap-2 text-xs p-2 rounded-md border"
+                    :class="pendingBlocks > 0 
+                      ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' 
+                      : 'text-green-600 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'"
+                  >
+                    <Icon 
+                      :name="pendingBlocks > 0 ? 'lucide:info' : 'lucide:check-circle'" 
+                      class="h-4 w-4 shrink-0" 
+                    />
+                    <span>
+                      {{ pendingBlocks > 0 
+                        ? `${filledBlocks} de ${totalBlocks} asignaturas asignadas (${pendingBlocks} vacíos)` 
+                        : 'Todas las asignaturas completadas' }}
+                    </span>
                   </div>
                 </div>
               </CardContent>

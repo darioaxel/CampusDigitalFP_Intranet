@@ -46,6 +46,12 @@ export default defineEventHandler(async (event) => {
       ]
     }
 
+    // Obtener curso activo
+    const currentYear = await prisma.academicYear.findFirst({
+      where: { isActive: true },
+      select: { id: true }
+    })
+
     // Obtener profesores con sus horarios
     const users = await prisma.user.findMany({
       where: userWhere,
@@ -57,13 +63,22 @@ export default defineEventHandler(async (event) => {
         role: true,
         isActive: true,
         schedules: {
-          where: { isActive: true },
+          where: { 
+            isActive: true,
+            OR: [
+              { academicYearId: currentYear?.id },
+              { academicYearId: null }
+            ]
+          },
           include: {
             blocks: {
               orderBy: [
                 { dayOfWeek: 'asc' },
                 { startTime: 'asc' }
               ]
+            },
+            academicYear: {
+              select: { name: true, isActive: true }
             }
           },
           orderBy: { createdAt: 'desc' }
@@ -93,6 +108,8 @@ export default defineEventHandler(async (event) => {
         validUntil: schedule.validUntil,
         validationStatus: schedule.validationStatus,
         totalBloques: schedule.blocks.length,
+        curso: schedule.academicYear?.name || 'Sin curso',
+        cursoActivo: schedule.academicYear?.isActive || false,
         bloques: schedule.blocks.map(block => ({
           id: block.id,
           dia: block.dayOfWeek,

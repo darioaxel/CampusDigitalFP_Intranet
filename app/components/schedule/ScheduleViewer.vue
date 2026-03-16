@@ -21,6 +21,10 @@ interface Schedule {
   isActive: boolean
   validationStatus?: 'BORRADOR' | 'PENDIENTE' | 'VALIDADO' | 'RECHAZADO'
   blocks: ScheduleBlock[]
+  academicYear?: {
+    name: string
+    isActive: boolean
+  } | null
 }
 
 const props = defineProps<{
@@ -50,6 +54,7 @@ const hours = [
 const getTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     'NORMAL': 'Normal',
+    'EXPERTO': 'Expertos',
     'EXAMENES': 'Exámenes',
     'EXTRAORDINARIO': 'Extraordinario',
     'GUARDIA': 'Guardia',
@@ -140,10 +145,20 @@ const getBlockStyle = (block: ScheduleBlock, hour: string) => {
       >
         <!-- Header del horario seleccionado -->
         <div class="mb-2 flex items-center justify-between">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <h3 class="text-sm font-semibold">{{ schedule.name }}</h3>
             <Badge variant="outline" class="text-xs">
               {{ getTypeLabel(schedule.type) }}
+            </Badge>
+            <!-- Curso académico -->
+            <Badge 
+              v-if="schedule.academicYear"
+              variant="outline"
+              :class="schedule.academicYear.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600'"
+              class="text-xs"
+            >
+              <Icon name="lucide:calendar" class="h-3 w-3 mr-1" />
+              {{ schedule.academicYear.name }}
             </Badge>
             <!-- Estado de validación -->
             <Badge 

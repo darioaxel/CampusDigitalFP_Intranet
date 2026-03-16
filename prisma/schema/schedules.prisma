@@ -1,4 +1,29 @@
 // schedules.prisma
+
+// Cursos académicos (ej: 2024-2025, 2025-2026)
+model AcademicYear {
+  id          String   @id @default(uuid())
+  name        String   // "2025-2026"
+  startDate   DateTime // 1 de septiembre
+  endDate     DateTime // 31 de julio
+  
+  isActive    Boolean  @default(false) // Solo un curso activo a la vez
+  isClosed    Boolean  @default(false) // Curso cerrado/archivado
+  
+  // Descripción opcional
+  description String?
+  
+  // Relaciones
+  schedules   Schedule[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([name])
+  @@index([isActive])
+  @@index([startDate])
+}
+
 model Schedule {
   id          String        @id @default(uuid())
   name        String        // "Horario Curso 2024", "Exámenes Septiembre"
@@ -22,12 +47,41 @@ model Schedule {
   // Bloques de tiempo
   blocks      ScheduleBlock[]
   
+  // Roles que pueden ver esta plantilla (solo para isTemplate = true)
+  allowedRoles ScheduleTemplateRole[]
+  
+  // Curso académico asociado
+  academicYearId String?
+  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  
+  // Historial: si este horario es una copia de otro (para trazabilidad)
+  parentScheduleId String?
+  parentSchedule   Schedule?  @relation("ScheduleHistory", fields: [parentScheduleId], references: [id])
+  childSchedules   Schedule[] @relation("ScheduleHistory")
+  
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   @@index([userId, isActive])
   @@index([type])
   @@index([validFrom, validUntil])
+  @@index([academicYearId])
+}
+
+// Roles permitidos para ver/usar una plantilla de horario
+model ScheduleTemplateRole {
+  id          String   @id @default(uuid())
+  
+  scheduleId  String
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  role        Role     // PROFESOR, EXPERTO, JEFE_DEPT, etc.
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([scheduleId, role])
+  @@index([scheduleId])
+  @@index([role])
 }
 
 model ScheduleBlock {

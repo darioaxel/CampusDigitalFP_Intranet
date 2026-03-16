@@ -5,6 +5,15 @@
 El sistema de horarios permite a los profesores gestionar sus horarios semanales basándose en plantillas (templates) creadas por administradores. Los horarios deben ser validados por administración antes de estar activos.
 
 ---
+## Requisitos de diseño
+
+* Como admin puedo crear plantillas de horarios de un tipo concreto [horario base, horario base mañanas, horario base tardes, horario expertos, horario examenes, ...].
+* Todos los horarios están asociados a un curso completo, que va desde el 1 de septiembre al 31 de julio. Una vez finaliza el curso serán desactivados y podrán volverse a activar a sobre un nuevo curso. 
+* Los horarios de un curso pueden reutilizarse en el siguiente curso, volvíendolos a activa y modificando el curso sobre el que se usarán.
+* Como admin puedo hacer las plantillas públicas para un rol en concreto o para varios roles.
+* Como profesor/experto puedo rellenar los huecos de una plantilla a la que tengo acceso para crear mi horario ( de cada plantilla puedo crear uno o varios horarios asociados a mi persona). No tengo porqué rellenar todos los huecos y, además puedo enviar esa plantilla para que la validen desde administración (workflow validación de horarios). Mientras un horario no esté validado, aparecera un identicador indicandolo,también aparecerá un tick verde cuando lo esté.
+
+---
 
 ## Arquitectura del Sistema
 

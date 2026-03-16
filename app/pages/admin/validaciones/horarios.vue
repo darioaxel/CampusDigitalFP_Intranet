@@ -116,6 +116,7 @@ const getStatusLabel = (status: string) => {
 const getTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     'NORMAL': 'Horario Normal',
+    'EXPERTO': 'Horario Expertos',
     'EXAMENES': 'Exámenes',
     'EXTRAORDINARIO': 'Extraordinario',
     'GUARDIA': 'Guardia',

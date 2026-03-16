@@ -20,6 +20,10 @@ interface Schedule {
   isActive: boolean
   validationStatus?: 'BORRADOR' | 'PENDIENTE' | 'VALIDADO' | 'RECHAZADO'
   blocks: ScheduleBlock[]
+  academicYear?: {
+    name: string
+    isActive: boolean
+  } | null
 }
 
 const props = defineProps<{
@@ -31,6 +35,7 @@ const days = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES']
 const getTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
     'NORMAL': 'Horario Normal',
+    'EXPERTO': 'Horario Expertos',
     'EXAMENES': 'Exámenes',
     'EXTRAORDINARIO': 'Extraordinario',
     'GUARDIA': 'Guardia',
@@ -42,6 +47,7 @@ const getTypeLabel = (type: string) => {
 const getTypeColor = (type: string) => {
   const colors: Record<string, string> = {
     'NORMAL': 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
+    'EXPERTO': 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20',
     'EXAMENES': 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
     'EXTRAORDINARIO': 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20',
     'GUARDIA': 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20',
@@ -90,7 +96,7 @@ const formatTime = (time: string) => time
           />
           <CardTitle class="text-base font-medium">{{ schedule.name }}</CardTitle>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <Badge 
             variant="outline" 
             :class="getTypeColor(schedule.type)"
@@ -104,6 +110,16 @@ const formatTime = (time: string) => time
             class="text-xs"
           >
             Activo
+          </Badge>
+          <!-- Curso académico -->
+          <Badge 
+            v-if="schedule.academicYear"
+            variant="outline"
+            :class="schedule.academicYear.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600'"
+            class="text-xs"
+          >
+            <Icon name="lucide:calendar" class="h-3 w-3 mr-1" />
+            {{ schedule.academicYear.name }}
           </Badge>
           <Badge 
             variant="outline" 

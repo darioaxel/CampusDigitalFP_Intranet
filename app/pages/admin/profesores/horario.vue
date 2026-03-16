@@ -239,9 +239,20 @@
                             <h5 class="font-medium">{{ horario.nombre }}</h5>
                             <p class="text-xs text-muted-foreground">{{ formatScheduleType(horario.tipo) }}</p>
                           </div>
-                          <Badge :variant="getValidationVariant(horario.validationStatus)">
-                            {{ formatValidationStatus(horario.validationStatus) }}
-                          </Badge>
+                          <div class="flex items-center gap-2">
+                            <!-- Curso académico -->
+                            <Badge 
+                              variant="outline"
+                              :class="horario.cursoActivo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600'"
+                              class="text-xs"
+                            >
+                              <Icon name="lucide:calendar" class="h-3 w-3 mr-1" />
+                              {{ horario.curso }}
+                            </Badge>
+                            <Badge :variant="getValidationVariant(horario.validationStatus)">
+                              {{ formatValidationStatus(horario.validationStatus) }}
+                            </Badge>
+                          </div>
                         </div>
 
                         <CardContent class="p-4 space-y-3">
@@ -435,6 +446,8 @@ interface Horario {
   validUntil: string | null
   validationStatus: string
   totalBloques: number
+  curso: string
+  cursoActivo: boolean
   bloques: Bloque[]
 }
 
@@ -551,6 +564,7 @@ function getRoleVariant(role: string): 'default' | 'secondary' | 'destructive' |
 function formatScheduleType(type: string): string {
   const types: Record<string, string> = {
     'NORMAL': 'Normal',
+    'EXPERTO': 'Expertos',
     'EXAMENES': 'Exámenes',
     'EXTRAORDINARIO': 'Extraordinario',
     'GUARDIA': 'Guardia',

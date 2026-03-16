@@ -5,7 +5,6 @@ import { prisma } from '../../utils/db'
 const { Role } = pkg
 
 export default defineEventHandler(async (event) => {
-  // Sin import - asumiendo auto-import desde server/utils/session.ts
   const session = await getUserSession(event)
   
   if (!session.user?.id) {
@@ -19,12 +18,23 @@ export default defineEventHandler(async (event) => {
 
   const isAdminOrRoot = [Role.ADMIN, Role.ROOT].includes(currentUser?.role as any)
 
-  // Templates son públicos para usuarios autenticados
-  // Solo ADMIN/ROOT pueden ver templates inactivos
+  // Construir where clause base
   const whereClause: any = { isTemplate: true }
 
+  // Solo ADMIN/ROOT pueden ver templates inactivos
   if (!isAdminOrRoot) {
     whereClause.isActive = true
+  }
+
+  // Si no es admin/root, filtrar por roles permitidos
+  // Una plantilla es visible si:
+  // 1. No tiene roles específicos definidos (pública para todos)
+  // 2. O el rol del usuario está en la lista de roles permitidos
+  if (!isAdminOrRoot && currentUser?.role) {
+    whereClause.OR = [
+      { allowedRoles: { none: {} } }, // Plantillas sin restricción de rol
+      { allowedRoles: { some: { role: currentUser.role } } } // Plantillas que incluyen su rol
+    ]
   }
 
   const templates = await prisma.schedule.findMany({
@@ -33,7 +43,9 @@ export default defineEventHandler(async (event) => {
       blocks: true,
       user: {
         select: { firstName: true, lastName: true, role: true }
-      }
+      },
+      // Incluir roles permitidos solo para admins
+      allowedRoles: isAdminOrRoot
     },
     orderBy: { createdAt: 'desc' }
   })

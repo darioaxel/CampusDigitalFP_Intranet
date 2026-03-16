@@ -22,9 +22,17 @@ export interface ScheduleTemplate {
     role: string
   }
   blocks: ScheduleBlock[]
+  allowedRoles?: ScheduleTemplateRole[]
   _count?: {
     blocks: number
   }
+}
+
+export interface ScheduleTemplateRole {
+  id: string
+  scheduleId: string
+  role: 'USER' | 'PROFESOR' | 'EXPERTO' | 'JEFE_DEPT' | 'ADMIN' | 'ROOT'
+  createdAt: string
 }
 
 export interface ScheduleBlock {
@@ -59,6 +67,7 @@ export interface ScheduleBlockInput {
 
 const scheduleTypes = [
   { value: 'NORMAL', label: 'Horario Normal' },
+  { value: 'EXPERTO', label: 'Horario Expertos' },
   { value: 'EXAMENES', label: 'Exámenes' },
   { value: 'EXTRAORDINARIO', label: 'Extraordinario' },
   { value: 'GUARDIA', label: 'Guardia' },
@@ -276,6 +285,45 @@ export function useScheduleAdmin() {
     return { hasOverlap: conflicts.length > 0, conflicts }
   }
 
+  // Añadir rol a plantilla
+  const addTemplateRole = async (scheduleId: string, role: string) => {
+    try {
+      const { error: fetchError } = await useFetch(`/api/schedules/${scheduleId}/roles`, {
+        method: 'POST',
+        body: { role }
+      })
+
+      if (fetchError.value) throw fetchError.value
+
+      toast.success('Rol añadido correctamente')
+      await fetchTemplates()
+      return true
+    } catch (err: any) {
+      const message = err.message || 'Error al añadir rol'
+      toast.error(message)
+      throw err
+    }
+  }
+
+  // Eliminar rol de plantilla
+  const removeTemplateRole = async (scheduleId: string, roleId: string) => {
+    try {
+      const { error: fetchError } = await useFetch(`/api/schedules/${scheduleId}/roles/${roleId}`, {
+        method: 'DELETE'
+      })
+
+      if (fetchError.value) throw fetchError.value
+
+      toast.success('Rol eliminado')
+      await fetchTemplates()
+      return true
+    } catch (err: any) {
+      const message = err.message || 'Error al eliminar rol'
+      toast.error(message)
+      throw err
+    }
+  }
+
   return {
     // Estado
     templates,
@@ -293,6 +341,8 @@ export function useScheduleAdmin() {
     updateTemplate,
     deleteTemplate,
     cloneTemplate,
+    addTemplateRole,
+    removeTemplateRole,
     
     // Utilidades
     createBaseBlocks,

@@ -11,17 +11,45 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Obtener parámetros de query (para filtrar por curso)
+  const query = getQuery(event)
+  const academicYearId = query.academicYearId as string | undefined
+
   try {
+    // Construir where clause
+    const where: any = { 
+      userId: session.user.id
+    }
+
+    // Si se especifica un curso, filtrar por él
+    if (academicYearId) {
+      where.academicYearId = academicYearId
+    } else {
+      // Por defecto, mostrar horarios del curso activo o sin curso asignado
+      const currentYear = await prisma.academicYear.findFirst({
+        where: { isActive: true },
+        select: { id: true }
+      })
+      
+      if (currentYear) {
+        where.OR = [
+          { academicYearId: currentYear.id },
+          { academicYearId: null } // Horarios antiguos sin curso asignado
+        ]
+      }
+    }
+
     const schedules = await prisma.schedule.findMany({
-      where: { 
-        userId: session.user.id
-      },
+      where,
       include: {
         blocks: {
           orderBy: [
             { dayOfWeek: 'asc' },
             { startTime: 'asc' }
           ]
+        },
+        academicYear: {
+          select: { name: true, isActive: true }
         }
       },
       orderBy: [

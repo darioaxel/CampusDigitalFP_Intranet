@@ -12,6 +12,7 @@ enum Role {
 // enums.prisma (o al inicio de schema.prisma)
 enum ScheduleType {
   NORMAL
+  EXPERTO        // Horarios específicos para expertos/colaboradores
   EXAMENES
   EXTRAORDINARIO
   GUARDIA

@@ -132,6 +132,16 @@ export default defineEventHandler(async (event) => {
       let initialValidationStatus = 'BORRADOR'
       let requestId: string | null = null
       
+      // Obtener curso académico activo si no es template
+      let academicYearId = null
+      if (!data.isTemplate) {
+        const currentYear = await tx.academicYear.findFirst({
+          where: { isActive: true },
+          select: { id: true }
+        })
+        academicYearId = currentYear?.id || null
+      }
+      
       // Si es template, no necesita validación
       if (data.isTemplate) {
         initialValidationStatus = 'VALIDADO' // Los templates no requieren validación
@@ -192,7 +202,8 @@ ${data.description ? `Descripción: ${data.description}` : ''}`,
           validFrom: data.validFrom ? new Date(data.validFrom + 'T00:00:00') : null,
           validUntil: data.validUntil ? new Date(data.validUntil + 'T23:59:59') : null,
           validationStatus: initialValidationStatus,
-          requestId: requestId
+          requestId: requestId,
+          academicYearId: academicYearId
         }
       })
       

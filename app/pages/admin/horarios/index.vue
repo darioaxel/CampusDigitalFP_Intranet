@@ -2,6 +2,16 @@
 import { toast } from 'vue-sonner'
 import { useScheduleAdmin } from '~/composables/useScheduleAdmin'
 import type { ScheduleTemplate, ScheduleFormData } from '~/composables/useScheduleAdmin'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 
 definePageMeta({
   middleware: ['auth'],
@@ -16,8 +26,11 @@ const {
   presetColors,
   fetchTemplates, 
   createTemplate, 
+  updateTemplate,
   deleteTemplate,
   cloneTemplate,
+  addTemplateRole,
+  removeTemplateRole,
   createBaseBlocks,
   createAfternoonBlocks,
   sortBlocks,
@@ -32,8 +45,18 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const showPreviewModal = ref(false)
+const showRolesModal = ref(false)
 const selectedTemplate = ref<ScheduleTemplate | null>(null)
 const isSubmitting = ref(false)
+const isManagingRoles = ref(false)
+
+// Roles disponibles
+const availableRoles = [
+  { value: 'PROFESOR', label: 'Profesor' },
+  { value: 'EXPERTO', label: 'Experto' },
+  { value: 'JEFE_DEPT', label: 'Jefe de Departamento' },
+  { value: 'ADMIN', label: 'Administrador' }
+]
 
 // Formulario
 const form = reactive<ScheduleFormData>({
@@ -96,6 +119,42 @@ const openPreviewModal = (template: ScheduleTemplate) => {
 const openDeleteModal = (template: ScheduleTemplate) => {
   selectedTemplate.value = template
   showDeleteModal.value = true
+}
+
+// Abrir modal de gestión de roles
+const openRolesModal = (template: ScheduleTemplate) => {
+  selectedTemplate.value = template
+  showRolesModal.value = true
+}
+
+// Añadir rol a plantilla
+const handleAddRole = async (role: string) => {
+  if (!selectedTemplate.value) return
+  
+  isManagingRoles.value = true
+  try {
+    await addTemplateRole(selectedTemplate.value.id, role)
+    // Actualizar el template seleccionado
+    const updated = templates.value.find(t => t.id === selectedTemplate.value!.id)
+    if (updated) selectedTemplate.value = updated
+  } finally {
+    isManagingRoles.value = false
+  }
+}
+
+// Eliminar rol de plantilla
+const handleRemoveRole = async (roleId: string) => {
+  if (!selectedTemplate.value) return
+  
+  isManagingRoles.value = true
+  try {
+    await removeTemplateRole(selectedTemplate.value.id, roleId)
+    // Actualizar el template seleccionado
+    const updated = templates.value.find(t => t.id === selectedTemplate.value!.id)
+    if (updated) selectedTemplate.value = updated
+  } finally {
+    isManagingRoles.value = false
+  }
 }
 
 // Crear template base mañanas
@@ -246,6 +305,28 @@ const getTimeRange = (blocks: any[]) => {
   const endTimes = blocks.map(b => b.endTime).sort()
   return `${times[0]} - ${endTimes[endTimes.length - 1]}`
 }
+
+const getRoleLabel = (role: string) => {
+  const labels: Record<string, string> = {
+    'PROFESOR': 'Profesor',
+    'EXPERTO': 'Experto',
+    'JEFE_DEPT': 'Jefe Dept.',
+    'ADMIN': 'Admin',
+    'ROOT': 'Root'
+  }
+  return labels[role] || role
+}
+
+const getRoleBadgeClass = (role: string) => {
+  const classes: Record<string, string> = {
+    'PROFESOR': 'bg-blue-100 text-blue-800',
+    'EXPERTO': 'bg-cyan-100 text-cyan-800',
+    'JEFE_DEPT': 'bg-purple-100 text-purple-800',
+    'ADMIN': 'bg-orange-100 text-orange-800',
+    'ROOT': 'bg-red-100 text-red-800'
+  }
+  return classes[role] || 'bg-gray-100 text-gray-800'
+}
 </script>
 
 <template>
@@ -346,6 +427,15 @@ const getTimeRange = (blocks: any[]) => {
                   variant="ghost" 
                   size="icon"
                   class="h-8 w-8"
+                  @click="openRolesModal(template)"
+                  title="Gestionar roles"
+                >
+                  <Icon name="lucide:users" class="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  class="h-8 w-8"
                   @click="openPreviewModal(template)"
                   title="Ver detalle"
                 >
@@ -402,6 +492,24 @@ const getTimeRange = (blocks: any[]) => {
                 >
                   {{ template.isActive ? 'Activa' : 'Inactiva' }}
                 </Badge>
+              </div>
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-muted-foreground shrink-0">Roles:</span>
+                <div class="flex flex-wrap justify-end gap-1">
+                  <template v-if="template.allowedRoles && template.allowedRoles.length > 0">
+                    <Badge 
+                      v-for="tr in template.allowedRoles" 
+                      :key="tr.id"
+                      :class="getRoleBadgeClass(tr.role)"
+                      class="text-[10px]"
+                    >
+                      {{ getRoleLabel(tr.role) }}
+                    </Badge>
+                  </template>
+                  <Badge v-else variant="outline" class="text-[10px]">
+                    Todos
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -527,5 +635,87 @@ const getTimeRange = (blocks: any[]) => {
         </div>
       </template>
     </ConfirmDialog>
+
+    <!-- Modal de Gestión de Roles -->
+    <Dialog v-model:open="showRolesModal">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <Icon name="lucide:users" class="h-5 w-5" />
+            Gestionar Roles
+          </DialogTitle>
+          <DialogDescription>
+            Define qué roles pueden ver y usar esta plantilla
+          </DialogDescription>
+        </DialogHeader>
+
+        <div v-if="selectedTemplate" class="space-y-4">
+          <!-- Info de la plantilla -->
+          <div class="p-3 bg-muted rounded-md">
+            <p class="font-medium">{{ selectedTemplate.name }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ selectedTemplate.allowedRoles?.length ? `${selectedTemplate.allowedRoles.length} roles permitidos` : 'Visible para todos los roles' }}
+            </p>
+          </div>
+
+          <!-- Roles actuales -->
+          <div>
+            <Label class="text-sm font-medium mb-2 block">Roles permitidos:</Label>
+            <div class="flex flex-wrap gap-2">
+              <template v-if="selectedTemplate.allowedRoles && selectedTemplate.allowedRoles.length > 0">
+                <Badge 
+                  v-for="tr in selectedTemplate.allowedRoles" 
+                  :key="tr.id"
+                  :class="getRoleBadgeClass(tr.role)"
+                  class="flex items-center gap-1 pr-1"
+                >
+                  {{ getRoleLabel(tr.role) }}
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    class="h-4 w-4 ml-1 hover:bg-black/10"
+                    :disabled="isManagingRoles"
+                    @click="handleRemoveRole(tr.id)"
+                  >
+                    <Icon name="lucide:x" class="h-3 w-3" />
+                  </Button>
+                </Badge>
+              </template>
+              <p v-else class="text-sm text-muted-foreground italic">
+                Sin restricciones - visible para todos
+              </p>
+            </div>
+          </div>
+
+          <!-- Añadir nuevo rol -->
+          <div class="border-t pt-4">
+            <Label class="text-sm font-medium mb-2 block">Añadir rol:</Label>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                v-for="role in availableRoles.filter(r => !selectedTemplate?.allowedRoles?.find(ar => ar.role === r.value))"
+                :key="role.value"
+                variant="outline"
+                size="sm"
+                :disabled="isManagingRoles"
+                @click="handleAddRole(role.value)"
+              >
+                <Icon name="lucide:plus" class="h-3 w-3 mr-1" />
+                {{ role.label }}
+              </Button>
+            </div>
+            <p v-if="availableRoles.every(r => selectedTemplate?.allowedRoles?.find(ar => ar.role === r.value))" 
+               class="text-sm text-muted-foreground mt-2">
+              Todos los roles disponibles ya están asignados
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="showRolesModal = false">
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
