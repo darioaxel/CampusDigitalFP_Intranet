@@ -1,7 +1,7 @@
 // PUT /api/admin/academic-years/:id - Actualizar curso académico
 import { defineEventHandler, createError, getRouterParam, readBody } from 'h3'
 import pkg from '@prisma/client'
-import { prisma } from '../../../../utils/db'
+import { prisma } from '../../../utils/db'
 
 const { Role } = pkg
 

@@ -126,6 +126,7 @@ export const siteConfig = {
           items: [
             { title: "Gestionar Calendarios", url: "/admin/calendarios" },
             { title: "Gestionar Horarios", url: "/admin/horarios" },
+            { title: "Gestionar Cursos", url: "/admin/cursos" },
           ],
         }        
       ]

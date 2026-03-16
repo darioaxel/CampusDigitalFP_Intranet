@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import ConfirmDialog from '@/components/calendar/dialogs/ConfirmDialog.vue'
 
 definePageMeta({
   middleware: ['auth'],
@@ -496,12 +497,10 @@ const availableTargets = computed(() => {
         :loading="isSubmitting"
         @confirm="handleDelete"
       >
-        <template #description>
-          <p>¿Estás seguro de que deseas eliminar este curso académico?</p>
-          <p class="text-sm text-muted-foreground mt-2">
-            Esta acción no se puede deshacer. Solo se pueden eliminar cursos sin horarios asociados.
-          </p>
-        </template>
+        <p>¿Estás seguro de que deseas eliminar este curso académico?</p>
+        <p class="text-sm text-muted-foreground mt-2">
+          Esta acción no se puede deshacer. Solo se pueden eliminar cursos sin horarios asociados.
+        </p>
       </ConfirmDialog>
     </div>
   </div>
