@@ -29,6 +29,12 @@ export default defineEventHandler(async (event) => {
         isActive: true,
       },
       include: {
+        academicYear: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         events: {
           where: { isActive: true },
           orderBy: { startDate: 'asc' }

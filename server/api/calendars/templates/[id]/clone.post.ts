@@ -5,7 +5,7 @@ import { prisma } from '../../../../utils/db'
 const cloneSchema = z.object({
   name: z.string().min(3),
   description: z.string().optional(),
-  academicYear: z.string().regex(/^\d{4}-\d{4}$/),
+  academicYearId: z.string().uuid(), // ID del año académico
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   type: z.enum(['SCHOOL_YEAR', 'EVALUATION', 'FREE_DISPOSITION', 'MEETINGS', 'OTHER']),
@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   const data = result.data
 
   try {
-    // Obtener plantilla con sus eventos
+    // Obtener plantilla con su año académico y eventos
     const template = await prisma.calendar.findUnique({
       where: {
         id: templateId,
@@ -68,6 +68,12 @@ export default defineEventHandler(async (event) => {
         isActive: true
       },
       include: {
+        academicYear: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         events: {
           where: { isActive: true }
         }
@@ -81,9 +87,23 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Obtener información del año académico destino
+    const targetAcademicYear = await prisma.academicYear.findUnique({
+      where: { id: data.academicYearId },
+      select: { name: true }
+    })
+
+    if (!targetAcademicYear) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Año académico destino no encontrado'
+      })
+    }
+
     // Calcular el offset de años entre la plantilla y el nuevo calendario
-    const templateStartYear = parseInt(template.academicYear.split('-')[0])
-    const newStartYear = parseInt(data.academicYear.split('-')[0])
+    const templateAcademicYearName = template.academicYear?.name || targetAcademicYear.name
+    const templateStartYear = parseInt(templateAcademicYearName.split('-')[0])
+    const newStartYear = parseInt(targetAcademicYear.name.split('-')[0])
     const yearOffset = newStartYear - templateStartYear
 
     // Crear nuevo calendario con eventos ajustados
@@ -95,7 +115,7 @@ export default defineEventHandler(async (event) => {
         name: data.name,
         description: data.description,
         type: data.type,
-        academicYear: data.academicYear,
+        academicYearId: data.academicYearId,
         startDate,
         endDate,
         isPublic: data.isPublic,
@@ -136,7 +156,13 @@ export default defineEventHandler(async (event) => {
         }
       },
       include: {
-        events: true
+        events: true,
+        academicYear: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       }
     })
 

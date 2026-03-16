@@ -31,12 +31,18 @@ export default defineEventHandler(async (event) => {
         isActive: true
       },
       include: {
+        academicYear: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: { events: true }
         }
       },
       orderBy: [
-        { academicYear: 'desc' },
+        { academicYear: { name: 'desc' } },
         { name: 'asc' }
       ]
     })

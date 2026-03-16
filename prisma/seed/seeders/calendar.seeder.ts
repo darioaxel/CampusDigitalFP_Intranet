@@ -26,10 +26,20 @@ export class CalendarSeeder {
     const createdCalendars: Calendar[] = []
 
     for (const cal of calendars) {
+      // Buscar el curso académico
+      const academicYear = await this.prisma.academicYear.findUnique({
+        where: { name: cal.academicYear }
+      })
+
+      if (!academicYear) {
+        console.warn(`⚠️  Curso académico ${cal.academicYear} no encontrado. Saltando calendario ${cal.name}...`)
+        continue
+      }
+
       const existing = await this.prisma.calendar.findFirst({
         where: {
           name: cal.name,
-          academicYear: cal.academicYear
+          academicYearId: academicYear.id
         }
       })
 
@@ -45,7 +55,7 @@ export class CalendarSeeder {
           name: cal.name,
           description: cal.description,
           type: cal.type,
-          academicYear: cal.academicYear,
+          academicYearId: academicYear.id, // Relación con AcademicYear
           startDate: new Date(cal.startDate),
           endDate: new Date(cal.endDate),
           isActive: true,

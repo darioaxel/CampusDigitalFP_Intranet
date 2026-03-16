@@ -29,8 +29,9 @@ model Calendar {
   description String?
   type        CalendarType
   
-  // Año académico (ej: "2024-2025")
-  academicYear String
+  // Curso académico asociado
+  academicYearId String?
+  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
   
   // Vigencia
   startDate   DateTime
@@ -54,7 +55,7 @@ model Calendar {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  @@index([type, academicYear])
+  @@index([type, academicYearId])
   @@index([isActive])
   @@index([createdById])
 }

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   }
   
   const query = getQuery(event)
-  const { type, academicYear, isActive } = query
+  const { type, academicYearId, isActive } = query
   
   const where: any = {}
   
@@ -19,9 +19,9 @@ export default defineEventHandler(async (event) => {
     where.type = type
   }
   
-  // Filtrar por año académico
-  if (academicYear) {
-    where.academicYear = academicYear
+  // Filtrar por año académico (usando relación)
+  if (academicYearId) {
+    where.academicYearId = academicYearId
   }
   
   // Filtrar por activo (solo admin puede ver inactivos)
@@ -48,6 +48,12 @@ export default defineEventHandler(async (event) => {
           firstName: true,
           lastName: true,
           email: true,
+        },
+      },
+      academicYear: {
+        select: {
+          id: true,
+          name: true,
         },
       },
       _count: {

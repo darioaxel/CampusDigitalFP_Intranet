@@ -15,6 +15,7 @@ model AcademicYear {
   
   // Relaciones
   schedules   Schedule[]
+  calendars   Calendar[] // Calendarios asociados a este curso
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

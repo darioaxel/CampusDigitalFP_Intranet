@@ -10,7 +10,7 @@ const updateCalendarSchema = z.object({
   isPublic: z.boolean().optional(),
   allowDragDrop: z.boolean().optional(),
   maxEventsPerUser: z.number().int().min(1).optional().nullable(),
-  academicYear: z.string().regex(/^\d{4}-\d{4}$/).optional(),
+  academicYearId: z.string().uuid().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -46,19 +46,39 @@ export default defineEventHandler(async (event) => {
   
   const data = result.data
   
-  // Obtener calendario actual
+  // Obtener calendario actual con su año académico
   const currentCalendar = await prisma.calendar.findUnique({
-    where: { id }
+    where: { id },
+    include: { academicYear: true }
   })
   
   if (!currentCalendar) {
     throw createError({ statusCode: 404, message: 'Calendario no encontrado' })
   }
   
-  // Validar período del curso académico si se actualizan fechas
-  if (data.startDate || data.endDate || data.academicYear) {
-    const academicYear = data.academicYear || currentCalendar.academicYear
-    const academicYearStart = parseInt(academicYear.split('-')[0])
+  // Validar período del curso académico si se actualizan fechas o año académico
+  if (data.startDate || data.endDate || data.academicYearId) {
+    // Obtener el año académico (nuevo o actual)
+    let academicYearName: string
+    
+    if (data.academicYearId) {
+      const academicYear = await prisma.academicYear.findUnique({
+        where: { id: data.academicYearId },
+        select: { name: true }
+      })
+      if (!academicYear) {
+        throw createError({ statusCode: 400, message: 'Año académico no encontrado' })
+      }
+      academicYearName = academicYear.name
+    } else {
+      academicYearName = currentCalendar.academicYear?.name || ''
+    }
+    
+    if (!academicYearName) {
+      throw createError({ statusCode: 400, message: 'El calendario debe tener un año académico asociado' })
+    }
+    
+    const academicYearStart = parseInt(academicYearName.split('-')[0])
     
     const startDate = data.startDate ? new Date(data.startDate + 'T00:00:00') : currentCalendar.startDate
     const endDate = data.endDate ? new Date(data.endDate + 'T23:59:59') : currentCalendar.endDate
@@ -100,6 +120,7 @@ export default defineEventHandler(async (event) => {
     ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
     ...(data.allowDragDrop !== undefined && { allowDragDrop: data.allowDragDrop }),
     ...(data.maxEventsPerUser !== undefined && { maxEventsPerUser: data.maxEventsPerUser }),
+    ...(data.academicYearId && { academicYearId: data.academicYearId }),
   }
   
   if (data.startDate) {
@@ -112,6 +133,14 @@ export default defineEventHandler(async (event) => {
   const calendar = await prisma.calendar.update({
     where: { id },
     data: updateData,
+    include: {
+      academicYear: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
   })
   
   return {

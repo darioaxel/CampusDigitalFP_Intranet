@@ -57,7 +57,7 @@ const createCalendarSchema = z.object({
   name: z.string().min(3),
   description: z.string().optional(),
   type: z.enum(['SCHOOL_YEAR', 'EVALUATION', 'FREE_DISPOSITION', 'MEETINGS', 'TEMPLATE', 'OTHER']),
-  academicYear: z.string().regex(/^\d{4}-\d{4}$/), // formato: 2024-2025
+  academicYearId: z.string().uuid(), // ID del año académico
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // formato: YYYY-MM-DD
   isPublic: z.boolean().default(true),
@@ -94,11 +94,21 @@ export default defineEventHandler(async (event) => {
   
   const data = result.data
   
+  // Obtener información del año académico
+  const academicYear = await prisma.academicYear.findUnique({
+    where: { id: data.academicYearId },
+    select: { name: true }
+  })
+  
+  if (!academicYear) {
+    throw createError({ statusCode: 400, message: 'Año académico no encontrado' })
+  }
+  
   // Validar período del curso académico: 1 septiembre - 31 julio
   const startDate = new Date(data.startDate + 'T00:00:00')
   const endDate = new Date(data.endDate + 'T23:59:59')
   
-  const academicYearStart = parseInt(data.academicYear.split('-')[0])
+  const academicYearStart = parseInt(academicYear.name.split('-')[0])
   const expectedStart = new Date(academicYearStart, 8, 1) // 1 de septiembre (mes 8)
   const expectedEnd = new Date(academicYearStart + 1, 6, 31, 23, 59, 59) // 31 de julio
   
@@ -111,7 +121,7 @@ export default defineEventHandler(async (event) => {
   }
   
   // Validar: Solo puede haber un calendario de libre disposición activo a la vez
-  if (data.type === 'FREE_DISPOSITION' && data.isActive !== false) {
+  if (data.type === 'FREE_DISPOSITION' && data.isPublic !== false) {
     const existingFreeDisposition = await prisma.calendar.findFirst({
       where: {
         type: 'FREE_DISPOSITION',
@@ -133,7 +143,7 @@ export default defineEventHandler(async (event) => {
     name: data.name,
     description: data.description,
     type: data.type,
-    academicYear: data.academicYear,
+    academicYearId: data.academicYearId,
     startDate,
     endDate,
     isPublic: data.isPublic,
@@ -154,7 +164,13 @@ export default defineEventHandler(async (event) => {
   const calendar = await prisma.calendar.create({
     data: calendarData,
     include: {
-      events: true
+      events: true,
+      academicYear: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     }
   })
   
