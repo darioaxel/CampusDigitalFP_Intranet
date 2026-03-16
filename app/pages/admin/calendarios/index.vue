@@ -147,7 +147,7 @@
         </DialogHeader>
 
         <form @submit.prevent="saveCalendar" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="name">Nombre</Label>
               <Input
@@ -186,7 +186,7 @@
             />
           </div>
 
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
               <Label for="academicYear">Año Académico</Label>
               <Input
@@ -219,7 +219,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="maxEventsPerUser">Máx. eventos por usuario</Label>
               <Input
@@ -310,7 +310,7 @@
             <p><strong>Eventos incluidos:</strong> {{ selectedTemplate._count?.events || 0 }}</p>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="templateName">Nombre del nuevo calendario</Label>
               <Input
@@ -348,7 +348,7 @@
             />
           </div>
 
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
               <Label for="templateAcademicYear">Año Académico</Label>
               <Input
@@ -384,7 +384,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="templateMaxEvents">Máx. eventos por usuario</Label>
               <Input
