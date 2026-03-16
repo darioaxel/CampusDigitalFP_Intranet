@@ -240,6 +240,36 @@ const onDocumentUploaded = async () => {
                 </p>
               </div>
             </div>
+            <div class="flex items-start gap-3 pt-2 border-t">
+              <Icon name="lucide:external-link" class="w-4 h-4 mt-0.5 text-blue-500" />
+              <div>
+                <p class="font-medium">Normativa oficial</p>
+                <a 
+                  href="https://www.boa.aragon.es/cgi-bin/EBOA/BRSCGI?CMD=VEROBJ&MLKOB=1095442022727" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 hover:underline text-sm inline-flex items-center gap-1"
+                >
+                  Ver documentación en BOA
+                  <Icon name="lucide:external-link" class="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 pt-2 border-t">
+              <Icon name="lucide:file-text" class="w-4 h-4 mt-0.5 text-green-600" />
+              <div>
+                <p class="font-medium">Formulario a rellenar</p>
+                <a 
+                  href="https://drive.google.com/file/d/1h001d-RtQzeFtEraxElS2W4qbgwZhQ3V/view" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="text-green-600 hover:text-green-800 hover:underline text-sm inline-flex items-center gap-1"
+                >
+                  Descargar documento (Google Drive)
+                  <Icon name="lucide:external-link" class="w-3 h-3" />
+                </a>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
