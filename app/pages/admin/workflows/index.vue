@@ -1,17 +1,15 @@
 <script setup lang="ts">
 // app/pages/admin/workflows/index.vue
-// Listado de workflows configurables
+// Listado de workflows configurables - Grid 3 columnas
 
 definePageMeta({
-  layout: 'dashboard',
-   roles: ['ADMIN', 'ROOT'],
-  middleware: ['auth']
+  layout: 'dashboard'
 })
 
 import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import { toast } from 'vue-sonner'
 
 // Tipos
 interface Workflow {
@@ -102,8 +101,9 @@ const createWorkflow = async () => {
       initialStateCode: 'pending',
       initialStateName: 'Pendiente'
     }
+    toast.success('Workflow creado correctamente')
   } catch (error: any) {
-    alert(error.statusMessage || 'Error al crear workflow')
+    toast.error(error.statusMessage || 'Error al crear workflow')
   }
 }
 
@@ -123,8 +123,9 @@ const deleteWorkflow = async () => {
     showDeleteDialog.value = false
     workflowToDelete.value = null
     await fetchWorkflows()
+    toast.success('Workflow eliminado correctamente')
   } catch (error: any) {
-    alert(error.statusMessage || 'Error al eliminar workflow')
+    toast.error(error.statusMessage || 'Error al eliminar workflow')
   }
 }
 
@@ -136,8 +137,9 @@ const toggleActive = async (workflow: Workflow) => {
       body: { isActive: !workflow.isActive }
     })
     await fetchWorkflows()
+    toast.success(workflow.isActive ? 'Workflow desactivado' : 'Workflow activado')
   } catch (error: any) {
-    alert(error.statusMessage || 'Error al actualizar workflow')
+    toast.error(error.statusMessage || 'Error al actualizar workflow')
   }
 }
 
@@ -153,8 +155,10 @@ const exportWorkflow = async (workflow: Workflow) => {
     a.download = `${workflow.code}_v${workflow.version}.json`
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('Workflow exportado correctamente')
   } catch (error) {
     console.error('Error exportando:', error)
+    toast.error('Error al exportar workflow')
   }
 }
 
@@ -167,118 +171,175 @@ const getEntityTypeBadgeColor = (type: string) => {
   return type === 'REQUEST' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
 }
 
+// Estadísticas computadas
+const stats = computed(() => {
+  const total = workflows.value.length
+  const active = workflows.value.filter(w => w.isActive).length
+  const inactive = total - active
+  return { total, active, inactive }
+})
+
 // Cargar al montar
 onMounted(fetchWorkflows)
 </script>
 
 <template>
-  <div class="container py-6">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold">Workflows Configurables</h1>
-        <p class="text-muted-foreground">
-          Gestiona los flujos de trabajo para solicitudes y tareas
-        </p>
+  <div class="min-h-screen bg-background p-4 md:p-6">
+    <div class="mx-auto max-w-7xl space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+            Workflows Configurables
+          </h1>
+          <p class="text-sm text-muted-foreground mt-1">
+            Gestiona los flujos de trabajo para solicitudes y tareas
+          </p>
+        </div>
+        <Button @click="showCreateDialog = true">
+          <Icon name="lucide:plus" class="w-4 h-4 mr-2" />
+          Nuevo Workflow
+        </Button>
       </div>
-      <Button @click="showCreateDialog = true">
-        <Icon name="lucide:plus" class="w-4 h-4 mr-2" />
-        Nuevo Workflow
-      </Button>
-    </div>
 
-    <!-- Listado -->
-    <div v-if="loading" class="flex justify-center py-12">
-      <Icon name="lucide:loader-2" class="w-8 h-8 animate-spin text-muted-foreground" />
-    </div>
-
-    <div v-else-if="workflows.length === 0" class="text-center py-12">
-      <Icon name="lucide:git-branch" class="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-      <h3 class="text-lg font-medium">No hay workflows configurados</h3>
-      <p class="text-muted-foreground mt-1">Crea tu primer workflow para empezar</p>
-    </div>
-
-    <div v-else class="grid gap-4">
-      <Card
-        v-for="workflow in workflows"
-        :key="workflow.id"
-        :class="{ 'opacity-60': !workflow.isActive }"
-      >
-        <CardHeader class="pb-3">
-          <div class="flex items-start justify-between">
-            <div class="flex items-start gap-3">
-              <div class="p-2 bg-primary/10 rounded-lg">
-                <Icon name="lucide:git-branch" class="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle class="text-lg flex items-center gap-2">
-                  {{ workflow.name }}
-                  <Badge
-                    :class="getEntityTypeBadgeColor(workflow.entityType)"
-                    class="text-[10px]"
-                  >
-                    {{ getEntityTypeLabel(workflow.entityType) }}
-                  </Badge>
-                </CardTitle>
-                <p class="text-sm text-muted-foreground mt-0.5">
-                  {{ workflow.code }} · v{{ workflow.version }}
-                </p>
-                <p v-if="workflow.description" class="text-sm mt-1">
-                  {{ workflow.description }}
-                </p>
-              </div>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="ghost" size="icon">
-                  <Icon name="lucide:more-vertical" class="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <NuxtLink :to="`/admin/workflows/${workflow.id}`">
-                  <DropdownMenuItem>
-                    <Icon name="lucide:edit" class="w-4 h-4 mr-2" />
-                    Editar JSON
-                  </DropdownMenuItem>
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Total</CardDescription>
+            <CardTitle class="text-2xl">{{ stats.total }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Activos</CardDescription>
+            <CardTitle class="text-2xl text-green-600">{{ stats.active }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Inactivos</CardDescription>
+            <CardTitle class="text-2xl text-gray-500">{{ stats.inactive }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card class="border-dashed">
+          <CardHeader class="pb-2">
+            <CardDescription>Acciones</CardDescription>
+            <div class="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" class="w-full" as-child>
+                <NuxtLink to="/documentacion/workflows-y-procesos">
+                  <Icon name="lucide:book-open" class="w-4 h-4 mr-1" />
+                  Docs
                 </NuxtLink>
-                <DropdownMenuItem @click="exportWorkflow(workflow)">
-                  <Icon name="lucide:download" class="w-4 h-4 mr-2" />
-                  Exportar JSON
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="toggleActive(workflow)">
-                  <Icon
-                    :name="workflow.isActive ? 'lucide:pause' : 'lucide:play'"
-                    class="w-4 h-4 mr-2"
-                  />
-                  {{ workflow.isActive ? 'Desactivar' : 'Activar' }}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  class="text-destructive"
-                  @click="confirmDelete(workflow)"
-                >
-                  <Icon name="lucide:trash-2" class="w-4 h-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </CardHeader>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
 
-        <CardContent class="pt-0">
-          <div class="flex items-center gap-4 text-sm">
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:circle-dot" class="w-4 h-4 text-muted-foreground" />
-              <span>{{ workflow.states.length }} estados</span>
+      <!-- Loading -->
+      <div v-if="loading" class="flex justify-center py-12">
+        <Icon name="lucide:loader-2" class="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="workflows.length === 0" class="text-center py-12 border rounded-lg">
+        <Icon name="lucide:git-branch" class="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+        <h3 class="text-lg font-medium">No hay workflows configurados</h3>
+        <p class="text-muted-foreground mt-1">Crea tu primer workflow para empezar</p>
+      </div>
+
+      <!-- Grid de workflows - 3 columnas -->
+      <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card
+          v-for="workflow in workflows"
+          :key="workflow.id"
+          :class="{ 'opacity-60': !workflow.isActive }"
+          class="flex flex-col"
+        >
+          <CardHeader class="pb-3">
+            <div class="flex items-start justify-between">
+              <div class="flex items-start gap-3">
+                <div class="p-2 bg-primary/10 rounded-lg">
+                  <Icon name="lucide:git-branch" class="w-5 h-5 text-primary" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <CardTitle class="text-base flex items-center gap-2 truncate">
+                    {{ workflow.name }}
+                  </CardTitle>
+                  <div class="flex items-center gap-2 mt-1">
+                    <Badge
+                      :class="getEntityTypeBadgeColor(workflow.entityType)"
+                      class="text-[10px]"
+                    >
+                      {{ getEntityTypeLabel(workflow.entityType) }}
+                    </Badge>
+                    <span class="text-xs text-muted-foreground">
+                      v{{ workflow.version }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button variant="ghost" size="icon" class="h-8 w-8">
+                    <Icon name="lucide:more-vertical" class="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <NuxtLink :to="`/admin/workflows/${workflow.id}`">
+                    <DropdownMenuItem>
+                      <Icon name="lucide:edit" class="w-4 h-4 mr-2" />
+                      Editar JSON
+                    </DropdownMenuItem>
+                  </NuxtLink>
+                  <DropdownMenuItem @click="exportWorkflow(workflow)">
+                    <Icon name="lucide:download" class="w-4 h-4 mr-2" />
+                    Exportar JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem @click="toggleActive(workflow)">
+                    <Icon
+                      :name="workflow.isActive ? 'lucide:pause' : 'lucide:play'"
+                      class="w-4 h-4 mr-2"
+                    />
+                    {{ workflow.isActive ? 'Desactivar' : 'Activar' }}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    class="text-destructive"
+                    @click="confirmDelete(workflow)"
+                  >
+                    <Icon name="lucide:trash-2" class="w-4 h-4 mr-2" />
+                    Eliminar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:arrow-right" class="w-4 h-4 text-muted-foreground" />
-              <span>{{ workflow.transitions.length }} transiciones</span>
+          </CardHeader>
+
+          <CardContent class="pt-0 flex-1">
+            <p class="text-xs text-muted-foreground mb-3 line-clamp-2">
+              {{ workflow.description || 'Sin descripción' }}
+            </p>
+            
+            <div class="flex items-center gap-3 text-xs text-muted-foreground">
+              <div class="flex items-center gap-1">
+                <Icon name="lucide:circle-dot" class="w-3.5 h-3.5" />
+                <span>{{ workflow.states.length }} estados</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <Icon name="lucide:arrow-right" class="w-3.5 h-3.5" />
+                <span>{{ workflow.transitions.length }} trans.</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <Icon name="lucide:file-text" class="w-3.5 h-3.5" />
+                <span>{{ workflow._count.requests + workflow._count.tasks }}</span>
+              </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <Icon name="lucide:file-text" class="w-4 h-4 text-muted-foreground" />
-              <span>{{ workflow._count.requests + workflow._count.tasks }} entidades</span>
-            </div>
+          </CardContent>
+
+          <div class="px-6 pb-4">
             <Badge
               v-if="!workflow.isActive"
               variant="secondary"
@@ -286,9 +347,12 @@ onMounted(fetchWorkflows)
             >
               Inactivo
             </Badge>
+            <code v-else class="text-[10px] bg-muted px-2 py-1 rounded">
+              {{ workflow.code }}
+            </code>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
 
     <!-- Dialog crear workflow -->

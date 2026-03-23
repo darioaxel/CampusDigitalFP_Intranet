@@ -3,9 +3,7 @@
 // Editor JSON de workflow
 
 definePageMeta({
-  layout: 'dashboard',
-  middleware: ['auth'],
-  roles: ['ADMIN', 'ROOT']
+  layout: 'dashboard'
 })
 
 import { ref, computed, onMounted } from 'vue'
@@ -29,7 +27,7 @@ import {
 import WorkflowJsonEditor from '@/components/workflow/WorkflowJsonEditor.vue'
 import WorkflowElementsPanel from '@/components/workflow/WorkflowElementsPanel.vue'
 import WorkflowPreview from '@/components/workflow/WorkflowPreview.vue'
-import WorkflowValidationErrors from '@/components/workflow/WorkflowValidationErrors.vue'
+
 import {
   validateWorkflowJson,
   formatWorkflowJson,
@@ -91,7 +89,7 @@ const fetchWorkflow = async () => {
 // Guardar workflow
 const saveWorkflow = async () => {
   if (!isValid.value) {
-    alert('Corrige los errores antes de guardar')
+    toast.error('Corrige los errores antes de guardar')
     return
   }
 
@@ -105,11 +103,11 @@ const saveWorkflow = async () => {
       }
     })
     originalJson.value = jsonContent.value
-    alert('Workflow guardado correctamente')
+    toast.success('Workflow guardado correctamente')
     // Recargar para obtener la nueva versión
     await fetchWorkflow()
   } catch (error: any) {
-    alert(error.statusMessage || 'Error al guardar workflow')
+    toast.error(error.statusMessage || 'Error al guardar workflow')
   } finally {
     saving.value = false
   }
@@ -136,12 +134,7 @@ const handleValidation = (result: typeof validationResult.value) => {
   validationResult.value = result
 }
 
-// Ir a error (scroll al elemento)
-const goToError = (error: WorkflowValidationError) => {
-  // Por ahora solo mostramos el error, en una implementación completa
-  // podríamos hacer scroll a la línea específica
-  console.log('Navegar a error:', error.path)
-}
+
 
 // Volver al listado
 const goBack = () => {
@@ -160,10 +153,14 @@ const downloadJson = () => {
 }
 
 // Resetear cambios
+const showResetDialog = ref(false)
 const resetChanges = () => {
-  if (confirm('¿Descartar todos los cambios?')) {
-    jsonContent.value = originalJson.value
-  }
+  showResetDialog.value = true
+}
+const confirmReset = () => {
+  jsonContent.value = originalJson.value
+  showResetDialog.value = false
+  toast.success('Cambios descartados')
 }
 
 // Formatear JSON
@@ -270,14 +267,14 @@ onMounted(fetchWorkflow)
 
     <ResizablePanelGroup v-else direction="horizontal" class="flex-1">
       <!-- Panel izquierdo: Elementos -->
-      <ResizablePanel :default-size="20" :min-size="15" :max-size="30">
+      <ResizablePanel :default-size="25" :min-size="20" :max-size="35">
         <WorkflowElementsPanel @insert="insertSnippet" />
       </ResizablePanel>
 
       <ResizableHandle with-handle />
 
-      <!-- Panel central: Editor -->
-      <ResizablePanel :default-size="50">
+      <!-- Panel derecho: Editor con pestañas -->
+      <ResizablePanel :default-size="75">
         <Tabs v-model="activeTab" class="h-full flex flex-col">
           <TabsList class="mx-4 mt-2">
             <TabsTrigger value="editor" class="flex items-center gap-1">
@@ -288,12 +285,23 @@ onMounted(fetchWorkflow)
               <Icon name="lucide:eye" class="w-4 h-4" />
               Vista previa
             </TabsTrigger>
+            <TabsTrigger value="problems" class="flex items-center gap-1">
+              <Icon name="lucide:alert-circle" class="w-4 h-4" />
+              Problemas
+              <Badge
+                v-if="validationResult.errors.length > 0"
+                :variant="validationResult.errors.some(e => e.severity === 'error') ? 'destructive' : 'secondary'"
+                class="ml-1 text-[10px] h-5"
+              >
+                {{ validationResult.errors.length }}
+              </Badge>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="editor" class="flex-1 mt-0">
             <WorkflowJsonEditor
               v-model="jsonContent"
-              height="calc(100vh - 180px)"
+              height="calc(100vh - 140px)"
               @validation="handleValidation"
             />
           </TabsContent>
@@ -301,22 +309,66 @@ onMounted(fetchWorkflow)
           <TabsContent value="preview" class="flex-1 mt-0 overflow-hidden">
             <WorkflowPreview :workflow="validationResult.data" />
           </TabsContent>
+
+          <TabsContent value="problems" class="flex-1 mt-0 overflow-hidden">
+            <div class="h-full overflow-auto p-4">
+              <div v-if="validationResult.errors.length === 0" class="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Icon name="lucide:check-circle" class="w-16 h-16 mb-4 text-green-500" />
+                <p class="text-lg font-medium">No hay problemas</p>
+                <p class="text-sm">El workflow es válido</p>
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="(error, idx) in validationResult.errors"
+                  :key="idx"
+                  class="p-3 rounded-lg border"
+                  :class="error.severity === 'error' ? 'border-red-200 bg-red-50 dark:bg-red-950/20' : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20'"
+                >
+                  <div class="flex items-start gap-3">
+                    <Icon
+                      :name="error.severity === 'error' ? 'lucide:x-circle' : 'lucide:alert-triangle'"
+                      class="w-5 h-5 flex-shrink-0 mt-0.5"
+                      :class="error.severity === 'error' ? 'text-red-500' : 'text-yellow-500'"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <Badge
+                          :variant="error.severity === 'error' ? 'destructive' : 'secondary'"
+                          class="text-[10px]"
+                        >
+                          {{ error.severity === 'error' ? 'ERROR' : 'ADVERTENCIA' }}
+                        </Badge>
+                        <code v-if="error.path" class="text-xs bg-muted px-2 py-0.5 rounded">
+                          {{ error.path }}
+                        </code>
+                      </div>
+                      <p class="text-sm mt-2 font-medium">{{ error.message }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
-
-        <!-- Errores de validación -->
-        <WorkflowValidationErrors
-          :errors="validationResult.errors"
-          @go-to-error="goToError"
-        />
-      </ResizablePanel>
-
-      <ResizableHandle with-handle />
-
-      <!-- Panel derecho: Vista previa siempre visible -->
-      <ResizablePanel :default-size="30" :min-size="20">
-        <WorkflowPreview :workflow="validationResult.data" />
       </ResizablePanel>
     </ResizablePanelGroup>
+
+    <!-- Diálogo de confirmación para descartar cambios -->
+    <ConfirmDialog
+      v-model:open="showResetDialog"
+      title="Descartar cambios"
+      icon="lucide:rotate-ccw"
+      icon-class="text-destructive"
+      confirm-text="Descartar"
+      confirm-variant="destructive"
+      @confirm="confirmReset"
+    >
+      <template #description>
+        ¿Estás seguro de que deseas descartar todos los cambios no guardados?
+        <br><br>
+        Esta acción no se puede deshacer.
+      </template>
+    </ConfirmDialog>
   </div>
 </template>
 
