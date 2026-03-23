@@ -115,8 +115,16 @@ export const siteConfig = {
           url: "/admin/solicitudes/gestion",
           icon: "lucide:clipboard-list",
           items: [
-            { title: "Workflows", url: "/admin/solicitudes/gestion" },
+            { title: "Solicitudes pendientes", url: "/admin/solicitudes/gestion" },
             { title: "Gestión de Bajas", url: "/admin/solicitudes/bajas" },
+          ],
+        },
+        {
+          title: "Workflows",
+          url: "/admin/workflows",
+          icon: "lucide:git-branch",
+          items: [
+            { title: "Configurar Workflows", url: "/admin/workflows" },
           ],
         },   
         {
