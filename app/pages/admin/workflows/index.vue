@@ -4,8 +4,8 @@
 
 definePageMeta({
   layout: 'dashboard',
-  roles: ['ADMIN', 'ROOT'],
-  middleware: ['auth', 'role']
+   roles: ['ADMIN', 'ROOT'],
+  middleware: ['auth']
 })
 
 import { ref, computed } from 'vue'

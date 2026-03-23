@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
+  roles: ['ADMIN', 'ROOT']
 })
 
 // Composable

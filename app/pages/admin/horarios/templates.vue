@@ -3,6 +3,7 @@
 definePageMeta({
   middleware: ['auth'],
   layout: 'dashboard',
+  roles: ['ADMIN', 'ROOT']
 })
 
 // Redirigir a la página principal de horarios
