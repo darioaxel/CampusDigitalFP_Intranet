@@ -202,22 +202,17 @@ const availableTargets = computed(() => {
   <div class="min-h-screen bg-background p-4 md:p-6">
     <div class="mx-auto max-w-7xl space-y-6">
       <!-- Header -->
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-            Cursos Académicos
-          </h1>
-          <p class="text-sm text-muted-foreground mt-1">
-            Gestiona los cursos escolares y la reutilización de horarios
-          </p>
-        </div>
-        <div class="flex gap-2">
+      <LayoutPageHeader
+        title="Cursos Académicos"
+        description="Gestiona los cursos escolares y la reutilización de horarios"
+      >
+        <template #actions>
           <Button @click="openCreateModal">
             <Icon name="lucide:plus" class="mr-2 h-4 w-4" />
             Nuevo Curso
           </Button>
-        </div>
-      </div>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Curso Actual -->
       <Card v-if="currentYear" class="border-green-200 bg-green-50/30">

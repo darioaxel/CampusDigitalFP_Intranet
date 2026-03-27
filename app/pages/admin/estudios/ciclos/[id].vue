@@ -36,34 +36,20 @@ const getNivelLabel = (nivel: string) => {
   <div class="min-h-screen bg-background p-4">
     <div class="mx-auto max-w-7xl" v-if="ciclo">
       <!-- Cabecera -->
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="mb-4" as-child>
-          <NuxtLink to="/admin/estudios">
-            <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
-            Volver a estudios
-          </NuxtLink>
-        </Button>
-        
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-                {{ ciclo.nombre }}
-              </h1>
-              <Badge variant="secondary">{{ ciclo.codigo }}</Badge>
-            </div>
-            <p class="text-sm text-muted-foreground mt-1">
-              {{ getNivelLabel(ciclo.nivel) }} • {{ ciclo.horasTotales }} horas • {{ ciclo.duracion }}
-            </p>
-          </div>
-          <div class="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Icon name="lucide:edit" class="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-          </div>
-        </div>
-      </div>
+      <LayoutPageHeader
+        :title="ciclo.nombre"
+        :description="getNivelLabel(ciclo.nivel) + ' • ' + ciclo.horasTotales + ' horas • ' + ciclo.duracion"
+        back-to="/admin/estudios"
+        back-label="Volver a estudios"
+      >
+        <template #actions>
+          <Badge variant="secondary">{{ ciclo.codigo }}</Badge>
+          <Button variant="outline" size="sm">
+            <Icon name="lucide:edit" class="mr-2 h-4 w-4" />
+            Editar
+          </Button>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Módulos por curso -->
       <div v-for="(modulos, curso) in modulosPorCurso" :key="curso" class="mb-8">

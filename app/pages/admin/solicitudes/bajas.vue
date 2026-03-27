@@ -141,19 +141,12 @@ const getTransitionLabel = (code?: string): string => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold flex items-center gap-2">
-          <FileText class="h-6 w-6" />
-          Gestión de Bajas
-        </h1>
-        <p class="text-muted-foreground text-sm">
-          Administra las comunicaciones de baja del profesorado
-        </p>
-      </div>
-    </div>
+    <LayoutPageHeader
+      title="Gestión de Bajas"
+      description="Administra las comunicaciones de baja del profesorado"
+    />
 
     <!-- Estadísticas -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">

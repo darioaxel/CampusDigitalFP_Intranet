@@ -334,16 +334,12 @@ const getRoleBadgeClass = (role: string) => {
   <div class="min-h-screen bg-background p-4 md:p-6">
     <div class="mx-auto max-w-7xl space-y-6">
       <!-- Header -->
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-            Gestionar Horarios
-          </h1>
-          <p class="text-sm text-muted-foreground mt-1">
-            Crea y administra plantillas de horarios para los profesores
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
+      <LayoutPageHeader
+        title="Gestionar Horarios"
+        description="Crea y administra plantillas de horarios para los profesores"
+      >
+        <template #actions>
+          <div class="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
               <Button variant="outline">
@@ -369,7 +365,8 @@ const getRoleBadgeClass = (role: string) => {
             Nueva Plantilla
           </Button>
         </div>
-      </div>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Estadísticas -->
       <div class="grid gap-4 md:grid-cols-4">

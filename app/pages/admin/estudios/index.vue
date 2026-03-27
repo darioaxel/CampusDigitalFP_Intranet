@@ -29,20 +29,17 @@ const getFamiliaLabel = (familia: string) => {
   <div class="min-h-screen bg-background p-4">
     <div class="mx-auto max-w-7xl">
       <!-- Cabecera -->
-      <div class="mb-6 flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-            Estudios FP
-          </h1>
-          <p class="text-sm text-muted-foreground mt-1">
-            Gestión de ciclos formativos, módulos y currículo
-          </p>
-        </div>
-        <Button>
-          <Icon name="lucide:plus" class="mr-2 h-4 w-4" />
-          Nuevo Ciclo
-        </Button>
-      </div>
+      <LayoutPageHeader
+        title="Estudios FP"
+        description="Gestión de ciclos formativos, módulos y currículo"
+      >
+        <template #actions>
+          <Button>
+            <Icon name="lucide:plus" class="mr-2 h-4 w-4" />
+            Nuevo Ciclo
+          </Button>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Loading -->
       <div v-if="pending" class="flex items-center justify-center py-12">

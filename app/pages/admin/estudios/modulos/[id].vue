@@ -18,41 +18,25 @@ const modulo = computed(() => moduloResponse.value?.data)
   <div class="min-h-screen bg-background p-4">
     <div class="mx-auto max-w-7xl" v-if="modulo">
       <!-- Cabecera -->
-      <div class="mb-6">
-        <Button variant="ghost" size="sm" class="mb-4" as-child>
-          <NuxtLink :to="`/admin/estudios/ciclos/${modulo.ciclo.id}`">
-            <Icon name="lucide:arrow-left" class="mr-2 h-4 w-4" />
-            Volver a {{ modulo.ciclo.nombre }}
-          </NuxtLink>
-        </Button>
-        
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="flex items-center gap-3">
-              <div 
-                class="h-10 w-10 rounded-lg flex items-center justify-center font-bold"
-                :style="{ backgroundColor: modulo.color || '#3b82f6', color: 'white' }"
-              >
-                {{ modulo.siglas || modulo.codigo }}
-              </div>
-              <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-                  {{ modulo.nombre }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                  {{ modulo.ciclo.nombre }} • {{ modulo.horasTotales }} horas
-                </p>
-              </div>
-            </div>
+      <LayoutPageHeader
+        :title="modulo.nombre"
+        :description="modulo.ciclo.nombre + ' • ' + modulo.horasTotales + ' horas'"
+        :back-to="`/admin/estudios/ciclos/${modulo.ciclo.id}`"
+        :back-label="'Volver a ' + modulo.ciclo.nombre"
+      >
+        <template #actions>
+          <div 
+            class="h-8 w-8 rounded-lg flex items-center justify-center font-bold text-sm"
+            :style="{ backgroundColor: modulo.color || '#3b82f6', color: 'white' }"
+          >
+            {{ modulo.siglas || modulo.codigo }}
           </div>
-          <div class="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Icon name="lucide:edit" class="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-          </div>
-        </div>
-      </div>
+          <Button variant="outline" size="sm">
+            <Icon name="lucide:edit" class="mr-2 h-4 w-4" />
+            Editar
+          </Button>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Tabs -->
       <Tabs v-model="activeTab" class="w-full">

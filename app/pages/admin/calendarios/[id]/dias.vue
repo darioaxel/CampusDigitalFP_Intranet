@@ -1,24 +1,14 @@
 <!-- pages/admin/calendarios/[id]/dias.vue - Vista unificada de días y eventos -->
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" as-child>
-            <NuxtLink to="/admin/calendarios">
-              <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
-              Volver
-            </NuxtLink>
-          </Button>
-        </div>
-        <h1 class="text-2xl font-bold">{{ calendar?.name }}</h1>
-        <p class="text-muted-foreground text-sm">
-          Selecciona días para crear eventos o gestiona los eventos existentes
-        </p>
-      </div>
-      
-      <div class="flex gap-2">
+    <LayoutPageHeader
+      :title="calendar?.name || 'Calendario'"
+      description="Selecciona días para crear eventos o gestiona los eventos existentes"
+      back-to="/admin/calendarios"
+    >
+      <template #actions>
+        <div class="flex gap-2">
         <Button 
           variant="outline" 
           @click="clearSelection"
@@ -57,8 +47,9 @@
           <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
           Nuevo Evento
         </Button>
-      </div>
-    </div>
+        </div>
+      </template>
+    </LayoutPageHeader>
 
     <!-- Info básica del calendario con leyenda -->
     <div class="flex items-center gap-6 text-xs text-muted-foreground flex-wrap">

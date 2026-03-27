@@ -134,32 +134,12 @@ if (error.value) {
   <div class="min-h-screen bg-background p-4">
     <div class="mx-auto max-w-7xl">
       <!-- Cabecera -->
-      <div class="mb-6 flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-            Validación de Horarios
-          </h1>
-          <p class="text-sm text-muted-foreground">
-            Gestiona la validación de horarios de los profesores
-          </p>
-        </div>
-        
-        <div class="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            @click="refresh"
-            :disabled="pending"
-          >
-            <Icon 
-              name="lucide:refresh-cw" 
-              class="mr-2 h-4 w-4"
-              :class="{ 'animate-spin': pending }"
-            />
-            Actualizar
-          </Button>
-        </div>
-      </div>
+      <LayoutPageHeader
+        title="Validación de Horarios"
+        description="Gestiona la validación de horarios de los profesores"
+        :loading="pending"
+        @refresh="refresh"
+      />
 
       <!-- Estadísticas -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">

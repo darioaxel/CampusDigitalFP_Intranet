@@ -1,16 +1,12 @@
 <!-- pages/admin/calendarios/index.vue -->
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold">Gestión de Calendarios</h1>
-        <p class="text-muted-foreground text-sm">
-          Administra los calendarios escolares y eventos
-        </p>
-      </div>
-
-      <div class="flex gap-2">
+    <LayoutPageHeader
+      title="Gestión de Calendarios"
+      description="Administra los calendarios escolares y eventos"
+    >
+      <template #actions>
         <Button variant="outline" @click="showTemplateModal = true">
           <Icon name="lucide:copy" class="h-4 w-4 mr-2" />
           Desde Plantilla
@@ -19,8 +15,8 @@
           <Icon name="lucide:plus" class="h-4 w-4 mr-2" />
           Nuevo Calendario
         </Button>
-      </div>
-    </div>
+      </template>
+    </LayoutPageHeader>
 
     <!-- DataTable con TanStack Table -->
     <Card>

@@ -187,20 +187,17 @@ onMounted(fetchWorkflows)
   <div class="min-h-screen bg-background p-4 md:p-6">
     <div class="mx-auto max-w-7xl space-y-6">
       <!-- Header -->
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-            Workflows Configurables
-          </h1>
-          <p class="text-sm text-muted-foreground mt-1">
-            Gestiona los flujos de trabajo para solicitudes y tareas
-          </p>
-        </div>
-        <Button @click="showCreateDialog = true">
-          <Icon name="lucide:plus" class="w-4 h-4 mr-2" />
-          Nuevo Workflow
-        </Button>
-      </div>
+      <LayoutPageHeader
+        title="Workflows Configurables"
+        description="Gestiona los flujos de trabajo para solicitudes y tareas"
+      >
+        <template #actions>
+          <Button @click="showCreateDialog = true">
+            <Icon name="lucide:plus" class="w-4 h-4 mr-2" />
+            Nuevo Workflow
+          </Button>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">

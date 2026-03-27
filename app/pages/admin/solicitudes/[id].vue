@@ -1,31 +1,18 @@
 <template>
-  <div class="min-h-screen bg-muted/30">
-    <!-- Header -->
-    <div class="bg-card border-b">
-      <div class="max-w-7xl mx-auto px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <NuxtLink 
-              to="/usuario" 
-              class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft class="h-4 w-4" />
-              Volver
-            </NuxtLink>
-            <div class="h-4 w-px bg-border" />
-            <div>
-              <h1 class="text-xl font-semibold">Detalle de Solicitud</h1>
-              <p class="text-sm text-muted-foreground">{{ request?.title || 'Cargando...' }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <Badge :variant="getStatusVariant(formatEstado(request?.currentState?.code))">
-              {{ formatEstado(request?.currentState?.code) }}
-            </Badge>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="min-h-screen bg-muted/30 p-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <!-- Header -->
+      <LayoutPageHeader
+        title="Detalle de Solicitud"
+        :description="request?.title || 'Cargando...'"
+        back-to="/usuario"
+      >
+        <template #actions>
+          <Badge :variant="getStatusVariant(formatEstado(request?.currentState?.code))">
+            {{ formatEstado(request?.currentState?.code) }}
+          </Badge>
+        </template>
+      </LayoutPageHeader>
 
     <div class="max-w-7xl mx-auto px-6 py-6">
       <div v-if="pending" class="flex items-center justify-center py-12">
@@ -531,10 +518,11 @@
       </DialogContent>
     </Dialog>
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, Loader2, RefreshCw, AlertCircle, FileX, FileText, 
+import { Loader2, RefreshCw, AlertCircle, FileX, FileText, 
          Paperclip, File as FileIcon, CheckCircle, XCircle, Upload,
          History, ChevronRight, User, UserPlus } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'

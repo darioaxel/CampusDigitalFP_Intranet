@@ -1,24 +1,19 @@
 <!-- pages/admin/solicitudes/gestion.vue -->
 <template>
-  <div class="min-h-screen p-6">
-    <!-- Header -->
-    <div class="max-w-7xl mx-auto mb-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold flex items-center gap-2">
-            <GitBranch class="h-6 w-6" />
-            Gestión de Workflows
-          </h1>
-          <p class="text-muted-foreground mt-1">
-            Configura los flujos de trabajo para solicitudes y tareas
-          </p>
-        </div>
-        <Button @click="showCreateModal = true">
-          <Plus class="h-4 w-4 mr-2" />
-          Nuevo Workflow
-        </Button>
-      </div>
-    </div>
+  <div class="min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <!-- Header -->
+      <LayoutPageHeader
+        title="Gestión de Workflows"
+        description="Configura los flujos de trabajo para solicitudes y tareas"
+      >
+        <template #actions>
+          <Button @click="showCreateModal = true">
+            <Plus class="h-4 w-4 mr-2" />
+            Nuevo Workflow
+          </Button>
+        </template>
+      </LayoutPageHeader>
 
     <!-- Loading -->
     <div v-if="pending" class="flex items-center justify-center py-12">
@@ -430,12 +425,13 @@
       </DialogContent>
     </Dialog>
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { 
-  GitBranch, Plus, Loader2, AlertCircle, MoreVertical, Edit, Power,
+  Plus, Loader2, AlertCircle, MoreVertical, Edit, Power,
   Circle, ArrowRight, FileText, ListOrdered, Trash2
 } from 'lucide-vue-next'
 
