@@ -149,29 +149,29 @@ const emptyDaysAtStart = computed(() => {
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
       <!-- Estadísticas en un solo Card -->
       <Card class="flex-1">
-        <CardContent class="p-2">
-          <div class="flex items-center justify-between divide-x">
-            <div class="px-3 text-center">
-              <p class="text-xl font-bold">{{ stats.total }}</p>
-              <p class="text-[10px] text-muted-foreground">Total</p>
+        <CardContent class="py-1.5 px-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 pl-1">
+              <span class="text-xs text-muted-foreground">Total</span>
+              <span class="text-lg font-bold">{{ stats.total }}</span>
             </div>
-            <div class="px-3 text-center">
-              <p class="text-xl font-bold text-red-600">{{ stats.sickLeaves }}</p>
-              <p class="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                <Stethoscope class="w-3 h-3" />
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <Stethoscope class="w-3 h-3 text-red-500" />
                 Bajas
-              </p>
+              </span>
+              <span class="text-lg font-bold text-red-600">{{ stats.sickLeaves }}</span>
             </div>
-            <div class="px-3 text-center">
-              <p class="text-xl font-bold text-blue-600">{{ stats.freeDays }}</p>
-              <p class="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                <Umbrella class="w-3 h-3" />
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <Umbrella class="w-3 h-3 text-blue-500" />
                 Libres
-              </p>
+              </span>
+              <span class="text-lg font-bold text-blue-600">{{ stats.freeDays }}</span>
             </div>
-            <div class="px-3 text-center">
-              <p class="text-xl font-bold">{{ stats.uniqueUsers }}</p>
-              <p class="text-[10px] text-muted-foreground">Personas</p>
+            <div class="flex items-center gap-2 pr-1">
+              <span class="text-xs text-muted-foreground">Personas</span>
+              <span class="text-lg font-bold">{{ stats.uniqueUsers }}</span>
             </div>
           </div>
         </CardContent>
