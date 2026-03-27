@@ -149,7 +149,7 @@ const emptyDaysAtStart = computed(() => {
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
       <!-- Estadísticas en un solo Card -->
       <Card class="flex-1">
-        <CardContent class="py-1.5 px-4">
+        <CardContent class="px-4 py-0">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 pl-1">
               <span class="text-xs text-muted-foreground">Total</span>
