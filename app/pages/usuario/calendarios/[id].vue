@@ -54,7 +54,7 @@
 
       <!-- Vista del calendario (SimpleCalendar) -->
       <Card>
-        <CardContent class="pt-6">
+        <CardContent class="pt-1">
           <SimpleCalendar 
             :events="calendarEvents"
             :initial-date="initialDate"
