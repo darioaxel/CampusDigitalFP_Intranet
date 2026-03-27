@@ -31,7 +31,6 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "nuxt-svgo",
     '@vueuse/nuxt',
-    '@nuxt/content',
   ],
 
   fonts: {
