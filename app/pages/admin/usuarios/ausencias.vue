@@ -143,83 +143,80 @@ const emptyDaysAtStart = computed(() => {
     <LayoutPageHeader
       title="Calendario de Ausencias"
       description="Visualización de bajas y días de libre disposición"
-    >
-      <template #actions>
-        <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="goToCurrentMonth">
-            Hoy
-          </Button>
-          <div class="flex items-center gap-1 border rounded-lg p-1">
-            <Button variant="ghost" size="icon" class="h-8 w-8" @click="prevMonth">
-              <ChevronLeft class="h-4 w-4" />
-            </Button>
-            <span class="text-sm font-medium min-w-[140px] text-center capitalize">
-              {{ monthName }}
-            </span>
-            <Button variant="ghost" size="icon" class="h-8 w-8" @click="nextMonth">
-              <ChevronRight class="h-4 w-4" />
-            </Button>
+    />
+
+    <!-- Estadísticas y Filtros en la misma fila -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <!-- Estadísticas en un solo Card -->
+      <Card class="flex-1">
+        <CardContent class="p-2">
+          <div class="flex items-center justify-between divide-x">
+            <div class="px-3 text-center">
+              <p class="text-xl font-bold">{{ stats.total }}</p>
+              <p class="text-[10px] text-muted-foreground">Total</p>
+            </div>
+            <div class="px-3 text-center">
+              <p class="text-xl font-bold text-red-600">{{ stats.sickLeaves }}</p>
+              <p class="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                <Stethoscope class="w-3 h-3" />
+                Bajas
+              </p>
+            </div>
+            <div class="px-3 text-center">
+              <p class="text-xl font-bold text-blue-600">{{ stats.freeDays }}</p>
+              <p class="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                <Umbrella class="w-3 h-3" />
+                Libres
+              </p>
+            </div>
+            <div class="px-3 text-center">
+              <p class="text-xl font-bold">{{ stats.uniqueUsers }}</p>
+              <p class="text-[10px] text-muted-foreground">Personas</p>
+            </div>
           </div>
-        </div>
-      </template>
-    </LayoutPageHeader>
+        </CardContent>
+      </Card>
 
-    <!-- Estadísticas -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Card>
-        <CardContent class="p-4">
-          <p class="text-2xl font-bold">{{ stats.total }}</p>
-          <p class="text-xs text-muted-foreground">Total Ausencias</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4">
-          <p class="text-2xl font-bold text-red-600">{{ stats.sickLeaves }}</p>
-          <p class="text-xs text-muted-foreground flex items-center gap-1">
-            <Stethoscope class="w-3 h-3" />
-            Bajas
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4">
-          <p class="text-2xl font-bold text-blue-600">{{ stats.freeDays }}</p>
-          <p class="text-xs text-muted-foreground flex items-center gap-1">
-            <Umbrella class="w-3 h-3" />
-            Días Libres
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4">
-          <p class="text-2xl font-bold">{{ stats.uniqueUsers }}</p>
-          <p class="text-xs text-muted-foreground">Personas Afectadas</p>
-        </CardContent>
-      </Card>
-    </div>
-
-    <!-- Filtros -->
-    <div class="flex items-center gap-2">
-      <Filter class="w-4 h-4 text-muted-foreground" />
-      <Select v-model="filterType">
-        <SelectTrigger class="w-[200px]">
-          <SelectValue placeholder="Filtrar por tipo" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">Todas las ausencias</SelectItem>
-          <SelectItem value="SICK_LEAVE">Solo bajas</SelectItem>
-          <SelectItem value="FREE_DAY">Solo días libres</SelectItem>
-        </SelectContent>
-      </Select>
+      <!-- Filtros -->
+      <div class="flex items-center gap-2 shrink-0">
+        <Filter class="w-4 h-4 text-muted-foreground" />
+        <Select v-model="filterType">
+          <SelectTrigger class="w-[200px]">
+            <SelectValue placeholder="Filtrar por tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todas las ausencias</SelectItem>
+            <SelectItem value="SICK_LEAVE">Solo bajas</SelectItem>
+            <SelectItem value="FREE_DAY">Solo días libres</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
 
     <!-- Calendario -->
     <Card>
       <CardHeader>
-        <CardTitle class="capitalize">{{ monthName }}</CardTitle>
-        <CardDescription>
-          Haz hover sobre un día para ver todas las ausencias
-        </CardDescription>
+        <div class="flex items-center justify-between">
+          <div>
+            <CardTitle class="capitalize">{{ monthName }}</CardTitle>
+            <CardDescription>
+              Haz hover sobre un día para ver todas las ausencias
+            </CardDescription>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="sm" @click="goToCurrentMonth">
+              Hoy
+            </Button>
+            <div class="flex items-center gap-1 border rounded-lg p-1">
+              <Button variant="ghost" size="icon" class="h-8 w-8" @click="prevMonth">
+                <ChevronLeft class="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" class="h-8 w-8" @click="nextMonth">
+                <ChevronRight class="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div v-if="loading" class="flex justify-center py-12">
