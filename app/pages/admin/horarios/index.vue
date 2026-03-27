@@ -368,33 +368,35 @@ const getRoleBadgeClass = (role: string) => {
         </template>
       </LayoutPageHeader>
 
-      <!-- Estadísticas -->
-      <div class="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Total Plantillas</CardDescription>
-            <CardTitle class="text-3xl">{{ stats.total }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Activas</CardDescription>
-            <CardTitle class="text-3xl text-green-600">{{ stats.active }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Inactivas</CardDescription>
-            <CardTitle class="text-3xl text-muted-foreground">{{ stats.inactive }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Total Bloques</CardDescription>
-            <CardTitle class="text-3xl">{{ stats.totalBlocks }}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <!-- Estadísticas en un solo Card -->
+      <Card class="py-2">
+        <CardContent class="px-4 py-0">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 pl-1">
+              <span class="text-xs text-muted-foreground">Total Plantillas</span>
+              <span class="text-lg font-bold">{{ stats.total }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                Activas
+              </span>
+              <span class="text-lg font-bold text-green-600">{{ stats.active }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                Inactivas
+              </span>
+              <span class="text-lg font-bold text-muted-foreground">{{ stats.inactive }}</span>
+            </div>
+            <div class="flex items-center gap-2 pr-1">
+              <span class="text-xs text-muted-foreground">Total Bloques</span>
+              <span class="text-lg font-bold">{{ stats.totalBlocks }}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center py-12">

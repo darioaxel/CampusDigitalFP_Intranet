@@ -111,11 +111,10 @@ export const siteConfig = {
           ],
         },
         {
-          title: "Gestión Solicitudes",
-          url: "/admin/solicitudes/gestion",
+          title: "Gestión Bajas",
+          url: "/admin/solicitudes/bajas",
           icon: "lucide:clipboard-list",
-          items: [
-            { title: "Solicitudes pendientes", url: "/admin/solicitudes/gestion" },
+          items: [            
             { title: "Gestión de Bajas", url: "/admin/solicitudes/bajas" },
           ],
         },
