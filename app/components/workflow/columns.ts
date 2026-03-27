@@ -109,8 +109,6 @@ export function parseDate(dateStr: string): Date {
 
 // Columnas de la tabla - versión con links
 export function getColumns(getItemUrl?: GetItemUrlFn): ColumnDef<WorkflowItem>[] {
-  const NuxtLink = resolveComponent('NuxtLink')
-  
   return [
   // Tipo (Solicitud/Tarea)
   {
@@ -162,6 +160,7 @@ export function getColumns(getItemUrl?: GetItemUrlFn): ColumnDef<WorkflowItem>[]
       title: 'Título',
     }),
     cell: ({ row }) => {
+      const NuxtLink = resolveComponent('NuxtLink')
       const title = row.getValue('title') as string
       const item = row.original
       const url = getItemUrl?.(item)

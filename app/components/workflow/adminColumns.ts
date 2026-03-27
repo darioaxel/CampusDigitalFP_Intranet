@@ -18,7 +18,6 @@ export const adminColumnNames: Record<string, string> = {
 
 // Columnas de la tabla para admin (con columna completedAt opcional)
 export function getAdminColumns(showCompletedAt: boolean = false, getItemUrl?: GetItemUrlFn): ColumnDef<WorkflowItem>[] {
-  const NuxtLink = resolveComponent('NuxtLink')
   const baseColumns: ColumnDef<WorkflowItem>[] = [
     // Tipo (Solicitud/Tarea)
     {
@@ -70,6 +69,7 @@ export function getAdminColumns(showCompletedAt: boolean = false, getItemUrl?: G
         title: 'Título',
       }),
       cell: ({ row }) => {
+        const NuxtLink = resolveComponent('NuxtLink')
         const title = row.getValue('title') as string
         const item = row.original
         const url = getItemUrl?.(item)

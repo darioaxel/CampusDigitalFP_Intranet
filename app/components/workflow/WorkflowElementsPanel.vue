@@ -57,7 +57,7 @@ const colorPreview = (color: string) => {
     </div>
 
     <ScrollArea class="flex-1">
-      <Accordion type="multiple" :default-value="['snippets', 'roles']">
+      <Accordion type="multiple" :default-value="[]">
         <!-- Snippets -->
         <AccordionItem value="snippets">
           <AccordionTrigger class="px-3 py-2 text-sm hover:no-underline">

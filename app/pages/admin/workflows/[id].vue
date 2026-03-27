@@ -27,6 +27,7 @@ import {
 import WorkflowJsonEditor from '@/components/workflow/WorkflowJsonEditor.vue'
 import WorkflowElementsPanel from '@/components/workflow/WorkflowElementsPanel.vue'
 import WorkflowPreview from '@/components/workflow/WorkflowPreview.vue'
+import ConfirmDialog from '@/components/calendar/dialogs/ConfirmDialog.vue'
 
 import {
   validateWorkflowJson,
@@ -141,17 +142,6 @@ const goBack = () => {
   router.push('/admin/workflows')
 }
 
-// Descargar JSON
-const downloadJson = () => {
-  const blob = new Blob([jsonContent.value], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${validationResult.value.data?.code || 'workflow'}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 // Resetear cambios
 const showResetDialog = ref(false)
 const resetChanges = () => {
@@ -161,16 +151,6 @@ const confirmReset = () => {
   jsonContent.value = originalJson.value
   showResetDialog.value = false
   toast.success('Cambios descartados')
-}
-
-// Formatear JSON
-const formatJson = () => {
-  try {
-    const parsed = JSON.parse(jsonContent.value)
-    jsonContent.value = JSON.stringify(parsed, null, 2)
-  } catch (e) {
-    // Ignorar error
-  }
 }
 
 onMounted(fetchWorkflow)
@@ -214,26 +194,6 @@ onMounted(fetchWorkflow)
           />
           {{ isValid ? 'Válido' : 'Errores' }}
         </Badge>
-
-        <Button
-          variant="outline"
-          size="sm"
-          @click="formatJson"
-          :disabled="loading"
-        >
-          <Icon name="lucide:align-left" class="w-4 h-4 mr-1" />
-          Formatear
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          @click="downloadJson"
-          :disabled="loading"
-        >
-          <Icon name="lucide:download" class="w-4 h-4 mr-1" />
-          Descargar
-        </Button>
 
         <Button
           variant="outline"
@@ -298,10 +258,10 @@ onMounted(fetchWorkflow)
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="editor" class="flex-1 mt-0">
+          <TabsContent value="editor" class="flex-1 mt-0 flex flex-col min-h-0">
             <WorkflowJsonEditor
               v-model="jsonContent"
-              height="calc(100vh - 140px)"
+              height="auto"
               @validation="handleValidation"
             />
           </TabsContent>

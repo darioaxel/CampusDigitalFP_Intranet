@@ -96,7 +96,7 @@ const editorStatusClass = computed(() => {
 </script>
 
 <template>
-  <div class="workflow-json-editor">
+  <div class="workflow-json-editor h-full flex flex-col">
     <!-- Toolbar -->
     <div class="flex items-center justify-between p-2 bg-muted/50 border-b">
       <div class="flex items-center gap-2">
@@ -131,9 +131,9 @@ const editorStatusClass = computed(() => {
 
     <!-- Editor -->
     <div
-      class="relative flex border-2 rounded-b-md transition-colors"
+      class="relative flex border-2 rounded-b-md transition-colors flex-1 min-h-0"
       :class="editorStatusClass"
-      :style="{ height }"
+      :style="height && height !== 'auto' ? { height } : {}"
     >
       <!-- Line numbers -->
       <div class="flex-none w-12 bg-muted/30 border-r py-2 text-right select-none overflow-hidden">
@@ -151,7 +151,7 @@ const editorStatusClass = computed(() => {
       <textarea
         v-model="editorContent"
         :readonly="readOnly"
-        class="flex-1 p-2 font-mono text-sm leading-5 resize-none outline-none bg-background"
+        class="flex-1 p-2 font-mono text-sm leading-5 resize-none outline-none bg-background min-h-0 overflow-auto"
         :class="{ 'bg-muted/50': readOnly }"
         spellcheck="false"
         autocapitalize="off"
