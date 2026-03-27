@@ -1,97 +1,43 @@
 <template>
-  <div class="min-h-screen">
-    <!-- Header -->
-    <div class="bg-card border-b">
-      <div class="max-w-7xl mx-auto px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-semibold flex items-center gap-2">
-              <Clock class="h-6 w-6" />
-              Horarios de Profesores
-            </h1>
-            <p class="text-sm text-muted-foreground mt-1">
-              Visualiza y gestiona los horarios de todo el profesorado
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            <Button variant="outline" size="sm" @click="refreshData" :disabled="pending">
-              <RefreshCw class="h-4 w-4 mr-2" :class="{ 'animate-spin': pending }" />
-              Recargar
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <!-- Header -->
+      <LayoutPageHeader
+        title="Horarios de Profesores"
+        description="Visualiza y gestiona los horarios de todo el profesorado"
+        :loading="pending"
+        @refresh="refreshData"
+      />
 
-    <div class="max-w-7xl mx-auto px-6 py-6 space-y-6">
-      <!-- Resumen -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent class="pt-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">Total Profesores</p>
-                <p class="text-2xl font-bold">{{ stats.totalProfesores }}</p>
-              </div>
-              <Users class="h-8 w-8 text-muted-foreground" />
+      <!-- Estadísticas en un solo Card -->
+      <Card class="py-2">
+        <CardContent class="px-4 py-0">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 pl-1">
+              <span class="text-xs text-muted-foreground">Total Profesores</span>
+              <span class="text-lg font-bold">{{ stats.totalProfesores }}</span>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">Con Horario</p>
-                <p class="text-2xl font-bold text-green-600">{{ stats.conHorario }}</p>
-              </div>
-              <UserCheck class="h-8 w-8 text-green-500" />
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <UserCheck class="w-3 h-3 text-green-500" />
+                Con Horario
+              </span>
+              <span class="text-lg font-bold text-green-600">{{ stats.conHorario }}</span>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">Sin Horario</p>
-                <p class="text-2xl font-bold text-amber-600">{{ stats.sinHorario }}</p>
-              </div>
-              <UserX class="h-8 w-8 text-amber-500" />
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <UserX class="w-3 h-3 text-amber-500" />
+                Sin Horario
+              </span>
+              <span class="text-lg font-bold text-amber-600">{{ stats.sinHorario }}</span>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="pt-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted-foreground">Total Horarios</p>
-                <p class="text-2xl font-bold text-blue-600">{{ stats.totalHorarios }}</p>
-              </div>
-              <Calendar class="h-8 w-8 text-blue-500" />
+            <div class="flex items-center gap-2 pr-1">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar class="w-3 h-3 text-blue-500" />
+                Horarios
+              </span>
+              <span class="text-lg font-bold text-blue-600">{{ stats.totalHorarios }}</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <!-- Filtros -->
-      <Card>
-        <CardHeader>
-          <CardTitle class="text-base flex items-center gap-2">
-            <Search class="h-4 w-4" />
-            Buscar Profesor
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="flex gap-4">
-            <div class="flex-1">
-              <Input
-                v-model="searchQuery"
-                placeholder="Buscar por nombre, apellidos o email..."
-                @input="debouncedSearch"
-              />
-            </div>
-            <Button variant="ghost" size="icon" @click="clearSearch" v-if="searchQuery">
-              <X class="h-4 w-4" />
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -99,13 +45,26 @@
       <!-- Tabla de Profesores con Acordeón -->
       <Card>
         <CardHeader>
-          <CardTitle class="flex items-center justify-between">
-            <span class="flex items-center gap-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle class="flex items-center gap-2 shrink-0">
               <List class="h-5 w-5" />
               Listado de Profesores
-            </span>
-            <Badge variant="secondary">{{ filteredProfesores.length }} resultados</Badge>
-          </CardTitle>
+              <Badge variant="secondary">{{ filteredProfesores.length }} resultados</Badge>
+            </CardTitle>
+            <!-- Filtro de búsqueda -->
+            <div class="flex items-center gap-2 flex-1 max-w-md">
+              <Search class="h-4 w-4 text-muted-foreground" />
+              <Input
+                v-model="searchQuery"
+                placeholder="Buscar por nombre, apellidos o email..."
+                @input="debouncedSearch"
+                class="h-8"
+              />
+              <Button variant="ghost" size="icon" @click="clearSearch" v-if="searchQuery" class="h-8 w-8">
+                <X class="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <!-- Loading -->
@@ -412,7 +371,7 @@
 
 <script setup lang="ts">
 import {
-  Clock, Users, UserCheck, UserX, Calendar, Search, X, List,
+  Users, UserCheck, UserX, Calendar, Search, X, List,
   RefreshCw, Loader2, AlertCircle, Inbox, ChevronDown, Plus,
   Eye, Copy, Maximize2, ExternalLink, CalendarX, CalendarRange,
   Layers
