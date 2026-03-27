@@ -216,7 +216,7 @@ const availableTargets = computed(() => {
 
       <!-- Curso Actual -->
       <Card v-if="currentYear" class="border-green-200 bg-green-50/30 py-1.5">
-        <CardHeader class="p-0 px-4 pb-0.5 gap-0.5">
+        <CardHeader class="p-0 px-4 pb-0 gap-0">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Icon name="lucide:calendar-check" class="h-5 w-5 text-green-600" />
