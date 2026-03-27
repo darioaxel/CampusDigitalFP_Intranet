@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { 
   Loader2, 
-  Users,
   Stethoscope,
   Umbrella,
   ChevronLeft,
@@ -139,36 +138,31 @@ const emptyDaysAtStart = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto p-4 space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold flex items-center gap-2">
-          <Users class="h-6 w-6" />
-          Calendario de Ausencias
-        </h1>
-        <p class="text-muted-foreground text-sm">
-          Visualización de bajas y días de libre disposición
-        </p>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" @click="goToCurrentMonth">
-          Hoy
-        </Button>
-        <div class="flex items-center gap-1 border rounded-lg p-1">
-          <Button variant="ghost" size="icon" class="h-8 w-8" @click="prevMonth">
-            <ChevronLeft class="h-4 w-4" />
+    <LayoutPageHeader
+      title="Calendario de Ausencias"
+      description="Visualización de bajas y días de libre disposición"
+    >
+      <template #actions>
+        <div class="flex items-center gap-2">
+          <Button variant="outline" size="sm" @click="goToCurrentMonth">
+            Hoy
           </Button>
-          <span class="text-sm font-medium min-w-[140px] text-center capitalize">
-            {{ monthName }}
-          </span>
-          <Button variant="ghost" size="icon" class="h-8 w-8" @click="nextMonth">
-            <ChevronRight class="h-4 w-4" />
-          </Button>
+          <div class="flex items-center gap-1 border rounded-lg p-1">
+            <Button variant="ghost" size="icon" class="h-8 w-8" @click="prevMonth">
+              <ChevronLeft class="h-4 w-4" />
+            </Button>
+            <span class="text-sm font-medium min-w-[140px] text-center capitalize">
+              {{ monthName }}
+            </span>
+            <Button variant="ghost" size="icon" class="h-8 w-8" @click="nextMonth">
+              <ChevronRight class="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </LayoutPageHeader>
 
     <!-- Estadísticas -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
