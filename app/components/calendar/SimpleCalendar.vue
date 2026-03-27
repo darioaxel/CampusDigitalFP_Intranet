@@ -82,7 +82,9 @@ const currentDate = ref(new Date(props.initialDate))
 const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const currentMonthYear = computed(() => {
-  return currentDate.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  const month = currentDate.value.toLocaleDateString('es-ES', { month: 'long' })
+  const year = currentDate.value.getFullYear()
+  return `${month} ${year}`
 })
 
 // Parsear eventos una sola vez (crear copias nuevas para evitar modificar originales)

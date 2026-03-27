@@ -122,53 +122,21 @@ if (error.value) {
   <div class="min-h-screen bg-background p-4">
     <div class="mx-auto max-w-7xl">
       <!-- Cabecera -->
-      <div class="mb-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <!-- Botón volver (solo en modo revisión) -->
-          <Button 
-            v-if="isReviewMode"
-            variant="ghost" 
-            size="sm" 
-            class="h-8 w-8 p-0"
-            as-child
-          >
-            <NuxtLink to="/usuario/tareas">
-              <Icon name="lucide:arrow-left" class="h-4 w-4" />
-            </NuxtLink>
-          </Button>
-          
-          <div>
-            <h1 class="text-lg font-semibold tracking-tight text-foreground">
-              {{ isReviewMode ? 'Revisión de Horario' : 'Mis Horarios' }}
-            </h1>
-            <p class="text-xs text-muted-foreground">
-              <template v-if="isReviewMode && reviewSchedule">
-                Profesor: {{ reviewSchedule.user?.firstName }} {{ reviewSchedule.user?.lastName }} 
-                • {{ reviewSchedule.user?.email }}
-              </template>
-              <template v-else>
-                {{ user?.firstName }} {{ user?.lastName }} • {{ user?.email }}
-              </template>
-            </p>
-          </div>
-        </div>
-        
-        <div class="flex gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            @click="refresh"
-            :disabled="loading"
-            class="h-8 w-8 p-0"
-          >
-            <Icon 
-              name="lucide:refresh-cw" 
-              class="h-4 w-4"
-              :class="{ 'animate-spin': loading }"
-            />
-          </Button>
-        </div>
-      </div>
+      <LayoutPageHeader
+        :title="isReviewMode ? 'Revisión de Horario' : 'Mis Horarios'"
+        :loading="loading"
+        @refresh="refresh"
+      >
+        <template #description>
+          <template v-if="isReviewMode && reviewSchedule">
+            Profesor: {{ reviewSchedule.user?.firstName }} {{ reviewSchedule.user?.lastName }}
+            • {{ reviewSchedule.user?.email }}
+          </template>
+          <template v-else>
+            {{ user?.firstName }} {{ user?.lastName }} • {{ user?.email }}
+          </template>
+        </template>
+      </LayoutPageHeader>
 
       <!-- Panel de acción para admin (modo revisión) -->
       <div 

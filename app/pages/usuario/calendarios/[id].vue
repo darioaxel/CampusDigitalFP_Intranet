@@ -1,47 +1,20 @@
 <!-- pages/usuario/calendarios/[id].vue - Detalle de calendario normal -->
 <template>
   <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
-    <!-- Debug info (eliminar en producción) -->
-    <div v-if="false" class="bg-yellow-100 p-4 rounded text-xs font-mono">
-      <p>Calendar ID: {{ calendarId }}</p>
-      <p>Pending: {{ pending }}</p>
-      <p>Has data: {{ !!calendar }}</p>
-      <p>Events count: {{ events.length }}</p>
-      <pre>{{ JSON.stringify(calendar, null, 2) }}</pre>
-    </div>
-
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <Button variant="ghost" size="sm" as-child>
-            <NuxtLink to="/usuario/calendarios">
-              <Icon name="lucide:arrow-left" class="h-4 w-4 mr-1" />
-              Volver
-            </NuxtLink>
-          </Button>
-        </div>
-        <h1 class="text-2xl font-bold">{{ calendar?.data?.name || 'Cargando...' }}</h1>
-        <p class="text-muted-foreground text-sm">
-          {{ calendar?.data?.description }}
-        </p>
-      </div>
-      
-      <div class="flex items-center gap-2">
-        <Badge v-if="calendar?.data?.academicYear" variant="outline" class="text-xs">
-          {{ calendar.data.academicYear }}
+    <LayoutPageHeader
+      :title="calendar?.data?.name || 'Cargando...'"
+      :description="calendar?.data?.description || ''"
+      back-to="/usuario/calendarios"
+      :loading="pending"
+      @refresh="refresh"
+    >
+      <template #actions>
+        <Badge v-if="calendar?.data?.academicYear?.name" variant="outline" class="text-xs">
+          Curso {{ calendar.data.academicYear.name }}
         </Badge>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          :disabled="pending"
-          @click="refresh()"
-        >
-          <Loader2 v-if="pending" class="h-4 w-4 animate-spin" />
-          <Icon v-else name="lucide:refresh-cw" class="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+      </template>
+    </LayoutPageHeader>
 
     <!-- Loading -->
     <div v-if="pending" class="flex items-center justify-center py-12">
@@ -61,11 +34,11 @@
     <template v-else>
       <!-- Info del calendario -->
       <Card class="bg-muted/50">
-        <CardContent class="py-4">
+        <CardContent class="py-1">
           <div class="flex items-center gap-6 text-sm">
             <div class="flex items-center gap-2">
               <Icon name="lucide:calendar" class="h-4 w-4 text-muted-foreground" />
-              <span>{{ calendar.data.academicYear }}</span>
+              <span>Curso {{ calendar.data.academicYear?.name }}</span>
             </div>
             <div class="flex items-center gap-2">
               <Icon name="lucide:clock" class="h-4 w-4 text-muted-foreground" />
@@ -81,10 +54,7 @@
 
       <!-- Vista del calendario (SimpleCalendar) -->
       <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-lg">Calendario</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent class="pt-6">
           <SimpleCalendar 
             :events="calendarEvents"
             :initial-date="initialDate"
@@ -119,17 +89,12 @@ const { data: calendar, pending, refresh } = await useFetch(() => `/api/calendar
 
 const events = computed(() => {
   const eventList = calendar.value?.data?.events || []
-  console.log('Eventos recibidos de la API:', eventList.length, eventList)
+
   return eventList
 })
 
-// Fecha inicial para el calendario (inicio del calendario o hoy)
-const initialDate = computed(() => {
-  if (calendar.value?.data?.startDate) {
-    return new Date(calendar.value.data.startDate)
-  }
-  return new Date()
-})
+// Fecha inicial para el calendario (mes actual)
+const initialDate = computed(() => new Date())
 
 // Transformar eventos para el componente de calendario
 const calendarEvents = computed(() => {
@@ -149,7 +114,7 @@ const calendarEvents = computed(() => {
       description: event.description,
     }
   })
-  console.log('Eventos mapeados para SimpleCalendar:', mapped)
+
   return mapped
 })
 
@@ -177,7 +142,5 @@ function viewEventDetails(eventId: string) {
   }
 }
 
-// Log inicial
-console.log('Calendar ID:', calendarId)
-console.log('Calendar data:', calendar.value)
+
 </script>

@@ -2,26 +2,24 @@
 <template>
   <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold">Calendarios</h1>
-        <p class="text-muted-foreground text-sm">
-          Consulta los calendarios escolares, evaluaciones y eventos
-        </p>
-      </div>
-      
-      <!-- Selector de año académico -->
-      <Select v-model="selectedYear">
-        <SelectTrigger class="w-[180px]">
-          <SelectValue placeholder="Año académico" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="year in academicYears" :key="year" :value="year">
-            {{ year }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <LayoutPageHeader
+      title="Calendarios"
+      description="Consulta los calendarios escolares, evaluaciones y eventos"
+    >
+      <template #actions>
+        <!-- Selector de año académico -->
+        <Select v-model="selectedYear">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue placeholder="Año académico" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="year in academicYears" :key="year" :value="year">
+              {{ year }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </template>
+    </LayoutPageHeader>
 
     <!-- Loading -->
     <div v-if="pending" class="flex items-center justify-center py-12">
