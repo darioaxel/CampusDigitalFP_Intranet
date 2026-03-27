@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen">
-    <!-- Header -->
-    <div class="px-6 py-4 border-b">
-      <h1 class="text-xl font-semibold">Gestión de Usuarios</h1>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+      <!-- Header -->
+      <LayoutPageHeader
+        title="Gestión de Usuarios"
+        description="Administra los usuarios del sistema, roles y permisos"
+      />
       <!-- Acciones en lote -->
       <Card v-if="selectedRows.length > 0" class="border-primary/50 bg-primary/5">
         <CardContent class="py-4">
