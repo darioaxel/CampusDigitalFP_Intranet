@@ -215,8 +215,8 @@ const availableTargets = computed(() => {
       </LayoutPageHeader>
 
       <!-- Curso Actual -->
-      <Card v-if="currentYear" class="border-green-200 bg-green-50/30">
-        <CardHeader class="pb-3">
+      <Card v-if="currentYear" class="border-green-200 bg-green-50/30 py-2">
+        <CardHeader class="pb-1">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Icon name="lucide:calendar-check" class="h-5 w-5 text-green-600" />
@@ -227,7 +227,7 @@ const availableTargets = computed(() => {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent class="py-0">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-2xl font-bold">{{ currentYear.name }}</p>
