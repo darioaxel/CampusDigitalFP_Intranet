@@ -148,7 +148,7 @@ const emptyDaysAtStart = computed(() => {
     <!-- Estadísticas y Filtros en la misma fila -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
       <!-- Estadísticas en un solo Card -->
-      <Card class="flex-1">
+      <Card class="flex-1 py-2">
         <CardContent class="px-4 py-0">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 pl-1">
