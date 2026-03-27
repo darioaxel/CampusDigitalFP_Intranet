@@ -148,54 +148,79 @@ const getTransitionLabel = (code?: string): string => {
       description="Administra las comunicaciones de baja del profesorado"
     />
 
-    <!-- Estadísticas -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <Card v-for="(value, key) in stats" :key="key">
-        <CardContent class="p-4">
-          <p class="text-2xl font-bold">{{ value }}</p>
-          <p class="text-xs text-muted-foreground capitalize">
-            {{ key === 'pendingDocs' ? 'Esperando Docs' : 
-               key === 'pendingValidation' ? 'Pend. Validación' : 
-               key === 'pending' ? 'Pend. Notificación' : key }}
-          </p>
+    <!-- Estadísticas y Filtros en la misma fila -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <!-- Estadísticas en un solo Card -->
+      <Card class="flex-1 py-2">
+        <CardContent class="px-4 py-0">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 pl-1">
+              <span class="text-xs text-muted-foreground">Pend. Notif.</span>
+              <span class="text-lg font-bold">{{ stats.pending }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground">Notificado</span>
+              <span class="text-lg font-bold">{{ stats.notified }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground">Esperando Docs</span>
+              <span class="text-lg font-bold">{{ stats.pendingDocs }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-muted-foreground">Pend. Val.</span>
+              <span class="text-lg font-bold">{{ stats.pendingValidation }}</span>
+            </div>
+            <div class="flex items-center gap-2 pr-1">
+              <span class="text-xs text-muted-foreground">Validado</span>
+              <span class="text-lg font-bold">{{ stats.validated }}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
-    </div>
 
-    <!-- Filtros -->
-    <div class="flex flex-col sm:flex-row gap-4">
-      <div class="relative flex-1">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          v-model="searchQuery"
-          placeholder="Buscar por nombre, email..."
-          class="pl-10"
-        />
+      <!-- Filtro de estado -->
+      <div class="flex items-center gap-2 shrink-0">
+        <Filter class="w-4 h-4 text-muted-foreground" />
+        <Select v-model="filterState">
+          <SelectTrigger class="w-[200px]">
+            <SelectValue placeholder="Filtrar por estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="pending_notification">Pendiente de Notificación</SelectItem>
+            <SelectItem value="notified">Notificado</SelectItem>
+            <SelectItem value="pending_docs">Esperando Documentación</SelectItem>
+            <SelectItem value="pending_validation">Esperando Validación</SelectItem>
+            <SelectItem value="validated">Validado</SelectItem>
+            <SelectItem value="rejected">Rechazado</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <Select v-model="filterState">
-        <SelectTrigger class="w-[200px]">
-          <Filter class="w-4 h-4 mr-2" />
-          <SelectValue placeholder="Filtrar por estado" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos los estados</SelectItem>
-          <SelectItem value="pending_notification">Pendiente de Notificación</SelectItem>
-          <SelectItem value="notified">Notificado</SelectItem>
-          <SelectItem value="pending_docs">Esperando Documentación</SelectItem>
-          <SelectItem value="pending_validation">Esperando Validación</SelectItem>
-          <SelectItem value="validated">Validado</SelectItem>
-          <SelectItem value="rejected">Rechazado</SelectItem>
-        </SelectContent>
-      </Select>
     </div>
 
     <!-- Lista de solicitudes -->
     <Card>
       <CardHeader>
-        <CardTitle>Solicitudes de Baja</CardTitle>
-        <CardDescription>
-          {{ filteredRequests.length }} solicitudes encontradas
-        </CardDescription>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle>Solicitudes de Baja</CardTitle>
+            <CardDescription>
+              {{ filteredRequests.length }} solicitudes encontradas
+            </CardDescription>
+          </div>
+          <!-- Filtro de búsqueda -->
+          <div class="flex items-center gap-2 flex-1 max-w-md">
+            <Search class="h-4 w-4 text-muted-foreground" />
+            <Input
+              v-model="searchQuery"
+              placeholder="Buscar por nombre, email..."
+              class="h-8"
+            />
+            <Button variant="ghost" size="icon" @click="searchQuery = ''" v-if="searchQuery" class="h-8 w-8">
+              <X class="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div v-if="pending" class="flex justify-center py-12">
