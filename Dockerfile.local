@@ -3,8 +3,10 @@
 # =============================================================================
 # USO: Primero hacer 'pnpm build' en local, luego 'docker build -f Dockerfile.local .'
 # 
-# Este Dockerfile usa pnpm fetch para instalar exactamente las mismas 
-# dependencias del lockfile sin copiar node_modules desde local
+# Este Dockerfile:
+#   - Copia el build ya hecho (.output/)
+#   - Copia node_modules desde local (con todas las deps transitivas)
+#   - Copia archivos de Prisma
 # =============================================================================
 
 FROM node:22-alpine AS production
@@ -18,23 +20,12 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nuxt -u 1001
 
-# 1. Copiar SOLO lockfile primero (para cacheo máximo de capas)
-COPY --chown=nuxt:nodejs pnpm-lock.yaml ./
-
-# 2. Descargar todas las dependencias del lockfile (sin necesidad de package.json)
-RUN corepack enable && corepack prepare pnpm@10.12.1 --activate && \
-    pnpm fetch
-
-# 3. Copiar package.json y prisma (necesarios para install y postinstall)
-COPY --chown=nuxt:nodejs package.json ./
-COPY --chown=nuxt:nodejs prisma.config.ts ./
-COPY --chown=nuxt:nodejs prisma ./prisma
-
-# 4. Instalar dependencias desde el store (offline, rápido)
-RUN pnpm install --offline --frozen-lockfile
-
-# 5. Copiar el build ya hecho
+# Copiar TODO el build y dependencias desde local
 COPY --chown=nuxt:nodejs .output ./.output
+COPY --chown=nuxt:nodejs node_modules ./node_modules
+COPY --chown=nuxt:nodejs package.json ./
+COPY --chown=nuxt:nodejs prisma ./prisma
+COPY --chown=nuxt:nodejs prisma.config.ts ./
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production

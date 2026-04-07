@@ -159,12 +159,18 @@ log_info "=========================================="
 
 # Comprimir el build (excluyendo node_modules que están en el servidor)
 log_info "Comprimiendo build..."
+log_info "Incluyendo node_modules (solo dependencias de producción necesarias)..."
 tar -czf "$BUILD_ARCHIVE" \
-    --exclude='node_modules' \
     --exclude='.git' \
     --exclude='.nuxt' \
     --exclude='.pnpm-store' \
+    --exclude='node_modules/.cache' \
+    --exclude='node_modules/.bin' \
+    --exclude='node_modules/.modules.yaml' \
+    --exclude='node_modules/@*/*/.cache' \
+    --exclude='node_modules/@*/*/node_modules/.cache' \
     .output/ \
+    node_modules/ \
     package.json \
     pnpm-lock.yaml \
     prisma/ \
