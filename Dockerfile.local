@@ -5,8 +5,8 @@
 # 
 # Este Dockerfile:
 #   - Copia el build ya hecho (.output/)
-#   - Instala SOLO dependencias de producción (node_modules)
-#   - Copia archivos necesarios para Prisma
+#   - Instala dependencias
+#   - Genera cliente Prisma
 # =============================================================================
 
 FROM node:22-alpine AS production
@@ -20,21 +20,19 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nuxt -u 1001
 
-# Copiar archivos de configuración de dependencias PRIMERO (para cacheo)
+# 1. Copiar archivos de configuración PRIMERO (para cacheo de capas)
 COPY --chown=nuxt:nodejs package.json pnpm-lock.yaml ./
+COPY --chown=nuxt:nodejs prisma.config.ts ./
 
-# Instalar dependencias (incluyendo devDependencies para Prisma)
-# Luego generar cliente Prisma
-RUN corepack enable && corepack prepare pnpm@10.12.1 --activate && \
-    pnpm install --frozen-lockfile && \
-    pnpm prisma generate
-
-# Copiar el build ya hecho (debe existir .output/ en tu máquina local)
-COPY --chown=nuxt:nodejs .output ./.output
-
-# Copiar archivos de Prisma (necesarios para migraciones)
+# 2. Copiar esquemas de Prisma (necesarios para postinstall)
 COPY --chown=nuxt:nodejs prisma ./prisma
-COPY --chown=nuxt:nodejs prisma.config.ts ./prisma.config.ts
+
+# 3. Instalar dependencias (incluye postinstall que genera cliente Prisma)
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate && \
+    pnpm install --frozen-lockfile
+
+# 4. Copiar el build ya hecho (debe existir .output/ en tu máquina local)
+COPY --chown=nuxt:nodejs .output ./.output
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production
