@@ -63,7 +63,7 @@ export default defineNuxtConfig({
   vite: {
      plugins: [tailwindcss()],
      build: {
-       sourcemap: false, // Desactivar sourcemaps para evitar warnings de Tailwind
+       sourcemap: false, // Desactivar sourcemaps para reducir uso de memoria // Desactivar sourcemaps para evitar warnings de Tailwind
      },
   },
   
@@ -83,6 +83,8 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    minify: false, // Desactiva minificación para reducir uso de memoria
+    sourceMap: false,
     externals: {
       external: ['@prisma/client', '.prisma/client']
     },

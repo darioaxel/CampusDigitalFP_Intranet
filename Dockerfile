@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS dependencies
+FROM node:22-alpine AS dependencies
 
 # Instalar pnpm
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
@@ -23,7 +23,7 @@ RUN pnpm install
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
@@ -40,6 +40,10 @@ COPY . .
 ENV NODE_ENV=production
 ENV NUXT_TELEMETRY_DISABLED=1
 
+# Desactivar paralelismo de workers y limitar uso de memoria
+ENV NODE_OPTIONS="--max-old-space-size=3072"
+ENV NITRO_MINIFY=false
+
 # Generar cliente Prisma (por si acaso)
 RUN pnpm prisma generate
 
@@ -49,7 +53,7 @@ RUN pnpm build
 # -----------------------------------------------------------------------------
 # Stage 3: Production
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 # Instalar herramientas necesarias
 RUN apk add --no-cache wget ca-certificates
