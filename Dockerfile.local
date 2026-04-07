@@ -23,10 +23,11 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copiar archivos de configuración de dependencias PRIMERO (para cacheo)
 COPY --chown=nuxt:nodejs package.json pnpm-lock.yaml ./
 
-# Instalar SOLO dependencias de producción
-# Esto instala node_modules necesario para ejecutar la app
+# Instalar dependencias (incluyendo devDependencies para Prisma)
+# Luego generar cliente Prisma
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate && \
-    pnpm install --frozen-lockfile --production
+    pnpm install --frozen-lockfile && \
+    pnpm prisma generate
 
 # Copiar el build ya hecho (debe existir .output/ en tu máquina local)
 COPY --chown=nuxt:nodejs .output ./.output
