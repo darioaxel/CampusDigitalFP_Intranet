@@ -123,3 +123,7 @@ prisma/generated/
 .output/*
 uploads/*
 .data/content/contents.sqlite
+
+# Build temporal para deploy desde PC local
+build-output.tar.gz
+*.tar.gz
