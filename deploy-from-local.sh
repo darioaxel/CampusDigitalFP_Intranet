@@ -221,7 +221,7 @@ ssh "$SERVER_USER@$SERVER_HOST" "cd $SERVER_DIR && \
     fi && \
     \
     echo '[INFO] Deteniendo contenedores...' && \
-    docker compose -f docker-compose.local.yml down 2>/dev/null || docker compose down && \
+    docker compose -f docker-compose.local.yml --env-file .env down 2>/dev/null || docker compose --env-file .env down && \
     \
     echo '[INFO] Limpiando imágenes antiguas...' && \
     docker system prune -f && \
@@ -230,7 +230,7 @@ ssh "$SERVER_USER@$SERVER_HOST" "cd $SERVER_DIR && \
     docker compose -f docker-compose.local.yml build --no-cache && \
     \
     echo '[INFO] Iniciando servicios...' && \
-    docker compose -f docker-compose.local.yml up -d && \
+    docker compose -f docker-compose.local.yml --env-file .env up -d && \
     \
     echo '[INFO] Ejecutando migraciones...' && \
     sleep 5 && \
