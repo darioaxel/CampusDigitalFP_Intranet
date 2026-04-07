@@ -1,6 +1,6 @@
 // ~/server/api/auth/register.post.ts
 import { z } from 'zod'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import pkg from '@prisma/client'
 const { Role } = pkg
 

@@ -1,6 +1,6 @@
 // POST /api/users - Crear un nuevo usuario (solo ADMIN/ROOT)
 import { z } from 'zod'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 const createUserSchema = z.object({
   firstName: z.string().min(2, 'Nombre muy corto'),

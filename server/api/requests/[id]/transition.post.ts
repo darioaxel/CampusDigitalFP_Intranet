@@ -2,7 +2,7 @@
 // Transicionar el estado de una solicitud usando workflow configurable
 
 import { z } from 'zod'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { canManageRequests } from '../../../utils/workflow/stateMachine'
 import { workflowEngine } from '../../../utils/workflow/engine'
 

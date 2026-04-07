@@ -1,6 +1,6 @@
 // ~/server/api/auth/login.post.ts
 import { z } from 'zod'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 const loginSchema = z.object({
   email: z.string().email().toLowerCase(),
