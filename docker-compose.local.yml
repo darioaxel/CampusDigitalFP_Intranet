@@ -1,0 +1,51 @@
+# =============================================================================
+# Docker Compose - Campus Digital FP Intranet (BUILD LOCAL)
+# =============================================================================
+# PRIMER PASO: Ejecutar 'pnpm build' en tu máquina local
+# SEGUNDO PASO: Ejecutar 'docker compose -f docker-compose.local.yml build'
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Aplicación Nuxt (Intranet) - Usa build local
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: intranet-app
+    restart: unless-stopped
+    environment:
+      # Base de datos: usar shared-postgres (postgres compartido)
+      DATABASE_URL: postgresql://${DB_USER:-intranet_app}:${DB_PASSWORD}@shared-postgres:5432/${DB_NAME:-campus_intranet}?schema=public
+      DIRECT_DATABASE_URL: postgresql://${DB_USER:-intranet_app}:${DB_PASSWORD}@shared-postgres:5432/${DB_NAME:-campus_intranet}?schema=public
+      
+      # Seguridad
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
+      
+      # OAuth (opcional)
+      NUXT_OAUTH_GOOGLE_CLIENT_ID: ${NUXT_OAUTH_GOOGLE_CLIENT_ID:-}
+      NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${NUXT_OAUTH_GOOGLE_CLIENT_SECRET:-}
+      
+      # Entorno
+      NODE_ENV: production
+      NITRO_PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - intranet-network
+      - postgres-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  intranet-network:
+    driver: bridge
+  postgres-network:
+    external: true
