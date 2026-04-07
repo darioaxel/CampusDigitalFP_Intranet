@@ -163,6 +163,7 @@ tar -czf "$BUILD_ARCHIVE" \
     --exclude='node_modules' \
     --exclude='.git' \
     --exclude='.nuxt' \
+    --exclude='.pnpm-store' \
     .output/ \
     package.json \
     pnpm-lock.yaml \
@@ -170,7 +171,6 @@ tar -czf "$BUILD_ARCHIVE" \
     prisma.config.ts \
     docker-compose.local.yml \
     Dockerfile.local \
-    .env.production \
     2>/dev/null || true
 
 if [ ! -f "$BUILD_ARCHIVE" ]; then
