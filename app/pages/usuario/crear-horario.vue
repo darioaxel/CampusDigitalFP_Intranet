@@ -427,7 +427,7 @@ const getStatusLabel = (status: string) => {
             <Card 
               v-for="template in templates" 
               :key="template.id"
-              class="cursor-pointer hover:border-primary transition-colors hover:shadow-md !p-0 !gap-0 overflow-hidden"
+              class="cursor-pointer hover:border-primary transition-colors hover:shadow-md !p-0 !gap-0 pb-1 overflow-hidden"
               @click="selectTemplate(template)"
             >
               <CardHeader class="py-3 px-4">
@@ -443,7 +443,7 @@ const getStatusLabel = (status: string) => {
                 </CardDescription>
               </CardHeader>
               
-              <CardContent class="pt-0">
+              <CardContent class="pt-0 pb-0.5">
                 <p v-if="template.description" class="text-xs text-muted-foreground line-clamp-2">
                   {{ template.description }}
                 </p>
