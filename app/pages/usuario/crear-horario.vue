@@ -358,8 +358,8 @@ const getStatusLabel = (status: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background p-4">
-    <div class="mx-auto max-w-7xl">
+  <div>
+    <div class="max-w-7xl mx-auto">
       <!-- PASO 1: Seleccionar Template -->
       <template v-if="step === 'select-template'">
         <div class="mb-6">

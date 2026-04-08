@@ -33,8 +33,8 @@ const getNivelLabel = (nivel: string) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background p-4">
-    <div class="mx-auto max-w-7xl" v-if="ciclo">
+  <div>
+    <div class="max-w-7xl mx-auto" v-if="ciclo">
       <!-- Cabecera -->
       <LayoutPageHeader
         :title="ciclo.nombre"

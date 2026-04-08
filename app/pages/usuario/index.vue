@@ -1,8 +1,8 @@
 <!-- pages/usuario/index.vue -->
 <template>
-  <div class="min-h-screen">
+  <div>
     <!-- Header compacto -->
-    <div class="relative bg-cover bg-center bg-no-repeat py-2 px-6 bg-gradient-to-r from-tyto-primary/80 to-tyto-primary">
+    <div class="relative bg-cover bg-center bg-no-repeat p-4 mb-2 bg-gradient-to-r from-tyto-primary/80 to-tyto-primary">
       <div class="absolute inset-0 bg-black/40"></div>
       <div class="relative z-10 flex items-center gap-2 text-sm">
         <span class="font-semibold text-white drop-shadow-lg">¡Hola {{ userName }}! 👋</span>
@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div class="max-w-7xl mx-auto space-y-6">
       <!-- Resumen -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4 text-sm text-muted-foreground">

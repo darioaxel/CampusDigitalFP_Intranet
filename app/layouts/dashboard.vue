@@ -32,7 +32,7 @@ import DynamicBreadCrumb from '@/components/layout/dashboard/DynamicBreadCrumb.v
           <ThemeToggle />
         </div>
       </header>
-       <main class="flex-1">
+       <main class="flex-1 bg-background p-4">
       <slot />
     </main>
     </SidebarInset>

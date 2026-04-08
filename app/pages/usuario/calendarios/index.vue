@@ -1,6 +1,6 @@
 <!-- pages/usuario/calendarios/index.vue -->
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+  <div class="max-w-7xl mx-auto space-y-6">
     <!-- Header -->
     <LayoutPageHeader
       title="Calendarios"

@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-muted/30">
+  <div>
     <!-- Header -->
     <div class="bg-card border-b">
-      <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="max-w-7xl mx-auto p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
             <NuxtLink 
@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-6 py-6">
+    <div class="max-w-7xl mx-auto space-y-6">
       <div v-if="pending" class="flex items-center justify-center py-12">
         <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
         <span class="ml-2 text-muted-foreground">Cargando solicitud...</span>

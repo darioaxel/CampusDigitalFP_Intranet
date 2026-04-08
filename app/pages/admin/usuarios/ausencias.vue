@@ -138,7 +138,7 @@ const emptyDaysAtStart = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto p-4 space-y-6">
+  <div class="max-w-7xl mx-auto space-y-6">
     <!-- Header -->
     <LayoutPageHeader
       title="Calendario de Ausencias"

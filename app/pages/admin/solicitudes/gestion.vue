@@ -1,6 +1,6 @@
 <!-- pages/admin/solicitudes/gestion.vue -->
 <template>
-  <div class="min-h-screen p-4">
+  <div>
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header -->
       <LayoutPageHeader

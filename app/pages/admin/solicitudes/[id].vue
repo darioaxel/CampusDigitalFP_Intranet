@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-muted/30 p-4">
+  <div>
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header -->
       <LayoutPageHeader
@@ -14,7 +14,7 @@
         </template>
       </LayoutPageHeader>
 
-    <div class="max-w-7xl mx-auto px-6 py-6">
+    <div class="max-w-7xl mx-auto space-y-6">
       <div v-if="pending" class="flex items-center justify-center py-12">
         <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
         <span class="ml-2 text-muted-foreground">Cargando solicitud...</span>

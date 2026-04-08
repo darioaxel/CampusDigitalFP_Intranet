@@ -15,8 +15,8 @@ const modulo = computed(() => moduloResponse.value?.data)
 </script>
 
 <template>
-  <div class="min-h-screen bg-background p-4">
-    <div class="mx-auto max-w-7xl" v-if="modulo">
+  <div>
+    <div class="max-w-7xl mx-auto" v-if="modulo">
       <!-- Cabecera -->
       <LayoutPageHeader
         :title="modulo.nombre"

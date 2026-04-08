@@ -184,8 +184,8 @@ onMounted(fetchWorkflows)
 </script>
 
 <template>
-  <div class="min-h-screen bg-background p-4 md:p-6">
-    <div class="mx-auto max-w-7xl space-y-6">
+  <div>
+    <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header -->
       <LayoutPageHeader
         title="Workflows Configurables"

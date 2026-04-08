@@ -119,8 +119,8 @@ if (error.value) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background p-4">
-    <div class="mx-auto max-w-7xl">
+  <div>
+    <div class="max-w-7xl mx-auto">
       <!-- Cabecera -->
       <LayoutPageHeader
         :title="isReviewMode ? 'Revisión de Horario' : 'Mis Horarios'"

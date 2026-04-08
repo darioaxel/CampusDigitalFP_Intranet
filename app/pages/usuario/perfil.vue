@@ -144,7 +144,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-8 px-4 max-w-4xl">
+  <div class="max-w-4xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold">Mi Perfil</h1>
