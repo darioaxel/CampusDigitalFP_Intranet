@@ -9,6 +9,7 @@ import { seedAcademicYears } from './seeders/academic-years.seeder.js'
 // import { ScheduleSeeder } from './seeders/schedules.seeder.js'
 // import { seedStudies } from './seeders/studies.seeder.js'
 import { seedSchedules2025_2026 } from './seeders/schedules-2025-2026.seeder.js'
+import { seedEspacios } from './seeders/espacios.seeder.js'
 // import { seedFreeDispositionCalendar } from './seeders/calendars-free-disposition.seeder.js'
 // import { seedTasks } from './seeders/task.seeder.js'
 // import { seedRequests } from './seeders/request.seeder.js'
@@ -49,6 +50,7 @@ async function main() {
     await prisma.schedule.deleteMany()
     await prisma.scheduleTemplateRole.deleteMany()
     await prisma.academicYear.deleteMany()
+    await prisma.espacio.deleteMany()
 
     // ========================================
     // DATOS ESENCIALES PARA PRUEBAS
@@ -70,6 +72,9 @@ async function main() {
 
     // 5. Horarios de profesores para el curso 2025-2026
     await seedSchedules2025_2026()
+
+    // 6. Espacios del centro
+    await seedEspacios(prisma)
 
     // ========================================
     // DATOS NO ESENCIALES (comentados para pruebas del workflow NEW_USER)

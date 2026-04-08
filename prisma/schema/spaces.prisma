@@ -1,0 +1,18 @@
+// spaces.prisma - Gestión de espacios físicos (salas, cabinas, aulas)
+
+model Espacio {
+  id           String   @id @default(uuid())
+  nombre       String   @unique // Nombre del espacio (ej: "Cabina 1", "Sala de profesores")
+  planta       Int      // Planta donde se encuentra (0, 1, 2...)
+  observaciones String? // Notas adicionales sobre el espacio
+
+  // Horario asignado al espacio (opcional)
+  scheduleId   String?  @unique
+  schedule     Schedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([planta])
+  @@index([nombre])
+}

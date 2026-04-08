@@ -55,6 +55,9 @@ model Schedule {
   academicYearId String?
   academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
   
+  // Relación con espacio (un horario puede estar asignado a un espacio)
+  espacio Espacio?
+  
   // Historial: si este horario es una copia de otro (para trazabilidad)
   parentScheduleId String?
   parentSchedule   Schedule?  @relation("ScheduleHistory", fields: [parentScheduleId], references: [id])

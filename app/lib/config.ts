@@ -135,6 +135,14 @@ export const siteConfig = {
             { title: "Gestionar Horarios", url: "/admin/horarios" },
             { title: "Gestionar Cursos", url: "/admin/cursos" },
           ],
+        },
+        {
+          title: "Espacios",
+          url: "/admin/espacios",
+          icon: "lucide:door-open",
+          items: [
+            { title: "Gestionar Espacios", url: "/admin/espacios" },
+          ],
         }        
       ]
     },
