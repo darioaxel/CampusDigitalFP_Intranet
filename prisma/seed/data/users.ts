@@ -101,5 +101,23 @@ export const rawUsers: UserData[] = [
     phone: '+34555555555',
     birthDate: yearsAgo(22),
     emailPersonal: 'marta.lopez@email.com',    
+  },
+  {
+    email: 'compras@example.com',
+    password: 'compras1234',
+    role: Role.RESP_COMPRAS,
+    firstName: 'Pedro',
+    lastName: 'Ruiz',
+    dni: '66666666G',
+    phone: '+34666666666',
+    birthDate: yearsAgo(35),
+    emailPersonal: 'pedro.ruiz@email.com',
+    address: {
+      addressLine: 'Calle de las Compras 45',
+      floorDoor: '2º A',
+      postalCode: '28015',
+      locality: 'Madrid',
+      province: 'Madrid',
+    },
   },    
 ]

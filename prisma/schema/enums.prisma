@@ -6,6 +6,7 @@ enum Role {
   JEFE_DEPT
   ADMIN
   ROOT
+  RESP_COMPRAS
 }
 
 // HORARIOS --------------------

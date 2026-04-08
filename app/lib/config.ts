@@ -145,7 +145,53 @@ export const siteConfig = {
           ],
         }        
       ]
+    },{
+      title: 'Jefe de Departamento',
+      roles: ['JEFE_DEPT', 'ROOT'],
+      items: [
+        {
+          title: "Programaciones Académicas",
+          url: "/jefe_depto/programaciones",
+          icon: "lucide:receipt",
+          items: [
+            { title: "Administrar programaciones", url: "/jefe_depto/programaciones" },
+            { title: "Seguimiento", url: "/jefe_depto/seguimiento" },         
+          ],
+        }, 
+        {
+          title: "Compras de Materiales",
+          url: "/jefe_depto/compras",
+          icon: "lucide:receipt",
+          items: [
+            { title: "Solicitudes de compras", url: "/jefe_depto/compras" },        
+          ],
+        },
+      ]
     },
+    {
+      title: 'Compras',
+      roles: ['RESP_COMPRAS', 'ADMIN', 'ROOT'],
+      items: [
+        {
+          title: 'Gestión de Compras',
+          url: '/compras',
+          icon: 'lucide:shopping-cart',
+          items: [
+            { title: 'Solicitudes de compra', url: '/compras/solicitudes' },
+            { title: 'Proveedores', url: '/compras/proveedores' },
+          ],
+        },        
+        {
+          title: 'Informes',
+          url: '/compras/informes',
+          icon: 'lucide:bar-chart-3',
+          items: [
+            { title: 'Informe de gastos', url: '/compras/informes/gastos' },
+            { title: 'Informe por proveedor', url: '/compras/informes/proveedores' },
+          ],
+        },
+      ]
+    }
   ] as NavSection[],
   navSecondary: [
     {
