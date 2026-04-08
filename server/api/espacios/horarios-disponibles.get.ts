@@ -1,6 +1,6 @@
 // GET /api/espacios/horarios-disponibles - Listar horarios disponibles para asignar a espacios
 import { defineEventHandler, createError, getQuery } from 'h3'
-import { prisma } from '../utils/db'
+import { prisma } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   try {

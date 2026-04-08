@@ -241,6 +241,16 @@ const getPlantaBadgeColor = (planta: number) => {
   return colors[planta] || 'bg-gray-100 text-gray-800'
 }
 
+// Estadísticas computadas
+const stats = computed(() => {
+  const total = espacios.value.length
+  const conHorario = espacios.value.filter(e => e.scheduleId).length
+  const sinHorario = total - conHorario
+  const plantas = new Set(espacios.value.map(e => e.planta)).size
+  
+  return { total, conHorario, sinHorario, plantas }
+})
+
 // Agrupar espacios por planta
 const espaciosPorPlanta = computed(() => {
   const grouped: Record<number, Espacio[]> = {}
@@ -260,13 +270,15 @@ const plantasOrdenadas = computed(() => {
     .sort((a, b) => a - b)
 })
 
-// Cargar datos iniciales
-await fetchEspacios()
+// Cargar datos al montar
+onMounted(() => {
+  fetchEspacios()
+})
 </script>
 
 <template>
   <div>
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header -->
       <LayoutPageHeader
         title="Gestión de Espacios"
@@ -279,6 +291,34 @@ await fetchEspacios()
           </Button>
         </template>
       </LayoutPageHeader>
+
+      <!-- Estadísticas -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Total Espacios</CardDescription>
+            <CardTitle class="text-2xl">{{ stats.total }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Con Horario</CardDescription>
+            <CardTitle class="text-2xl text-green-600">{{ stats.conHorario }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Sin Horario</CardDescription>
+            <CardTitle class="text-2xl text-amber-600">{{ stats.sinHorario }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Plantas</CardDescription>
+            <CardTitle class="text-2xl">{{ stats.plantas }}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
 
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center py-12">
@@ -304,22 +344,22 @@ await fetchEspacios()
             <Card 
               v-for="espacio in espaciosPorPlanta[planta]"
               :key="espacio.id"
-              class="hover:border-primary transition-colors"
+              class="transition-all hover:shadow-md"
             >
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
-                  <div class="flex items-center gap-2">
-                    <div class="bg-primary/10 p-2 rounded-lg">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class="bg-primary/10 p-2 rounded-lg shrink-0">
                       <Icon name="lucide:door-open" class="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                      <CardTitle class="text-base">{{ espacio.nombre }}</CardTitle>
+                    <div class="min-w-0 flex-1">
+                      <CardTitle class="text-base truncate">{{ espacio.nombre }}</CardTitle>
                       <CardDescription class="text-xs">
                         Planta {{ espacio.planta }}
                       </CardDescription>
                     </div>
                   </div>
-                  <div class="flex gap-1">
+                  <div class="flex gap-1 shrink-0">
                     <Button 
                       variant="ghost" 
                       size="icon"
@@ -340,25 +380,29 @@ await fetchEspacios()
                 </div>
               </CardHeader>
               
-              <CardContent class="pt-0 space-y-3">
+              <CardContent class="pt-0">
                 <!-- Observaciones -->
-                <p v-if="espacio.observaciones" class="text-sm text-muted-foreground line-clamp-2">
+                <p v-if="espacio.observaciones" class="text-sm text-muted-foreground mb-3 line-clamp-2">
                   {{ espacio.observaciones }}
                 </p>
                 
-                <!-- Horario asignado -->
-                <div class="flex items-center justify-between text-sm pt-2 border-t">
-                  <span class="text-muted-foreground">Horario:</span>
-                  <div v-if="espacio.schedule" class="flex items-center gap-1">
-                    <Icon name="lucide:clock" class="h-3 w-3 text-primary" />
-                    <span class="text-xs font-medium">{{ espacio.schedule.name }}</span>
-                    <Badge variant="outline" class="text-xs ml-1">
+                <div class="space-y-2 text-sm">
+                  <div class="flex items-center justify-between">
+                    <span class="text-muted-foreground">Horario:</span>
+                    <div v-if="espacio.schedule" class="flex items-center gap-1">
+                      <Icon name="lucide:clock" class="h-3 w-3 text-primary" />
+                      <span class="text-xs font-medium">{{ espacio.schedule.name }}</span>
+                    </div>
+                    <Badge v-else variant="outline" class="text-xs">
+                      Sin asignar
+                    </Badge>
+                  </div>
+                  <div v-if="espacio.schedule" class="flex items-center justify-between">
+                    <span class="text-muted-foreground">Tipo:</span>
+                    <Badge variant="secondary" class="text-xs">
                       {{ getScheduleTypeLabel(espacio.schedule.type) }}
                     </Badge>
                   </div>
-                  <span v-else class="text-xs text-muted-foreground italic">
-                    Sin horario asignado
-                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -367,13 +411,15 @@ await fetchEspacios()
       </div>
 
       <!-- Empty state -->
-      <div v-else class="flex flex-col items-center justify-center py-16">
-        <div class="bg-muted/50 p-6 rounded-full">
-          <Icon name="lucide:building" class="h-12 w-12 text-muted-foreground opacity-50" />
+      <div v-else class="flex flex-col items-center justify-center py-16 border rounded-lg">
+        <div class="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+          <Icon name="lucide:building" class="h-10 w-10 text-muted-foreground" />
         </div>
-        <p class="mt-4 text-lg font-medium">No hay espacios configurados</p>
-        <p class="text-muted-foreground text-sm">Crea el primer espacio para empezar</p>
-        <Button class="mt-4" @click="openCreateModal">
+        <h3 class="text-lg font-medium">No hay espacios configurados</h3>
+        <p class="text-muted-foreground text-sm mt-1 mb-4">
+          Crea espacios para gestionar las salas y cabinas del centro
+        </p>
+        <Button @click="openCreateModal">
           <Icon name="lucide:plus" class="mr-2 h-4 w-4" />
           Crear primer espacio
         </Button>
